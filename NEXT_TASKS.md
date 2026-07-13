@@ -6,13 +6,10 @@ statuses live in `CURRENT_STATE.md`._
 
 ## Up next
 
-1. **P0.7 — CI/CD.** GitHub Actions pipeline: typecheck → `npm run validate` → unit
-   tests → build → Playwright smoke; deploy static output to Cloudflare Pages with
-   branch preview deployments and CSP headers. Keep the app portable (standing
-   condition in DECISIONS.md): no Cloudflare-specific application logic or data
-   dependencies. _Accepted when:_ a push runs the full pipeline; a red validate blocks
-   deploy; the site is live at a public URL with per-branch previews; CSP verified in
-   response headers.
+1. **USER ACTION — enable deployment** (closes P0.7's live-URL criterion): create the
+   Cloudflare Pages project `agent-atlas`, add repo secrets `CLOUDFLARE_API_TOKEN` +
+   `CLOUDFLARE_ACCOUNT_ID`, set repo variable `CLOUDFLARE_DEPLOY_ENABLED=true`
+   (steps in docs/DEPLOYMENT.md). CI itself already runs on every push.
 2. **P0.8 — Docs** (INTAKE.md; AUTHORING.md exists since P0.6 — extend only if gaps).
 3. **P0.9 — "Tokens" exemplar end-to-end** (real BPE, Tier-2 visual, full DoD).
 

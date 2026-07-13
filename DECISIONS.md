@@ -49,6 +49,24 @@ project start would be pure debt. Plan references to "Astro 5" should be read as
   path, and `z.string().url()` is deprecated in favor of `z.url()`. Schemas and tests
   are written Zod-4-native.
 
+## 2026-07-13 — P0.7: CI/CD and security decisions
+
+- **CSP as per-page `<meta>` via Astro's `security.csp`, not host headers.** Astro
+  inlines island-loader scripts and small styles, so `script-src 'self'` header CSP
+  would break islands; Astro's built-in CSP hashes exactly what it inlines, per page.
+  Wins: host-portable (policy travels with the HTML — satisfies the portability
+  standing condition), and browser-enforced, so the Playwright suite is a live CSP
+  regression test. `public/_headers` carries only meta-ignored directives
+  (frame-ancestors/X-Frame-Options, nosniff, referrer/permissions policies).
+- **Concepts filter script externalized** to `public/scripts/concept-filters.js` —
+  authored inline scripts would need manual hash maintenance; external + `'self'` is
+  simpler and equally strict.
+- **Deploy gating via repository variable** `CLOUDFLARE_DEPLOY_ENABLED` (job-level
+  `if:` cannot read secrets); until the user adds the Cloudflare secrets + variable,
+  CI runs fully and deploy is skipped rather than failing.
+- **Only the ~10-line deploy job is Cloudflare-coupled**; swap hosts by swapping that
+  job (documented per-host header translation in docs/DEPLOYMENT.md).
+
 ## 2026-07-13 — P0.6: concept-system decisions
 
 - **Content-model v2** (CONTENT_SCHEMA_VERSION 2): three additive fields closing gaps

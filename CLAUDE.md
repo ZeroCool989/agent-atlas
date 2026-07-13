@@ -6,6 +6,12 @@ in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) and ADRs 0001–00
 [docs/adr/](docs/adr/). This file is the short version; when it conflicts with the plan
 or an ADR, the ADR wins and this file must be fixed.
 
+**Read [docs/EXECUTION_PROTOCOL.md](docs/EXECUTION_PROTOCOL.md) before implementing
+anything** — the standing working constitution: optimize for teaching over software
+elegance; work every task from four perspectives (engineer, teacher, interviewer,
+governance expert); one approved task at a time with the nine-point completion report;
+never silently diverge from approved architecture.
+
 ## Stack (ADR-0001, ADR-0003, ADR-0004)
 
 - **Astro 5** + TypeScript (strict) + MDX + Tailwind CSS 4. Static output.

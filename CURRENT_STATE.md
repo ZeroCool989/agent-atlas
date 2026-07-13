@@ -13,12 +13,20 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 | P0.4 ModelProvider + ScriptedProvider | ✅ complete (2026-07-13) |
 | P0.5 Viz foundation | ✅ complete (2026-07-13) |
 | P0.6 Layouts + routes + template lint | ✅ complete (2026-07-13) |
-| P0.7 CI/CD | not started |
+| P0.7 CI/CD | ✅ repo-side complete (2026-07-13) — deploy awaits Cloudflare secrets (see NEXT_TASKS) |
 | P0.8 Docs (INTAKE.md, AUTHORING.md) | not started |
 | P0.9 "Tokens" exemplar | not started |
 
 ## What exists right now
 
+- **CI/CD + security posture (P0.7):** `.github/workflows/ci.yml` runs typecheck →
+  validate → unit tests → build → Playwright e2e on every push/PR, then a gated deploy
+  job (Cloudflare Pages, previews per branch) that activates only when
+  `CLOUDFLARE_DEPLOY_ENABLED=true` + secrets exist. Strict CSP via Astro's
+  `security.csp` (per-page meta with hashes — host-portable, browser-enforced, so e2e
+  doubles as CSP regression); header-only directives in `public/_headers`; the concepts
+  filter script externalized to `public/scripts/`. Docs: `docs/DEPLOYMENT.md`,
+  `docs/EXECUTION_PROTOCOL.md` (standing working constitution, linked from CLAUDE.md).
 - **Concept system (P0.6):** `/concepts` index (layer-grouped, layer/status filters via
   shareable URL params + inline progressive enhancement) and `/concepts/[slug]` pages
   (verdict box, needs-update banner, separated prerequisite/related lists with target
