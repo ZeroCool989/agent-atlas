@@ -1,0 +1,24 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'An interactive atlas of modern AI systems.' } = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} · Agent Atlas</title>
+  </head>
+  <body class="min-h-screen bg-white text-slate-900 antialiased">
+    <slot />
+  </body>
+</html>

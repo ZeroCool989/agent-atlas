@@ -1,0 +1,34 @@
+# build output
+dist/
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# environment variables (real-model experiment keys live here — never committed)
+.env
+.env.*
+!.env.example
+
+# real-model experiment outputs (transcripts are checked in deliberately via src/content/sources)
+experiments/output/
+experiments/**/*.local.*
+
+# test artifacts
+test-results/
+playwright-report/
+coverage/
+
+# macOS-specific files
+.DS_Store
+
+# jetbrains setting folder
+.idea/
