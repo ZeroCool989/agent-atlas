@@ -49,6 +49,28 @@ project start would be pure debt. Plan references to "Astro 5" should be read as
   path, and `z.string().url()` is deprecated in favor of `z.url()`. Schemas and tests
   are written Zod-4-native.
 
+## 2026-07-13 — P0.4: model-layer decisions
+
+- **Scenario format: JSON + Zod validation** (`*.scenario.json`, `parseScenario`).
+  Chosen over YAML (one less parser in lib/) and TS fixtures (no runtime validation, not
+  loadable as data by future playground islands for visual playback). Teaching
+  annotations live in the scenario file but outside the runtime response types.
+- **System instructions are a request field, not a message role.** Providers disagree
+  about where system text goes; `ModelRequest.system` keeps the shared type neutral and
+  adapters map it. Message roles are `user`/`assistant`/`tool` only.
+- **Session state = provider instance.** One `ScriptedProvider` = one replay; fresh
+  replay = new instance; over-consumption throws `scenario-exhausted`. No module-level
+  mutable state; no `reset()` (a new instance is cheaper and more obvious).
+- **Intentional interface omissions** (await evidence from the P1 real-model
+  experiment): generation settings, streaming, multimodal, parallel-tool-call semantics,
+  prompt caching, reasoning tokens, capability negotiation. Additions must be
+  evidence-driven, backward-compatible where reasonable, and recorded here (standing
+  condition from the Phase 0 approval).
+- **`zod` added as a direct dependency.** lib/ purity forbids `astro/zod` inside
+  `src/lib/`; plain `zod` is the same library (4.4.3, deduped with Astro's copy).
+  Content schemas keep using `astro/zod` (they live outside lib/ in Astro's instance);
+  lib schemas use `zod` directly.
+
 ## 2026-07-13 — P0.3: graph and validation decisions
 
 - **One narrow disk adapter, documented trade-off.** Astro's content layer can't be

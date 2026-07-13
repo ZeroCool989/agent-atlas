@@ -1,0 +1,51 @@
+{
+  "id": "calculator-tool-use",
+  "description": "Canonical two-call tool-use flow: the user asks an arithmetic question, the model selects the calculator tool, the agent runtime executes it and appends the result, and the model turns the observation into a final answer. Used by the P0.4 acceptance tests and, later, the flagship lesson's execution-trace visualization.",
+  "model": "scripted-tool-user-v1",
+  "turns": [
+    {
+      "expect": {
+        "roleSequence": ["user"],
+        "lastMessageContains": "127",
+        "toolsInclude": ["calculator"]
+      },
+      "respond": {
+        "text": "I'll work that out with the calculator.",
+        "toolCalls": [
+          {
+            "id": "call-1",
+            "toolName": "calculator",
+            "arguments": { "expression": "127 * 49" }
+          }
+        ],
+        "stopReason": "tool-call",
+        "usage": {
+          "latencyMs": 420,
+          "inputTokens": 63,
+          "outputTokens": 24,
+          "totalTokens": 87,
+          "cost": { "amount": 0.00071, "currency": "USD", "basis": "declared" }
+        }
+      },
+      "teaching": "The model does not compute — it recognizes that arithmetic is unreliable in-weights and SELECTS the calculator tool. Note the stop reason: 'tool-call' means the model is waiting for something outside itself."
+    },
+    {
+      "expect": {
+        "roleSequence": ["user", "assistant", "tool"],
+        "toolResultForCallId": "call-1"
+      },
+      "respond": {
+        "text": "127 × 49 = 6,223.",
+        "stopReason": "completed",
+        "usage": {
+          "latencyMs": 380,
+          "inputTokens": 104,
+          "outputTokens": 12,
+          "totalTokens": 116,
+          "cost": { "amount": 0.00088, "currency": "USD", "basis": "declared" }
+        }
+      },
+      "teaching": "The AGENT RUNTIME (not the model, not this provider) executed the tool and appended the result as a tool message. The model now consumes that observation and produces the final answer — stop reason 'completed'. Two model calls, one tool round-trip: the smallest real agent step."
+    }
+  ]
+}

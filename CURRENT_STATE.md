@@ -10,7 +10,7 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 | P0.1 Scaffold | ✅ complete (2026-07-13) |
 | P0.2 Content schemas | ✅ complete (2026-07-13) |
 | P0.3 Graph builder + integrity CI | ✅ complete (2026-07-13) |
-| P0.4 ModelProvider + ScriptedProvider | not started |
+| P0.4 ModelProvider + ScriptedProvider | ✅ complete (2026-07-13) |
 | P0.5 Viz foundation | not started |
 | P0.6 Layouts + routes + template lint | not started |
 | P0.7 CI/CD | not started |
@@ -19,6 +19,15 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 
 ## What exists right now
 
+- **Model layer (P0.4):** `src/lib/model/` — provider-neutral `ModelProvider` contract
+  (`complete(request) => response` with typed messages, tool definitions/calls, six-value
+  stop-reason vocabulary, all-optional usage metadata, typed errors) and
+  `ScriptedProvider` (instance-owned session state, four-matcher divergence detection,
+  deterministic replay, deep-cloned responses). Scenario format: JSON validated by Zod
+  (`parseScenario`); acceptance scenario `calculator-tool-use` covers the two-call tool
+  round-trip. Boundary rule: *the model selects a tool; the agent runtime validates and
+  executes it.* Docs: `docs/MODEL_PROVIDER.md` (incl. three-consumer interface review).
+  19 new tests, 74 total. No real provider, no SDKs, no keys (P1 experiment).
 - **Knowledge graph + validation (P0.3):** pure graph core in `src/lib/graph/`
   (build → integrity → deterministic serialize; findings as data with stable diagnostic
   codes) and the `npm run validate` CLI (`scripts/validate-content.ts`) — the one narrow
