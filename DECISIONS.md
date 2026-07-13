@@ -49,6 +49,31 @@ project start would be pure debt. Plan references to "Astro 5" should be read as
   path, and `z.string().url()` is deprecated in favor of `z.url()`. Schemas and tests
   are written Zod-4-native.
 
+## 2026-07-13 — P0.3: graph and validation decisions
+
+- **One narrow disk adapter, documented trade-off.** Astro's content layer can't be
+  cleanly invoked from a standalone script (loaders run inside the build's virtual-module
+  context), so `scripts/validate-content.ts` reads files itself — but it reuses
+  `src/content.schemas.ts` and `flatEntryId` verbatim, so validation rules and identifier
+  derivation each have exactly one definition. Only frontmatter/YAML *parsing* is
+  adapter-local. If Astro ever exposes a supported programmatic content API, replace the
+  adapter (nothing else changes — the graph core is filesystem-free).
+- **`graph.json` is generated, gitignored, never committed** (`src/generated/`). It
+  derives entirely from content; committing it would create a second source of truth.
+  CI order (P0.7) guarantees freshness: validate runs before build.
+- **Severity choices within the approved scope:** self-references and wrong-collection
+  targets are failures (they are referential-integrity errors, the plan's "dangling
+  slugs" class); duplicate references within one field are warnings (harmless sloppiness,
+  not approved as a CI-blocking rule). "Complete requires prerequisites ≥ draft" (plan
+  §19): only `stub` prerequisites fail; `draft`/`complete`/`needs-update` are acceptable.
+- **Orphan definition:** a concept touched by no edge of any type in either direction
+  (concept/interview/governance/source linkage all absent). Having no prerequisites is
+  explicitly NOT orphanhood — foundational concepts legitimately have none. No exemption
+  field was added (none justified yet). Warnings only; CI passes with a visible report.
+- **New dev-only dependencies:** `tsx` (run TS scripts with extension-less imports —
+  Node's native type-stripping can't resolve them) and `yaml` (parse entries outside
+  Astro). Neither ships to the site bundle.
+
 ## 2026-07-13 — P0.1: minor scaffold notes
 
 - Tailwind 4 is wired via `@tailwindcss/vite` plugin + `@import "tailwindcss"` in

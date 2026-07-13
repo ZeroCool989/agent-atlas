@@ -49,3 +49,12 @@ export type SourceType = (typeof SOURCE_TYPES)[number];
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const SLUG_MESSAGE =
   'must be a kebab-case identifier (lowercase letters/digits separated by hyphens), matching the referenced entry’s filename';
+
+/**
+ * Derives an entry's flat id from its path relative to the collection base:
+ * `foundation/tokens.mdx` → `tokens`. Shared by the Astro loader config and the
+ * validate-content adapter so the two can never disagree about identifiers.
+ */
+export function flatEntryId(relativePath: string): string {
+  return relativePath.split('/').pop()!.replace(/\.[^.]+$/, '');
+}

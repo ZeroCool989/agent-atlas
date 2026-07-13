@@ -19,9 +19,9 @@ import {
   interviewSchema,
   sourceSchema,
 } from './content.schemas';
+import { flatEntryId } from './lib/content/model';
 
-const flatId = ({ entry }: { entry: string }) =>
-  entry.split('/').pop()!.replace(/\.[^.]+$/, '');
+const flatId = ({ entry }: { entry: string }) => flatEntryId(entry);
 
 const concepts = defineCollection({
   loader: glob({ pattern: '**/*.mdx', base: './src/content/concepts', generateId: flatId }),

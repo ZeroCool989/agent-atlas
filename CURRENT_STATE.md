@@ -9,7 +9,7 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 |---|---|
 | P0.1 Scaffold | ✅ complete (2026-07-13) |
 | P0.2 Content schemas | ✅ complete (2026-07-13) |
-| P0.3 Graph builder + integrity CI | not started |
+| P0.3 Graph builder + integrity CI | ✅ complete (2026-07-13) |
 | P0.4 ModelProvider + ScriptedProvider | not started |
 | P0.5 Viz foundation | not started |
 | P0.6 Layouts + routes + template lint | not started |
@@ -19,6 +19,13 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 
 ## What exists right now
 
+- **Knowledge graph + validation (P0.3):** pure graph core in `src/lib/graph/`
+  (build → integrity → deterministic serialize; findings as data with stable diagnostic
+  codes) and the `npm run validate` CLI (`scripts/validate-content.ts`) — the one narrow
+  disk adapter, reusing the P0.2 Zod schemas and `flatEntryId`. Fail/warn scope per plan
+  §7; cycle findings include the actual path; orphans warn without failing. Deterministic
+  `graph.json` → `src/generated/` (gitignored, generated-only). Docs: `docs/GRAPH.md`.
+  36 new tests (graph core + CLI boundary), 55 total.
 - **Content model (P0.2):** all five collections (`concepts`, `interview`, `governance`,
   `sources`, `glossary`) defined in `src/content.config.ts` with strict Zod schemas in
   `src/content.schemas.ts`; shared vocabulary (layers, statuses, roles, slug rules,

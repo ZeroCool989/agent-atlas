@@ -6,20 +6,21 @@ statuses live in `CURRENT_STATE.md`._
 
 ## Up next
 
-1. **P0.3 — Graph builder + integrity CI.** Pure functions in `src/lib/graph/` emitting
-   `graph.json`; `scripts/validate-content` implementing the plan §7 fail/warn split.
-   Cross-entry rules deferred from P0.2: dangling references (prerequisites, related,
-   governance, sources, appliesTo, interview→concepts, source routedTo), prerequisite
-   cycles, `complete`-with-`stub`-prereqs, orphan *warning* report. Note: duplicate flat
-   ids are caught by Astro's loader; undispositioned sources are already schema-level —
-   don't re-implement. _Accepted when:_ unit tests cover every fail rule + the warn
-   rule; a broken fixture fails `npm run validate`; an orphan passes with a warning.
-2. **P0.4 — ModelProvider + ScriptedProvider** (see standing condition in DECISIONS.md).
-3. **P0.5 — Viz foundation** (Stepper + Tokens primitives).
-4. **P0.6 — Layouts + routes + template lint.**
-5. **P0.7 — CI/CD** (GitHub Actions → Cloudflare Pages; keep portable per DECISIONS.md).
-6. **P0.8 — Docs** (INTAKE.md, AUTHORING.md).
-7. **P0.9 — "Tokens" exemplar end-to-end.**
+1. **P0.4 — ModelProvider + ScriptedProvider** in `src/lib/model/`: minimal
+   `complete(request) => response` interface with typed tool-call support and per-call
+   metadata (latency, tokens, cost estimate); `ScriptedProvider` replaying deterministic
+   scenario files. Standing condition in DECISIONS.md: sufficient for scripted scenarios,
+   the hand-built agent loop, and the first real-model experiment — evolvable with
+   evidence, no artificial permanence. No React/Astro/SDK imports. _Accepted when:_ unit
+   tests replay a multi-step tool-use scenario deterministically; interface reviewed
+   against ADR-0005's shape; nothing in `lib/model/` imports a framework.
+2. **P0.5 — Viz foundation** (Stepper + Tokens primitives).
+3. **P0.6 — Layouts + routes + template lint.** Tracked deferral: the six-element
+   interview-package lint for `complete` concepts lands here.
+4. **P0.7 — CI/CD** (GitHub Actions → Cloudflare Pages; keep portable per DECISIONS.md;
+   `npm run validate` is ready to be called as a pipeline step).
+5. **P0.8 — Docs** (INTAKE.md, AUTHORING.md).
+6. **P0.9 — "Tokens" exemplar end-to-end.**
 
 ## Rules of engagement (Phase 0)
 
