@@ -8,7 +8,7 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 | Task | Status |
 |---|---|
 | P0.1 Scaffold | ✅ complete (2026-07-13) |
-| P0.2 Content schemas | not started |
+| P0.2 Content schemas | ✅ complete (2026-07-13) |
 | P0.3 Graph builder + integrity CI | not started |
 | P0.4 ModelProvider + ScriptedProvider | not started |
 | P0.5 Viz foundation | not started |
@@ -18,6 +18,17 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 | P0.9 "Tokens" exemplar | not started |
 
 ## What exists right now
+
+- **Content model (P0.2):** all five collections (`concepts`, `interview`, `governance`,
+  `sources`, `glossary`) defined in `src/content.config.ts` with strict Zod schemas in
+  `src/content.schemas.ts`; shared vocabulary (layers, statuses, roles, slug rules,
+  `CONTENT_SCHEMA_VERSION`) in `src/lib/content/model.ts` (pure TS, reusable by P0.3).
+  One valid fixture per collection under `src/content/`, all anchored on the tokens
+  draft. Entry-local rules enforced at build: identifier format, enums, dates,
+  undispositioned-intake, needs-update-requires-reason, unknown-key rejection.
+  Cross-entry rules (dangling refs, cycles, six-element package) deliberately deferred
+  to P0.3/P0.6. 19 unit tests cover valid + invalid cases; real-build failures verified
+  readable (file + field + message).
 
 - Astro 7 + TypeScript strict + Tailwind 4 + MDX + React 19 islands, scaffolded and
   building. Placeholder home page (`src/pages/index.astro`) via `src/layouts/Base.astro`,

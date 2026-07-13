@@ -1,0 +1,5 @@
+term: "token"
+definition: >-
+  A chunk of text — often a word piece — that a language model treats as one unit.
+  Produced by a tokenizer (e.g., BPE); the unit in which context windows, billing, and
+  rate limits are measured.

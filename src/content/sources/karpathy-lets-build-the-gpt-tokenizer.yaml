@@ -1,0 +1,11 @@
+type: video
+title: "Andrej Karpathy — Let's build the GPT Tokenizer"
+url: "https://www.youtube.com/watch?v=zduSFxRajkE"
+ingestedAt: 2026-07-13
+routedTo:
+  - tokens
+decisions: >-
+  Logged as the primary walkthrough source for the tokens concept (P0.2 fixture).
+  Routed to: tokens (draft). Creates no new concept; contradicts nothing existing.
+  Contributes the letter-counting follow-up to the interview bank; suggests the BPE
+  merge visualization for the Tokenizer playground (P0.9/L0 build project).

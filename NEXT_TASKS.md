@@ -6,18 +6,20 @@ statuses live in `CURRENT_STATE.md`._
 
 ## Up next
 
-1. **P0.2 — Content schemas.** `src/content.config.ts` with all five collections
-   (`concepts`, `interview`, `governance`, `sources`, `glossary`) per plan §6, including
-   the layer enum, `status`/`needsUpdateReason`, and the six-element interview fields.
-   _Accepted when:_ one valid fixture per collection builds; each schema-violation class
-   (missing layer, bad enum, malformed date) fails the build with a readable error.
-2. **P0.3 — Graph builder + integrity CI** (fail/warn scope per plan §7).
-3. **P0.4 — ModelProvider + ScriptedProvider** (see standing condition in DECISIONS.md).
-4. **P0.5 — Viz foundation** (Stepper + Tokens primitives).
-5. **P0.6 — Layouts + routes + template lint.**
-6. **P0.7 — CI/CD** (GitHub Actions → Cloudflare Pages; keep portable per DECISIONS.md).
-7. **P0.8 — Docs** (INTAKE.md, AUTHORING.md).
-8. **P0.9 — "Tokens" exemplar end-to-end.**
+1. **P0.3 — Graph builder + integrity CI.** Pure functions in `src/lib/graph/` emitting
+   `graph.json`; `scripts/validate-content` implementing the plan §7 fail/warn split.
+   Cross-entry rules deferred from P0.2: dangling references (prerequisites, related,
+   governance, sources, appliesTo, interview→concepts, source routedTo), prerequisite
+   cycles, `complete`-with-`stub`-prereqs, orphan *warning* report. Note: duplicate flat
+   ids are caught by Astro's loader; undispositioned sources are already schema-level —
+   don't re-implement. _Accepted when:_ unit tests cover every fail rule + the warn
+   rule; a broken fixture fails `npm run validate`; an orphan passes with a warning.
+2. **P0.4 — ModelProvider + ScriptedProvider** (see standing condition in DECISIONS.md).
+3. **P0.5 — Viz foundation** (Stepper + Tokens primitives).
+4. **P0.6 — Layouts + routes + template lint.**
+5. **P0.7 — CI/CD** (GitHub Actions → Cloudflare Pages; keep portable per DECISIONS.md).
+6. **P0.8 — Docs** (INTAKE.md, AUTHORING.md).
+7. **P0.9 — "Tokens" exemplar end-to-end.**
 
 ## Rules of engagement (Phase 0)
 

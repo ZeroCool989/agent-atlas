@@ -1,0 +1,39 @@
+question: "What is a token, and why do language models use tokens instead of words or characters?"
+concepts:
+  - tokens
+roles:
+  - engineer
+  - architect
+difficulty: screen
+answers:
+  beginner: >-
+    A token is the chunk of text a model actually processes — usually a piece of a word.
+    Tokenizers like BPE split text into a fixed vocabulary of these chunks, which is a
+    practical middle ground between characters (sequences too long) and whole words
+    (vocabulary too large, no way to handle new words).
+  professional: >-
+    Models operate over a fixed vocabulary, and tokenization is how arbitrary text is
+    mapped into it. Byte-pair encoding starts from bytes and repeatedly merges the most
+    frequent pairs, so common words become single tokens while rare words decompose into
+    pieces. This matters operationally: billing and context limits are measured in
+    tokens, latency scales with token count, and tokenizer quirks explain classic
+    failures like miscounting letters — the model never sees characters, only token ids.
+  deep: >-
+    Tokenization is a compression/coverage trade-off fixed before training: a larger
+    vocabulary shortens sequences (cheaper attention) but grows the embedding matrix and
+    starves rare tokens of training signal. Because merges are learned from a corpus,
+    tokenization is domain-sensitive — code, non-English text, and numbers fragment
+    differently, with direct cost and quality consequences. The token boundary is also a
+    security-relevant surface: the model's inability to see below tokens is one reason
+    character-level obfuscation can slip past naive filters.
+followUps:
+  - "How does tokenization affect API cost and latency in practice?"
+  - "Why can a model be bad at counting the letters in a word?"
+  - "When would you not trust token counts from one model's tokenizer to estimate another's?"
+practicalExample: >-
+  L0 build project (planned, plan §3): the BPE tokenizer in src/lib/sim that powers the
+  Tokenizer playground — run merges on a sample string and inspect the boundaries.
+governanceAngle: >-
+  Token counts are the unit of billing and context limits, so they appear in cost
+  controls and capacity planning; EU AI Act GPAI documentation obligations reference
+  training scale, commonly reported in tokens.

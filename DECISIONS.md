@@ -23,6 +23,32 @@ hatch) is architecture, not version-specific, and pinning a two-major-old releas
 project start would be pure debt. Plan references to "Astro 5" should be read as
 "current stable Astro".
 
+## 2026-07-13 — P0.2: content-model decisions
+
+- **Entry ids come from filenames, not frontmatter.** Plan §6 lists `slug`/`id` fields;
+  duplicating the filename in frontmatter invites drift, so the filename IS the
+  identifier (Astro content-layer convention). Concepts live in layer subfolders but get
+  *flat* ids via `generateId` (`foundation/tokens.mdx` → `tokens`), so references stay
+  short; duplicate basenames across folders collide and Astro reports a duplicate-id
+  error — which is the desired behavior.
+- **Entry-local vs cross-entry validation split.** Zod schemas enforce everything
+  provable from one file: identifier *format* (kebab-case), enums, dates, URL shape,
+  `needs-update` ⇒ `needsUpdateReason`, undispositioned-intake (empty `routedTo` AND
+  empty `decisions` fails — the plan §7 rule, promoted from the P0.3 validator to the
+  schema since it's entry-local), and unknown-key rejection (`.strict()`, typo
+  protection). Cross-entry rules (dangling refs, cycles, complete-with-stub-prereqs,
+  six-element interview package, orphan warnings) are P0.3/P0.6 — Astro's per-entry
+  validation cannot express them, and Astro's `reference()` helper was deliberately not
+  used so the P0.3 validator stays the single source of truth for referential integrity
+  (it needs warn-only semantics Astro can't do).
+- **Schema evolution convention:** `CONTENT_SCHEMA_VERSION` in `src/lib/content/model.ts`
+  is bumped on any schema change, with an entry here (or an ADR if the approved §6 model
+  itself changes). Version 1 = the approved plan §6 model.
+- **`astro/zod` is Zod 4** (4.4.3), not Zod 3: custom messages use `{ error }` not
+  `{ errorMap }`, unrecognized-key issues carry the key in the message rather than the
+  path, and `z.string().url()` is deprecated in favor of `z.url()`. Schemas and tests
+  are written Zod-4-native.
+
 ## 2026-07-13 — P0.1: minor scaffold notes
 
 - Tailwind 4 is wired via `@tailwindcss/vite` plugin + `@import "tailwindcss"` in
