@@ -14,7 +14,7 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 | P0.5 Viz foundation | ✅ complete (2026-07-13) |
 | P0.6 Layouts + routes + template lint | ✅ complete (2026-07-13) |
 | P0.7 CI/CD | ✅ repo-side complete (2026-07-13) — deploy awaits Cloudflare secrets (see NEXT_TASKS) |
-| P0.8 Docs (INTAKE.md, AUTHORING.md) | not started |
+| P0.8 Docs (INTAKE.md, AUTHORING.md, README) | ✅ complete (2026-07-13) |
 | P0.9 "Tokens" exemplar | not started |
 
 ## What exists right now

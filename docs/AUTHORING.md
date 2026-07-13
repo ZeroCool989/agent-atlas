@@ -1,42 +1,97 @@
 # Authoring Guide
 
-How to write Agent Atlas content that builds, validates, and teaches. Companion to the
-content model (plan §6, `src/content.schemas.ts`), the graph rules (docs/GRAPH.md), and
-the visual system (docs/VISUAL_LANGUAGE.md). Everything here is enforced by
-`npm run validate` — run it before committing content.
+How to write Agent Atlas content that teaches — and that builds, validates, and stays
+maintainable. Part 1 is how to think; Part 2 is the mechanics the validator enforces.
+Run `npm run validate` before committing content.
 
-## Identifiers and URLs
+---
+
+## Part 1 — How to think about a concept
+
+### Start from the problem, not the thing
+
+Every concept page walks the reader through a *history of pressure*: something hurt,
+someone invented a fix, the fix has costs. That's why the nine canonical questions are
+ordered the way they are — problem → invention → mechanism → judgment. If you find
+yourself opening with a definition, stop and ask: *what broke before this existed?*
+A reader who knows the pressure can re-derive the invention; a reader who memorized the
+definition cannot.
+
+### One mental model per concept
+
+Give the reader a single, honest anchor image early (tokens → Lego bricks; embeddings →
+coordinates in meaning space; RAG → open-book exam; agents → a manager that thinks,
+observes, acts, decides — see docs/EXECUTION_PROTOCOL.md). Convention: a blockquote
+right after the intro paragraph, before "What problem existed before this?":
+
+```md
+> **Mental model:** …one or two sentences. Then one sentence on where the analogy breaks —
+> every analogy breaks, and saying where is what keeps it honest.
+```
+
+### Manage cognitive load deliberately
+
+- One new idea per section. If a section teaches two things, split or cut.
+- Concrete before abstract: show a real token split before defining BPE.
+- The visualization carries the mechanism; the prose carries the judgment. Don't
+  narrate the visual in prose — let it be watched (steppable, scrubbable).
+- Short sentences for load-bearing claims. Complexity budget goes to the *idea*, not
+  the prose.
+- Progressive depth is structural: oneLiner → mental model → sections → deep interview
+  answers. A reader can stop at any level and leave with something true.
+
+### Be honest, per the platform's own rules
+
+Always distinguish "would I recommend this in production?" from "would I recommend
+this for learning?" — the answers often differ; say so explicitly. The verdict box
+exists for this judgment: fill it like a skeptical senior engineer, not a fan. Never
+add hype-driven content; fashionable things enter at the rim
+(`framework-abstraction` / `vendor-specific`) and earn their way inward.
+
+### Write for both audiences at once
+
+The beginner needs *why this exists*; the experienced engineer needs *when it fails and
+what it costs*. The template forces both (problem/invention sections vs
+trade-offs/avoid sections). If a section only serves one audience, the tiering is off.
+
+### The completeness self-check
+
+Before marking anything `complete`, run the learning review (EXECUTION_PROTOCOL.md):
+after studying this page, can the reader explain it simply · explain why it exists ·
+say when NOT to use it · build a minimal implementation · answer interview questions ·
+state governance implications · connect it to prior concepts? The validator checks the
+structure; only you can check the substance.
+
+---
+
+## Part 2 — Mechanics (what the validator enforces)
+
+### Identifiers and URLs
 
 - An entry's **id is its filename** (kebab-case, no extension): `context-windows.mdx`
-  → id `context-windows` → public URL `/concepts/context-windows`.
-- Layer subfolders (`concepts/foundation/…`) organize files **without changing ids or
-  URLs** — ids are flat, so basenames must be unique across all subfolders (collisions
-  fail the build). There is no second slug source: never put an id/slug in frontmatter.
+  → `/concepts/context-windows`. Layer subfolders organize files **without changing
+  ids or URLs**; basenames must be unique repo-wide. Never put an id/slug in
+  frontmatter — there is no second slug source.
 - Every cross-reference (`prerequisites`, `related`, `governance`, `sources`,
-  interview `concepts`, governance `appliesTo`, source `routedTo`) is one of these
-  filename ids; the validator checks existence and the right collection.
+  interview `concepts`, governance `appliesTo`, source `routedTo`) is a filename id;
+  the validator checks existence *and* the right collection (docs/GRAPH.md).
 
-## Concept status semantics
+### Status semantics
 
 | Status | Meaning | Template lint |
 |---|---|---|
-| `stub` | Planned territory: metadata + a short "will cover" note. Appears on the atlas deliberately. | not linted |
-| `draft` | Real content in progress; may have partial canonical sections. | not linted |
+| `stub` | Planned territory: metadata + a "will cover" note. On the atlas deliberately. | not linted |
+| `draft` | Real content in progress; partial sections allowed. | not linted |
 | `complete` | Meets the full Definition of Done below. | fully linted |
-| `needs-update` | Previously complete; intake flagged it (`needsUpdateReason` required). Structural completeness still applies — the status flags freshness, not structure. | fully linted |
+| `needs-update` | Previously complete; intake flagged it (`needsUpdateReason` required). Structure still linted — the status flags freshness, not structure. | fully linted |
 
-A stub needs only: `title`, `layer`, `oneLiner`, `status`, `updated`, and whatever
-relationships already make sense. Make stubs look intentionally incomplete (a "will
-cover" blockquote), never broken.
+Stubs need only `title`, `layer`, `oneLiner`, `status`, `updated` + sensible
+relationships, and must look intentionally incomplete, never broken.
 
-## Definition of Done for `complete` (plan §19)
+### Definition of Done for `complete` (plan §19; codes in docs/GRAPH.md + template.ts)
 
-`npm run validate` enforces every item; codes in parentheses.
-
-1. **All nine canonical sections** as level-2+ headings with EXACT wording
-   (`TEMPLATE_MISSING_REQUIRED_SECTION`). Matching normalizes case, whitespace, and
-   trailing punctuation — nothing else. The nine (from plan §2, defined in
-   `src/lib/content/model.ts` as `CANONICAL_SECTIONS`):
+1. **Nine canonical sections** as level-2+ headings, exact wording (normalized only
+   for case/whitespace/trailing punctuation), defined in `src/lib/content/model.ts`:
 
    ```md
    ## What problem existed before this?
@@ -50,84 +105,43 @@ cover" blockquote), never broken.
    ## When should I avoid it?
    ```
 
-2. **Structured verdict** in frontmatter (`TEMPLATE_COMPLETE_MISSING_VERDICT`):
+2. **Structured verdict** in frontmatter — classification (`essential` …
+   `vendor-specific`), `problem`, `simplerBaseline`, `mainCost`.
+3. **≥1 visualization**: import a component from `src/components/viz/`. Static
+   server-rendered usage ships zero JS; add `client:visible` only for interaction;
+   `core-mechanism` concepts get a steppable Tier-2 visual (ADR-0004).
+4. **Governance hooks declared, even if "none"**: link frameworks in `governance:` OR
+   justify absence in `governanceNotApplicable:` (mutually exclusive). Links mean
+   *potential relevance* — pages never claim a law applies.
+5. **Six-element interview package**, collective across linked questions: ≥3 questions
+   (each already carries the 30-second/two-minute tiers) · ≥1 with `followUps` · ≥1
+   `criticalThinking: true` (the "when would you NOT use this?" question) · ≥1
+   `practicalExample` (working code in this repo) · ≥1 `governanceAngle`.
+6. **Prerequisites at least `draft`** (graph rule).
 
-   ```yaml
-   verdict:
-     classification: essential | commonly-useful | situational | advanced | framework-specific | vendor-specific
-     problem: "…"           # the problem it addresses
-     simplerBaseline: "…"   # what you'd do without it
-     mainCost: "…"          # the main cost of adopting it
-   ```
+### Interview questions
 
-3. **≥1 visualization** (`TEMPLATE_COMPLETE_MISSING_VISUALIZATION`): the body imports
-   at least one component from `src/components/viz/`. A static, server-rendered usage
-   (no `client:` directive) is fine and ships zero JS; add `client:visible` only when
-   interaction is needed. `core-mechanism` concepts should use a steppable (Tier-2)
-   visual per ADR-0004.
+One YAML per question in `src/content/interview/`; all three answer tiers required and
+real (no stubs). Write the `beginner` tier as the actual 30-second spoken answer, not a
+summary of one. A question may serve several concepts via `concepts:`.
 
-4. **Governance hooks declared, even if "none"**
-   (`TEMPLATE_COMPLETE_MISSING_GOVERNANCE_HOOK`): either link frameworks in
-   `governance:` or justify their absence in `governanceNotApplicable: "…"` — the two
-   are mutually exclusive. A link means *potential relevance*; the page wording never
-   claims a law applies.
+### Resolving validation errors
 
-5. **The six-element interview package**, satisfied COLLECTIVELY by the questions that
-   link this concept (`TEMPLATE_COMPLETE_MISSING_INTERVIEW_PACKAGE`,
-   `TEMPLATE_COMPLETE_MISSING_PRACTICAL_EXAMPLE`):
-   - ≥3 linked questions (each already carries the 30-second `beginner` and two-minute
-     `professional` answers — schema-required);
-   - ≥1 question with non-empty `followUps`;
-   - ≥1 question with `criticalThinking: true` (a trade-off/judgment question,
-     typically "when would you NOT use this?");
-   - ≥1 question with `practicalExample` (pointing at working code in this repo);
-   - ≥1 question with `governanceAngle`.
+Findings group as SCHEMA → GRAPH → TEMPLATE → warnings; fix top-down; every finding
+carries a `fix:` line. Never silence a finding by weakening content — no artificial
+links for orphan warnings, no downgrading `complete` to dodge a section you could
+write.
 
-6. **Prerequisites at least `draft`** — enforced by the graph validator
-   (`GRAPH_COMPLETE_REQUIRES_INCOMPLETE_PREREQUISITE`).
+### `.astro` vs React (ADR-0001/0004/0005)
 
-Not required for complete (deliberately, per plan §19): source references — but intake
-provenance (plan §11) means real lessons will have them anyway.
+Page structure and content presentation → `.astro` (zero JS). Interactive behavior →
+React islands in `src/components/viz/` rendering scene data from `src/lib/viz/`
+(educational logic lives in the pure layer, never in components — see
+docs/VISUAL_LANGUAGE.md). Educational prose lives in MDX, never inside React
+components. Agent/model mechanics → plain TS in `src/lib/` (ADR-0005).
 
-## Relationship fields
+### Fixture labeling
 
-- `prerequisites` — what must be learned first (hard graph edges; rendered as "Learn
-  these first" with the target's status).
-- `related` — useful connections, not required (rendered separately — never merge the
-  two meanings).
-- `governance` — frameworks with potential relevance (see above).
-- `sources` — intake ledger entries backing the content (rendered with outbound links).
-- Interview questions link concepts from their side via `concepts:` — a question can
-  serve several concepts.
-
-## Writing interview questions
-
-One YAML file per question in `src/content/interview/`. All three answer tiers are
-required and must be real answers (no stubs, plan §9). `followUps` is a required key
-(may be empty for questions that genuinely have none — but each concept needs at least
-one question with follow-ups). Mark judgment questions `criticalThinking: true`.
-
-## Resolving validation errors
-
-Run `npm run validate`. Findings are grouped: SCHEMA → GRAPH → TEMPLATE → warnings.
-Fix top-down (schema errors block graph checks; graph/template failures block
-`graph.json`). Every finding names the file/entry, the field or missing element, and a
-`fix:` line. Never silence a finding by weakening content (e.g., an artificial link for
-an orphan warning, or downgrading `complete` to dodge a missing section you could
-write).
-
-## `.astro` vs React (from ADR-0001/0004)
-
-- Page structure, layouts, content presentation → `.astro` components (zero JS).
-- Interactive behavior (steppers, playgrounds) → React islands in
-  `src/components/viz/`, hydrated `client:visible`, rendering scene data from
-  `src/lib/viz/` (see docs/VISUAL_LANGUAGE.md — educational logic never lives in the
-  component).
-- Educational prose lives in MDX, not inside React components.
-
-## Fixture labeling
-
-Demonstration content that isn't a finished lesson carries a visible fixture note
-(blockquote at the top of the body) so it can't be mistaken for final educational
-content. Current fixtures: tokens (draft), context-windows (complete),
-few-shot-prompting (needs-update), embeddings (stub).
+Anything that isn't finished educational content carries a visible fixture note
+(blockquote at the top of the body). Current fixtures: tokens (draft), context-windows
+(complete), few-shot-prompting (needs-update), embeddings (stub).
