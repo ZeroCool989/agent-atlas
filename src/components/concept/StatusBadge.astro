@@ -1,0 +1,22 @@
+---
+/** Status shown as word + glyph — never color alone (docs/VISUAL_LANGUAGE.md). */
+import type { ConceptStatus } from '../../lib/content/model';
+
+interface Props {
+  status: ConceptStatus;
+}
+const { status } = Astro.props;
+
+const styles: Record<ConceptStatus, { glyph: string; classes: string }> = {
+  stub: { glyph: '○', classes: 'border-slate-300 bg-slate-50 text-slate-600' },
+  draft: { glyph: '◐', classes: 'border-sky-300 bg-sky-50 text-sky-900' },
+  complete: { glyph: '✓', classes: 'border-emerald-300 bg-emerald-50 text-emerald-900' },
+  'needs-update': { glyph: '⚠', classes: 'border-amber-300 bg-amber-50 text-amber-900' },
+};
+const { glyph, classes } = styles[status];
+---
+
+<span class={`inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-medium ${classes}`}>
+  <span aria-hidden="true">{glyph}</span>
+  {status}
+</span>

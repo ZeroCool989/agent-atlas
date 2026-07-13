@@ -1,0 +1,27 @@
+question: "When would a bigger context window NOT solve your retrieval problem?"
+concepts:
+  - context-windows
+roles:
+  - architect
+  - consultant
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    When the issue isn't fitting the data but finding the right data. A bigger window
+    lets you include more, but the model still has to locate the relevant part — and
+    you pay for every token you include, relevant or not.
+  professional: >-
+    Three cases: cost — shipping a corpus on every call multiplies input spend for no
+    quality gain; attention quality — recall degrades over very long inputs, so the
+    right slice retrieved beats everything included; and freshness/scale — corpora that
+    change or exceed any window still need an indexing and retrieval layer. Bigger
+    windows move the threshold where retrieval pays off; they don't remove it.
+  deep: >-
+    Framed as an information-retrieval trade-off: inclusion pushes selection into the
+    model's attention, which is a lossy, position-biased selector you cannot tune;
+    retrieval keeps selection in a system you can measure and improve. The break-even
+    depends on corpus size and query distribution — for narrow queries over large
+    corpora, retrieval wins asymptotically regardless of window size.
+followUps:
+  - "How would you measure whether long-context inclusion or retrieval answers better for your workload?"

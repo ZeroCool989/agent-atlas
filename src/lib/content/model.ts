@@ -9,7 +9,10 @@
  * approved content model in docs/IMPLEMENTATION_PLAN.md §6).
  */
 
-export const CONTENT_SCHEMA_VERSION = 1;
+export const CONTENT_SCHEMA_VERSION = 2;
+// v2 (2026-07-13, P0.6): added concept `verdict` (structured essential-vs-optional
+// data), concept `governanceNotApplicable` (explicit justified "no governance hooks"),
+// interview `criticalThinking` marker. See DECISIONS.md.
 
 /** Essentiality layers, ordered center → rim (plan §2). */
 export const LAYERS = [
@@ -39,6 +42,34 @@ export type InterviewDifficulty = (typeof INTERVIEW_DIFFICULTIES)[number];
 
 export const SOURCE_TYPES = ['video', 'paper', 'repo', 'article', 'note', 'talk'] as const;
 export type SourceType = (typeof SOURCE_TYPES)[number];
+
+/** Essential-vs-optional verdict classifications (plan §19 DoD; plain words, no scores). */
+export const VERDICT_CLASSIFICATIONS = [
+  'essential',
+  'commonly-useful',
+  'situational',
+  'advanced',
+  'framework-specific',
+  'vendor-specific',
+] as const;
+export type VerdictClassification = (typeof VERDICT_CLASSIFICATIONS)[number];
+
+/**
+ * The nine canonical questions (plan §2), as the EXACT level-2 headings a concept body
+ * must contain. Matching is normalized (case, whitespace, trailing punctuation) by the
+ * template lint; see docs/AUTHORING.md.
+ */
+export const CANONICAL_SECTIONS = [
+  'What problem existed before this?',
+  'Why was this invented?',
+  'How does it work?',
+  'Is it actually necessary?',
+  'What are the trade-offs?',
+  'What complexity does it introduce?',
+  'What simpler alternative exists?',
+  'When should I use it?',
+  'When should I avoid it?',
+] as const;
 
 /**
  * Every cross-entry reference (concept slugs, governance slugs, source ids) is a

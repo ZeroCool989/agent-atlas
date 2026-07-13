@@ -27,6 +27,8 @@ import {
   sourceSchema,
 } from '../src/content.schemas';
 import { flatEntryId } from '../src/lib/content/model';
+import { checkTemplates } from '../src/lib/content/template';
+import type { TemplateConcept, TemplateFinding, TemplateQuestion } from '../src/lib/content/template';
 import { buildGraph, checkIntegrity, serializeGraph } from '../src/lib/graph';
 import type { Finding, GraphEntry } from '../src/lib/graph';
 
@@ -56,6 +58,12 @@ function listFiles(dir: string, extension: string): string[] {
   }
 }
 
+function bodyOf(file: string): string {
+  const raw = readFileSync(file, 'utf8');
+  const match = /^---\r?\n[\s\S]*?\r?\n---\r?\n?([\s\S]*)$/.exec(raw);
+  return match ? match[1]! : raw;
+}
+
 function frontmatterOf(file: string): unknown {
   const raw = readFileSync(file, 'utf8');
   const match = /^---\r?\n([\s\S]*?)\r?\n---/.exec(raw);
@@ -63,9 +71,18 @@ function frontmatterOf(file: string): unknown {
   return parseYaml(match[1]!);
 }
 
-function loadEntries(): { entries: GraphEntry[]; problems: SchemaProblem[] } {
+interface LoadResult {
+  entries: GraphEntry[];
+  problems: SchemaProblem[];
+  lintConcepts: TemplateConcept[];
+  lintQuestions: TemplateQuestion[];
+}
+
+function loadEntries(): LoadResult {
   const entries: GraphEntry[] = [];
   const problems: SchemaProblem[] = [];
+  const lintConcepts: TemplateConcept[] = [];
+  const lintQuestions: TemplateQuestion[] = [];
   const ids = new Map<string, string>(); // collection/id → file (defensive; Astro also rejects duplicates)
 
   function ingest<S extends z.ZodType>(
@@ -101,17 +118,27 @@ function loadEntries(): { entries: GraphEntry[]; problems: SchemaProblem[] } {
   }
 
   for (const file of listFiles(join(contentDir, 'concepts'), '.mdx'))
-    ingest('concepts', file, () => frontmatterOf(file), conceptSchema, (id, d) => ({
-      collection: 'concepts',
-      id,
-      title: d.title,
-      layer: d.layer,
-      status: d.status,
-      prerequisites: d.prerequisites,
-      related: d.related,
-      governance: d.governance,
-      sources: d.sources,
-    }));
+    ingest('concepts', file, () => frontmatterOf(file), conceptSchema, (id, d) => {
+      lintConcepts.push({
+        id,
+        status: d.status,
+        body: bodyOf(file),
+        governance: d.governance,
+        hasVerdict: d.verdict !== undefined,
+        ...(d.governanceNotApplicable ? { governanceNotApplicable: d.governanceNotApplicable } : {}),
+      });
+      return {
+        collection: 'concepts',
+        id,
+        title: d.title,
+        layer: d.layer,
+        status: d.status,
+        prerequisites: d.prerequisites,
+        related: d.related,
+        governance: d.governance,
+        sources: d.sources,
+      };
+    });
 
   for (const file of listFiles(join(contentDir, 'governance'), '.mdx'))
     ingest('governance', file, () => frontmatterOf(file), governanceSchema, (id, d) => ({
@@ -122,12 +149,22 @@ function loadEntries(): { entries: GraphEntry[]; problems: SchemaProblem[] } {
     }));
 
   for (const file of listFiles(join(contentDir, 'interview'), '.yaml'))
-    ingest('interview', file, () => parseYaml(readFileSync(file, 'utf8')), interviewSchema, (id, d) => ({
-      collection: 'interview',
-      id,
-      question: d.question,
-      concepts: d.concepts,
-    }));
+    ingest('interview', file, () => parseYaml(readFileSync(file, 'utf8')), interviewSchema, (id, d) => {
+      lintQuestions.push({
+        id,
+        concepts: d.concepts,
+        followUps: d.followUps,
+        criticalThinking: d.criticalThinking,
+        ...(d.practicalExample ? { practicalExample: d.practicalExample } : {}),
+        ...(d.governanceAngle ? { governanceAngle: d.governanceAngle } : {}),
+      });
+      return {
+        collection: 'interview',
+        id,
+        question: d.question,
+        concepts: d.concepts,
+      };
+    });
 
   for (const file of listFiles(join(contentDir, 'sources'), '.yaml'))
     ingest('sources', file, () => parseYaml(readFileSync(file, 'utf8')), sourceSchema, (id, d) => ({
@@ -144,7 +181,7 @@ function loadEntries(): { entries: GraphEntry[]; problems: SchemaProblem[] } {
       term: d.term,
     }));
 
-  return { entries, problems };
+  return { entries, problems, lintConcepts, lintQuestions };
 }
 
 // --- report printing -------------------------------------------------------------------
@@ -152,7 +189,7 @@ function print(line = ''): void {
   if (!quiet) console.log(line);
 }
 
-function printFindings(header: string, findings: Finding[]): void {
+function printFindings(header: string, findings: Array<Finding | TemplateFinding>): void {
   print(`${header} (${findings.length})`);
   let currentEntry = '';
   for (const f of findings) {
@@ -169,7 +206,7 @@ function printFindings(header: string, findings: Finding[]): void {
 }
 
 // --- main -------------------------------------------------------------------------------
-const { entries, problems } = loadEntries();
+const { entries, problems, lintConcepts, lintQuestions } = loadEntries();
 
 if (problems.length > 0) {
   print('Agent Atlas content validation');
@@ -181,6 +218,7 @@ if (problems.length > 0) {
 
 const graph = buildGraph(entries);
 const report = checkIntegrity(graph);
+const templateFindings = checkTemplates(lintConcepts, lintQuestions);
 const counts = entries.reduce<Record<string, number>>((acc, e) => {
   acc[e.collection] = (acc[e.collection] ?? 0) + 1;
   return acc;
@@ -196,11 +234,13 @@ print(
 print(`  graph: ${graph.nodes.length} nodes, ${graph.edges.length} edges`);
 print();
 
-if (report.failures.length > 0) printFindings('FAILURES', report.failures);
+if (report.failures.length > 0) printFindings('GRAPH FAILURES', report.failures);
+if (templateFindings.length > 0) printFindings('TEMPLATE FAILURES', templateFindings);
 if (report.warnings.length > 0) printFindings('WARNINGS', report.warnings);
 
-if (report.failures.length > 0) {
-  print(`✖ validation failed: ${report.failures.length} failure(s), ${report.warnings.length} warning(s). graph.json not written.`);
+const failureCount = report.failures.length + templateFindings.length;
+if (failureCount > 0) {
+  print(`✖ validation failed: ${failureCount} failure(s), ${report.warnings.length} warning(s). graph.json not written.`);
   process.exit(1);
 }
 

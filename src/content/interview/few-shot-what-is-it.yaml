@@ -1,0 +1,28 @@
+question: "What is few-shot prompting, and how does it differ from fine-tuning?"
+concepts:
+  - few-shot-prompting
+roles:
+  - engineer
+difficulty: screen
+answers:
+  beginner: >-
+    Few-shot prompting means putting worked examples of the task into the prompt itself.
+    The model imitates the pattern without any training — unlike fine-tuning, nothing
+    about the model changes; the examples are just part of the input, paid for on every
+    call.
+  professional: >-
+    It exploits in-context learning: examples in the prompt condition the model's
+    continuation. Versus fine-tuning: no weight updates, instant iteration, no training
+    data pipeline — but the examples consume context budget per call and their effect
+    ends with the request. Fine-tuning amortizes the teaching into weights: higher
+    upfront cost, lower marginal cost, and it can capture far more examples than a
+    prompt can hold.
+  deep: >-
+    In-context learning behaves like implicit task inference: the examples identify
+    which of the model's latent capabilities to express. That explains its
+    sensitivities — example order, label balance, and format all shift results, which
+    is why few-shot evaluations need the same rigor as any other eval, and why
+    instruction tuning has absorbed much of what few-shot once bought.
+followUps:
+  - "Why can example order change few-shot results?"
+  - "How many examples are worth their token cost?"

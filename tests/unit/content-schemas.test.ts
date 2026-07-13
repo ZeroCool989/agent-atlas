@@ -124,6 +124,33 @@ describe('entry-local intake and status rules', () => {
     expect(issue.message).toContain('needs-update');
   });
 
+  it('verdict accepts valid classifications and rejects unknown ones (schema v2)', () => {
+    const verdict = {
+      classification: 'essential',
+      problem: 'p',
+      simplerBaseline: 's',
+      mainCost: 'c',
+    };
+    expect(conceptSchema.safeParse({ ...validConcept, verdict }).success).toBe(true);
+    expectFailureOn(
+      conceptSchema,
+      { ...validConcept, verdict: { ...verdict, classification: 'must-have' } },
+      'classification',
+    );
+  });
+
+  it('governanceNotApplicable contradicting a governance list fails (schema v2)', () => {
+    expectFailureOn(
+      conceptSchema,
+      { ...validConcept, governance: ['eu-ai-act'], governanceNotApplicable: 'none applies' },
+      'governanceNotApplicable',
+    );
+  });
+
+  it('interview criticalThinking defaults to false (schema v2)', () => {
+    expect(interviewSchema.parse(validInterview).criticalThinking).toBe(false);
+  });
+
   it('unknown frontmatter keys are rejected (typo protection)', () => {
     // Zod 4 reports unrecognized keys in the message, not the issue path.
     const result = conceptSchema.safeParse({ ...validConcept, layr: 'foundation' });

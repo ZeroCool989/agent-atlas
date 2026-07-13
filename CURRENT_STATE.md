@@ -12,13 +12,26 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 | P0.3 Graph builder + integrity CI | ✅ complete (2026-07-13) |
 | P0.4 ModelProvider + ScriptedProvider | ✅ complete (2026-07-13) |
 | P0.5 Viz foundation | ✅ complete (2026-07-13) |
-| P0.6 Layouts + routes + template lint | not started |
+| P0.6 Layouts + routes + template lint | ✅ complete (2026-07-13) |
 | P0.7 CI/CD | not started |
 | P0.8 Docs (INTAKE.md, AUTHORING.md) | not started |
 | P0.9 "Tokens" exemplar | not started |
 
 ## What exists right now
 
+- **Concept system (P0.6):** `/concepts` index (layer-grouped, layer/status filters via
+  shareable URL params + inline progressive enhancement) and `/concepts/[slug]` pages
+  (verdict box, needs-update banner, separated prerequisite/related lists with target
+  status, governance section with careful wording + explicit not-applicable path,
+  `<details>` interview disclosure, source links, skip link). Template lint in
+  `src/lib/content/template.ts` wired into `npm run validate` (schema → graph →
+  template → artifact): nine canonical headings, verdict, ≥1 viz import, governance
+  hooks-or-justification, and the **six-element interview package enforced
+  collectively** (deferred item CLOSED). Content-model v2 (verdict,
+  governanceNotApplicable, criticalThinking). Fixture corpus: tokens (draft+island),
+  context-windows (complete, zero-JS page), few-shot-prompting (needs-update),
+  embeddings (stub), gdpr stub, 6 new interview questions. Docs: `docs/AUTHORING.md`.
+  31 new unit tests (135 total), 11 new e2e (16 total).
 - **Viz foundation (P0.5):** pure scene layer in `src/lib/viz/` (`(input, step) =>
   Scene` with clamping, `computeContextWindow` with documented edge-case policy,
   timeline types); renderers in `src/components/viz/` (`Stepper` — keyboard-operable,

@@ -1,0 +1,262 @@
+---
+/**
+ * Canonical concept page. URL rule (docs/AUTHORING.md): /concepts/<id>, where <id> is
+ * the filename-derived flat id — layer subfolders organize files without changing
+ * public URLs. Server-rendered; ships zero JS unless the MDX body embeds an island.
+ */
+import { getCollection, render } from 'astro:content';
+
+import StatusBadge from '../../components/concept/StatusBadge.astro';
+import VerdictBox from '../../components/concept/VerdictBox.astro';
+import Base from '../../layouts/Base.astro';
+
+export async function getStaticPaths() {
+  const concepts = await getCollection('concepts');
+  return concepts.map((concept) => ({ params: { slug: concept.id }, props: { concept } }));
+}
+
+const { concept } = Astro.props;
+const { Content } = await render(concept);
+
+const [allConcepts, allGovernance, allSources, allInterview] = await Promise.all([
+  getCollection('concepts'),
+  getCollection('governance'),
+  getCollection('sources'),
+  getCollection('interview'),
+]);
+const conceptById = new Map(allConcepts.map((c) => [c.id, c]));
+const governanceById = new Map(allGovernance.map((g) => [g.id, g]));
+const sourceById = new Map(allSources.map((s) => [s.id, s]));
+const questions = allInterview
+  .filter((q) => q.data.concepts.includes(concept.id))
+  .sort((a, b) => (a.id < b.id ? -1 : 1));
+
+const { data } = concept;
+const statusNote: Record<string, string | undefined> = {
+  stub: 'This is a stub — planned territory on the atlas. The outline below shows what it will cover; it is not a finished explanation.',
+  draft: 'This is a draft — substantially incomplete and not yet held to the full concept template.',
+};
+---
+
+<Base title={data.title} description={data.oneLiner}>
+  <main id="main" class="mx-auto max-w-3xl space-y-8 px-6 py-12">
+    <nav aria-label="Breadcrumb" class="text-sm text-slate-500">
+      <a href="/concepts" class="underline">Concepts</a>
+      <span aria-hidden="true"> / </span>
+      {data.title}
+    </nav>
+
+    <header class="space-y-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <StatusBadge status={data.status} />
+        <span class="rounded border border-slate-300 bg-white px-2 py-0.5 text-xs font-medium text-slate-600">
+          layer: {data.layer}
+        </span>
+      </div>
+      <h1 class="text-3xl font-bold tracking-tight">{data.title}</h1>
+      <p class="text-lg text-slate-600">{data.oneLiner}</p>
+      <p class="text-xs text-slate-400">Last updated: {data.updated.toISOString().slice(0, 10)}</p>
+    </header>
+
+    {
+      data.status === 'needs-update' && (
+        <aside
+          role="note"
+          aria-label="Review flag"
+          class="rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm"
+        >
+          <p class="font-semibold text-amber-900">
+            <span aria-hidden="true">⚠</span> Flagged for review
+          </p>
+          <p class="mt-1 text-amber-900">
+            This concept remains structurally complete and largely valid, but new information
+            has put parts of it in question:
+          </p>
+          <p class="mt-1 italic text-amber-900">{data.needsUpdateReason}</p>
+        </aside>
+      )
+    }
+    {
+      statusNote[data.status] && (
+        <aside role="note" class="rounded border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+          {statusNote[data.status]}
+        </aside>
+      )
+    }
+
+    <VerdictBox layer={data.layer} verdict={data.verdict} />
+
+    {
+      (data.prerequisites.length > 0 || data.related.length > 0) && (
+        <section aria-label="Concept relationships" class="grid gap-4 sm:grid-cols-2">
+          {data.prerequisites.length > 0 && (
+            <div>
+              <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Learn these first
+              </h2>
+              <ul class="mt-1 space-y-1">
+                {data.prerequisites.map((id) => {
+                  const target = conceptById.get(id);
+                  return (
+                    <li class="flex items-center gap-2 text-sm">
+                      <a href={`/concepts/${id}`} class="underline">
+                        {target?.data.title ?? id}
+                      </a>
+                      {target && <StatusBadge status={target.data.status} />}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+          {data.related.length > 0 && (
+            <div>
+              <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Related, not required
+              </h2>
+              <ul class="mt-1 space-y-1">
+                {data.related.map((id) => {
+                  const target = conceptById.get(id);
+                  return (
+                    <li class="flex items-center gap-2 text-sm">
+                      <a href={`/concepts/${id}`} class="underline">
+                        {target?.data.title ?? id}
+                      </a>
+                      {target && <StatusBadge status={target.data.status} />}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </section>
+      )
+    }
+
+    <article class="prose-atlas space-y-4 leading-relaxed [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold">
+      <Content />
+    </article>
+
+    <section aria-label="Governance connections" class="rounded border border-slate-200 p-4">
+      <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">
+        Potential governance relevance
+      </h2>
+      {
+        data.governance.length > 0 ? (
+          <>
+            <ul class="mt-1 space-y-1 text-sm">
+              {data.governance.map((id) => (
+                <li>
+                  <span class="font-medium">{governanceById.get(id)?.data.title ?? id}</span>
+                  {' — '}
+                  <span class="text-slate-600">linked framework; see its page for what it actually requires.</span>
+                </li>
+              ))}
+            </ul>
+            <p class="mt-2 text-xs text-slate-500">
+              A link here means potential relevance, not that the framework necessarily applies —
+              applicability depends on role, use case, jurisdiction, and risk classification.
+            </p>
+          </>
+        ) : data.governanceNotApplicable ? (
+          <p class="mt-1 text-sm text-slate-600">
+            No governance hooks declared, deliberately: {data.governanceNotApplicable}
+          </p>
+        ) : (
+          <p class="mt-1 text-sm text-slate-500">No governance connections declared yet.</p>
+        )
+      }
+    </section>
+
+    {
+      questions.length > 0 && (
+        <section aria-label="Interview preparation">
+          <h2 class="text-xl font-semibold">Interview preparation</h2>
+          <p class="mt-1 text-sm text-slate-500">
+            Try answering before revealing. Tiers go from a 30-second answer to interview depth.
+          </p>
+          <ul class="mt-3 space-y-4">
+            {questions.map((q) => (
+              <li class="rounded border border-slate-200 p-4">
+                <p class="font-medium">
+                  {q.data.question}
+                  <span class="ml-2 inline-flex gap-1 align-middle">
+                    <span class="rounded border border-slate-300 px-1.5 py-0.5 text-[10px] uppercase text-slate-500">
+                      {q.data.difficulty}
+                    </span>
+                    {q.data.criticalThinking && (
+                      <span class="rounded border border-slate-300 px-1.5 py-0.5 text-[10px] uppercase text-slate-500">
+                        critical thinking
+                      </span>
+                    )}
+                  </span>
+                </p>
+                <div class="mt-2 space-y-2 text-sm">
+                  <details>
+                    <summary class="cursor-pointer font-medium">Reveal 30-second answer</summary>
+                    <p class="mt-1 text-slate-700">{q.data.answers.beginner}</p>
+                  </details>
+                  <details>
+                    <summary class="cursor-pointer font-medium">Reveal professional answer</summary>
+                    <p class="mt-1 text-slate-700">{q.data.answers.professional}</p>
+                  </details>
+                  <details>
+                    <summary class="cursor-pointer font-medium">Reveal deep answer</summary>
+                    <p class="mt-1 text-slate-700">{q.data.answers.deep}</p>
+                  </details>
+                  {q.data.practicalExample && (
+                    <details>
+                      <summary class="cursor-pointer font-medium">Practical repository example</summary>
+                      <p class="mt-1 text-slate-700">{q.data.practicalExample}</p>
+                    </details>
+                  )}
+                  {q.data.governanceAngle && (
+                    <details>
+                      <summary class="cursor-pointer font-medium">Governance perspective</summary>
+                      <p class="mt-1 text-slate-700">{q.data.governanceAngle}</p>
+                    </details>
+                  )}
+                  {q.data.followUps.length > 0 && (
+                    <div>
+                      <p class="font-medium">Follow-ups an interviewer would ask:</p>
+                      <ul class="mt-1 list-disc pl-5 text-slate-700">
+                        {q.data.followUps.map((f) => (
+                          <li>{f}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    {
+      data.sources.length > 0 && (
+        <section aria-label="Sources">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Sources</h2>
+          <ul class="mt-1 list-disc space-y-1 pl-5 text-sm">
+            {data.sources.map((id) => {
+              const source = sourceById.get(id);
+              return (
+                <li>
+                  {source?.data.url ? (
+                    <a href={source.data.url} class="underline" rel="noopener">
+                      {source.data.title}
+                    </a>
+                  ) : (
+                    (source?.data.title ?? id)
+                  )}
+                  {source && <span class="text-slate-500"> ({source.data.type})</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )
+    }
+  </main>
+</Base>

@@ -1,0 +1,29 @@
+question: "What is a context window, and what actually consumes it?"
+concepts:
+  - context-windows
+roles:
+  - engineer
+  - architect
+difficulty: screen
+answers:
+  beginner: >-
+    The context window is the model's working memory: the maximum number of tokens it
+    can consider in one call. Everything counts against it — the system prompt, the
+    conversation so far, any documents you include, and the answer being generated.
+  professional: >-
+    It's the bounded token budget per model call, imposed by how attention scales with
+    sequence length. Practically, it's a shared budget across system prompt,
+    conversation history, retrieved context, and output. Exceeding it fails the call or
+    silently truncates, so production systems budget explicitly: reserve output room,
+    keep instructions lean, and select context deliberately instead of accumulating it.
+  deep: >-
+    Attention computes pairwise interactions across the sequence, so cost grows
+    superlinearly with length — the window is where the vendor draws the economic line.
+    Long-context models shift the line, not the principle, and empirically exhibit
+    position-dependent recall degradation ("lost in the middle"), which is why
+    retrieval of relevant slices often beats brute-force inclusion even when everything
+    technically fits.
+followUps:
+  - "How do you decide what to evict from a long conversation?"
+  - "How does context length affect latency and per-call cost?"
+  - "What happens to answer quality as the window fills?"

@@ -1,0 +1,57 @@
+---
+/**
+ * The essential-vs-optional verdict (plan §19) — prominent, restrained, no scores.
+ * Renders exactly the structured frontmatter fields; nothing is inferred from the
+ * layer enum, and absent data renders nothing rather than invented text.
+ */
+import type { Layer, VerdictClassification } from '../../lib/content/model';
+
+interface Props {
+  layer: Layer;
+  verdict?: {
+    classification: VerdictClassification;
+    problem: string;
+    simplerBaseline: string;
+    mainCost: string;
+  };
+}
+const { layer, verdict } = Astro.props;
+
+const classificationText: Record<VerdictClassification, string> = {
+  essential: 'Essential — understanding this is non-negotiable.',
+  'commonly-useful': 'Commonly useful — most real systems touch this.',
+  situational: 'Situational — valuable for specific problems, skippable otherwise.',
+  advanced: 'Advanced — builds on several core mechanisms.',
+  'framework-specific': 'Framework-specific — someone else’s opinion about the layers below.',
+  'vendor-specific': 'Vendor-specific — one company’s implementation.',
+};
+---
+
+{
+  verdict && (
+    <aside
+      aria-label="Essential or optional verdict"
+      class="rounded border-2 border-slate-300 bg-slate-50 p-4"
+    >
+      <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">
+        Essential or optional?
+      </h2>
+      <p class="mt-1 font-medium">{classificationText[verdict.classification]}</p>
+      <dl class="mt-3 space-y-2 text-sm">
+        <div>
+          <dt class="font-semibold">Problem it addresses</dt>
+          <dd class="text-slate-700">{verdict.problem}</dd>
+        </div>
+        <div>
+          <dt class="font-semibold">Simpler baseline</dt>
+          <dd class="text-slate-700">{verdict.simplerBaseline}</dd>
+        </div>
+        <div>
+          <dt class="font-semibold">Main cost of adopting it</dt>
+          <dd class="text-slate-700">{verdict.mainCost}</dd>
+        </div>
+      </dl>
+      <p class="mt-2 text-xs text-slate-500">Essentiality layer: {layer}</p>
+    </aside>
+  )
+}

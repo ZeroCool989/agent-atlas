@@ -1,0 +1,32 @@
+question: "How would you maintain few-shot examples in a production prompt over time?"
+concepts:
+  - few-shot-prompting
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Treat the examples like code: keep them in version control, review changes, and
+    re-test the prompt's quality whenever the examples or the model change.
+  professional: >-
+    Examples are a maintained artifact with an owner, versioning, and an eval gate.
+    Curate them from real (sanitized) cases, re-run the task eval on every example or
+    model change, and prune aggressively — each example must pay for its tokens with
+    measured quality. Log which prompt version produced which output for traceability.
+  deep: >-
+    The failure mode is silent drift: model updates change how examples are
+    interpreted, and example sets accrete contradictions as requirements evolve. The
+    fix is the same discipline as test suites — each example encodes one intended
+    behavior, redundancy is removed, and a CI eval catches regressions when anything
+    (examples, instructions, model version) changes.
+followUps:
+  - "What belongs in the eval set versus the example set?"
+practicalExample: >-
+  This repo treats prompt-like data the same way: the scripted model scenarios in
+  src/lib/model/scenarios/ are versioned JSON, schema-validated, and replayed in CI —
+  the maintenance pattern few-shot example sets need.
+governanceAngle: >-
+  Examples derived from real user data carry their data-protection obligations with
+  them (consent/lawful basis, minimization, sanitization) — a curated example that
+  embeds personal data is personal data in every subsequent request.

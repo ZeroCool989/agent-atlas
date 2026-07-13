@@ -1,0 +1,36 @@
+question: "How would you budget a 16k-token context window for a document-assistant product?"
+concepts:
+  - context-windows
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Split the budget deliberately: a lean system prompt, room reserved for the model's
+    answer, and the remainder shared between conversation history and retrieved
+    document content — with a rule for what gets dropped first when it's full.
+  professional: >-
+    Start from the output: reserve max answer tokens. Fix the system prompt and keep it
+    small. Then allocate the rest by value per token — typically recent conversation
+    turns plus the top retrieved chunks, with older history summarized rather than
+    included verbatim. Instrument real token counts per segment so the budget is
+    measured, not assumed, and fail visibly (not by silent truncation) when a request
+    can't fit.
+  deep: >-
+    Treat it as a small optimization problem under a hard constraint: each candidate
+    segment has a token cost and an estimated marginal utility for the current query.
+    Retrieval scores give utility estimates for chunks; recency approximates it for
+    dialogue. The interesting engineering is in the eviction policy's failure modes —
+    summarization loses commitments made earlier in the conversation, so systems keep a
+    structured "facts established" note that survives eviction.
+followUps:
+  - "Where do tool definitions and tool results fit in the budget?"
+practicalExample: >-
+  src/lib/viz/context-window.ts in this repo computes used/remaining/segment shares with
+  explicit overflow and mismatch handling — the same arithmetic a production budgeter
+  runs; the Context windows page renders it over a realistic 16k split.
+governanceAngle: >-
+  Whatever enters the context is processing of any personal data it contains (GDPR):
+  minimization argues for retrieving the relevant slice rather than whole documents,
+  and context/eviction logs become part of the processing record.

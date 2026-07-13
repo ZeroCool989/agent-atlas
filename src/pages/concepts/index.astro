@@ -1,0 +1,112 @@
+---
+/**
+ * Concept reference: all concepts grouped by essentiality layer (center → rim), with
+ * layer/status filters. Filtering is progressive enhancement: the GET form produces
+ * shareable ?layer=&status= URLs and a small inline script applies them client-side;
+ * without JavaScript the full (unfiltered) list renders and remains useful. Stubs stay
+ * visible by design — the atlas shows future territory (plan §7).
+ */
+import { getCollection } from 'astro:content';
+
+import StatusBadge from '../../components/concept/StatusBadge.astro';
+import Base from '../../layouts/Base.astro';
+import { CONCEPT_STATUSES, LAYERS } from '../../lib/content/model';
+
+const concepts = await getCollection('concepts');
+const byLayer = LAYERS.map((layer) => ({
+  layer,
+  concepts: concepts
+    .filter((c) => c.data.layer === layer)
+    .sort((a, b) => (a.data.title < b.data.title ? -1 : 1)),
+})).filter((group) => group.concepts.length > 0);
+---
+
+<Base title="Concepts" description="A–Z reference of every concept in the atlas, filterable by essentiality layer and status.">
+  <main id="main" class="mx-auto max-w-3xl space-y-8 px-6 py-12">
+    <header>
+      <h1 class="text-3xl font-bold tracking-tight">Concepts</h1>
+      <p class="mt-2 text-slate-600">
+        Every concept on the atlas, grouped by essentiality layer — foundations at the center,
+        vendor specifics at the rim. Stubs are shown deliberately: the map includes territory
+        that isn't written yet.
+      </p>
+    </header>
+
+    <form method="get" aria-label="Filter concepts" class="flex flex-wrap items-end gap-3 rounded border border-slate-200 p-4">
+      <label class="text-sm">
+        <span class="block font-medium">Essentiality layer</span>
+        <select name="layer" class="mt-1 rounded border border-slate-300 px-2 py-1">
+          <option value="">All layers</option>
+          {LAYERS.map((layer) => <option value={layer}>{layer}</option>)}
+        </select>
+      </label>
+      <label class="text-sm">
+        <span class="block font-medium">Status</span>
+        <select name="status" class="mt-1 rounded border border-slate-300 px-2 py-1">
+          <option value="">All statuses</option>
+          {CONCEPT_STATUSES.map((status) => <option value={status}>{status}</option>)}
+        </select>
+      </label>
+      <button type="submit" class="rounded border border-slate-300 px-3 py-1 text-sm">Apply filters</button>
+      <a href="/concepts" class="text-sm underline">Clear</a>
+    </form>
+
+    <p id="empty-state" hidden class="rounded border border-slate-200 p-4 text-sm text-slate-600">
+      No concepts match the selected filters. <a href="/concepts" class="underline">Clear the filters</a>
+      to see the whole atlas.
+    </p>
+
+    {
+      byLayer.map(({ layer, concepts: group }) => (
+        <section aria-label={`Layer: ${layer}`} data-layer-section={layer}>
+          <h2 class="text-xl font-semibold">{layer}</h2>
+          <ul class="mt-2 grid gap-3 sm:grid-cols-2">
+            {group.map((concept) => (
+              <li
+                data-layer={concept.data.layer}
+                data-status={concept.data.status}
+                class="rounded border border-slate-200 p-4"
+              >
+                <div class="flex items-start justify-between gap-2">
+                  <a href={`/concepts/${concept.id}`} class="font-medium underline">
+                    {concept.data.title}
+                  </a>
+                  <StatusBadge status={concept.data.status} />
+                </div>
+                <p class="mt-1 text-sm text-slate-600">{concept.data.oneLiner}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+
+    <script is:inline>
+      // Progressive enhancement: apply ?layer=&status= filters client-side.
+      // Without JavaScript the form still navigates and the full list renders.
+      (function () {
+        var params = new URLSearchParams(location.search);
+        var layer = params.get('layer') || '';
+        var status = params.get('status') || '';
+        var form = document.querySelector('form[aria-label="Filter concepts"]');
+        if (form) {
+          form.querySelector('[name="layer"]').value = layer;
+          form.querySelector('[name="status"]').value = status;
+        }
+        if (!layer && !status) return;
+        var visible = 0;
+        document.querySelectorAll('li[data-layer]').forEach(function (item) {
+          var match =
+            (!layer || item.dataset.layer === layer) &&
+            (!status || item.dataset.status === status);
+          item.hidden = !match;
+          if (match) visible++;
+        });
+        document.querySelectorAll('[data-layer-section]').forEach(function (section) {
+          section.hidden = section.querySelectorAll('li[data-layer]:not([hidden])').length === 0;
+        });
+        if (visible === 0) document.getElementById('empty-state').hidden = false;
+      })();
+    </script>
+  </main>
+</Base>

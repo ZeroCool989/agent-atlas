@@ -49,6 +49,39 @@ project start would be pure debt. Plan references to "Astro 5" should be read as
   path, and `z.string().url()` is deprecated in favor of `z.url()`. Schemas and tests
   are written Zod-4-native.
 
+## 2026-07-13 — P0.6: concept-system decisions
+
+- **Content-model v2** (CONTENT_SCHEMA_VERSION 2): three additive fields closing gaps
+  the template lint needed — concept `verdict` (structured essential-vs-optional:
+  classification/problem/simplerBaseline/mainCost; the schema previously had no data
+  for the plan §19 verdict box), concept `governanceNotApplicable` (explicit justified
+  "no hooks" — an empty governance list was ambiguous; mutually exclusive with a
+  non-empty list), interview `criticalThinking` (package element 4 was otherwise
+  undetectable). All optional/additive; existing content unaffected.
+- **Required-section detection = validated MDX headings.** The nine canonical
+  questions are EXACT level-2+ headings (normalized for case/whitespace/trailing
+  punctuation only), parsed line-anchored with code fences stripped — no false
+  positives from prose mentions, no fragile substring checks. Visualization detection
+  = an import from `components/viz/` in the body. Trade-off: heading wording is fixed
+  vocabulary (documented in AUTHORING.md), which is exactly the consistency the
+  platform wants.
+- **Interview package enforced collectively** across a concept's linked questions
+  (plan §9 "a question set satisfying them"): ≥3 linked questions (covers the 30s/2min
+  tiers, which are schema-required per question) + ≥1 with followUps + ≥1
+  criticalThinking + ≥1 practicalExample + ≥1 governanceAngle.
+- **Lint status policy:** applies to `complete` AND `needs-update` (needs-update marks
+  previously-complete content; structure still applies, the status flags freshness).
+  Stubs/drafts never template-linted. Sources are NOT required for complete — plan §19
+  omits them; revisit only via a plan amendment.
+- **Template findings share the graph findings' reporting interface** (same shape,
+  separate code domain/type) — one printer, two domains; validate order is schema →
+  graph → template → deterministic artifact (template failures also block graph.json).
+- **Index filtering = inline vanilla progressive enhancement** (~25 lines, `is:inline`):
+  a static host cannot filter server-side; a React island for a form is unjustified
+  (~190 KB runtime vs ~1 KB script). Shareable `?layer=&status=` URLs; without JS the
+  full list renders and stays useful.
+- **Public URL rule:** `/concepts/<filename-id>`; layer subfolders never affect URLs.
+
 ## 2026-07-13 — P0.5: visual-system decisions
 
 - **Scene truth vs rendering** is the binding rule (docs/VISUAL_LANGUAGE.md): scene

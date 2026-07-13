@@ -87,6 +87,27 @@ describe('validate-content CLI', () => {
     expect(stdout).toContain('layer');
   });
 
+  it('a "complete" concept missing template requirements exits non-zero with TEMPLATE findings', () => {
+    const root = contentTree({
+      'concepts/rag.mdx': `---
+title: "rag"
+layer: core-mechanism
+oneLiner: "Fixture."
+status: complete
+updated: 2026-07-13
+---
+Only a body, none of the required structure.
+`,
+    });
+    const { status, stdout } = runCli(root);
+    expect(status).toBe(1);
+    expect(stdout).toContain('TEMPLATE FAILURES');
+    expect(stdout).toContain('TEMPLATE_MISSING_REQUIRED_SECTION');
+    expect(stdout).toContain('TEMPLATE_COMPLETE_MISSING_VERDICT');
+    expect(stdout).toContain('TEMPLATE_COMPLETE_MISSING_INTERVIEW_PACKAGE');
+    expect(() => readFileSync(join(root, 'graph.json'))).toThrow(); // no artifact on template failure
+  });
+
   it('running twice on unchanged content produces byte-identical graph.json', () => {
     const root = contentTree({
       'concepts/tokens.mdx': conceptMdx('tokens'),

@@ -1,0 +1,26 @@
+question: "When is few-shot prompting the wrong tool?"
+concepts:
+  - few-shot-prompting
+roles:
+  - engineer
+  - consultant
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    When a clear instruction already works — modern instruction-tuned models often
+    don't need examples — or when the examples would eat context budget you need for
+    the actual task content.
+  professional: >-
+    Measure zero-shot first: if a precise instruction plus an output schema hits your
+    quality bar, examples are pure cost. Few-shot is also wrong when example curation
+    becomes a liability — biased or stale examples reproduce their defects in every
+    output — and when the format is better enforced by structured output than by
+    imitation.
+  deep: >-
+    The judgment is marginal value per token under your eval: few-shot competes against
+    better instructions, structured output, and fine-tuning. Its value concentrates in
+    fine-grained boundary behavior that's hard to verbalize; if your errors aren't of
+    that type, examples won't fix them and may anchor new failure modes.
+followUps:
+  - "How would you detect that your examples are biasing outputs?"

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { CONTENT_SCHEMA_VERSION } from '../../src/lib/content/model';
 import { buildGraph, checkIntegrity, serializeGraph } from '../../src/lib/graph';
 import type {
   ConceptEntry,
@@ -270,7 +271,7 @@ describe('deterministic serialization', () => {
     expect(json).not.toMatch(/\d{4}-\d{2}-\d{2}T/); // no ISO timestamps
     expect(json.endsWith('}\n')).toBe(true);
     const parsed = JSON.parse(json);
-    expect(parsed.contentSchemaVersion).toBe(1);
+    expect(parsed.contentSchemaVersion).toBe(CONTENT_SCHEMA_VERSION);
     expect(parsed.nodes.map((n: { id: string }) => n.id)).toEqual(
       [...parsed.nodes.map((n: { id: string }) => n.id)], // parse round-trip sanity
     );

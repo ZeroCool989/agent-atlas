@@ -6,18 +6,15 @@ statuses live in `CURRENT_STATE.md`._
 
 ## Up next
 
-1. **P0.6 — Layouts + routes + template lint.** Concept template with the nine
-   canonical sections, verdict box, governance hooks, interview links; `/concepts`
-   index + `/concepts/[slug]`; lint that `complete` concepts satisfy the template.
-   **Tracked deferral lands here:** the six-element interview-package lint for
-   `complete` concepts (30s answer, 2-min answer, follow-ups, critical-thinking
-   question, practical example, governance perspective). _Accepted when:_ stub and
-   complete fixtures render; removing a required section from a complete fixture
-   fails CI.
-2. **P0.7 — CI/CD** (GitHub Actions → Cloudflare Pages; keep portable per DECISIONS.md;
-   `npm run validate` is ready to be called as a pipeline step).
-3. **P0.8 — Docs** (INTAKE.md, AUTHORING.md).
-4. **P0.9 — "Tokens" exemplar end-to-end.**
+1. **P0.7 — CI/CD.** GitHub Actions pipeline: typecheck → `npm run validate` → unit
+   tests → build → Playwright smoke; deploy static output to Cloudflare Pages with
+   branch preview deployments and CSP headers. Keep the app portable (standing
+   condition in DECISIONS.md): no Cloudflare-specific application logic or data
+   dependencies. _Accepted when:_ a push runs the full pipeline; a red validate blocks
+   deploy; the site is live at a public URL with per-branch previews; CSP verified in
+   response headers.
+2. **P0.8 — Docs** (INTAKE.md; AUTHORING.md exists since P0.6 — extend only if gaps).
+3. **P0.9 — "Tokens" exemplar end-to-end** (real BPE, Tier-2 visual, full DoD).
 
 ## Rules of engagement (Phase 0)
 

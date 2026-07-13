@@ -23,6 +23,7 @@ import {
   SLUG_MESSAGE,
   SLUG_PATTERN,
   SOURCE_TYPES,
+  VERDICT_CLASSIFICATIONS,
 } from './lib/content/model';
 
 /** A kebab-case reference to another entry (existence checked in P0.3). */
@@ -47,6 +48,19 @@ export const conceptSchema = z
     interviewTags: z.array(nonEmpty).default([]),
     status: z.enum(CONCEPT_STATUSES),
     needsUpdateReason: nonEmpty.optional(),
+    /** Structured essential-vs-optional verdict (plan §19 DoD; required for `complete`
+     * by the template lint — enforcement lives there, not here, so drafts can omit it). */
+    verdict: z
+      .object({
+        classification: z.enum(VERDICT_CLASSIFICATIONS),
+        problem: nonEmpty.describe('the problem this concept addresses'),
+        simplerBaseline: nonEmpty.describe('what you would do without it (or why nothing simpler works)'),
+        mainCost: nonEmpty.describe('the main cost of adopting it'),
+      })
+      .strict()
+      .optional(),
+    /** Explicit, justified "no governance hooks" (plan §19: hooks declared even if none). */
+    governanceNotApplicable: nonEmpty.optional(),
     sources: z.array(slugRef).default([]),
     updated: z.coerce.date({ error: 'updated must be a valid date (YYYY-MM-DD)' }),
   })
@@ -58,6 +72,14 @@ export const conceptSchema = z
         path: ['needsUpdateReason'],
         message:
           'status "needs-update" requires needsUpdateReason — the visible debt marker set by intake (plan §11)',
+      });
+    }
+    if (concept.governanceNotApplicable && concept.governance.length > 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['governanceNotApplicable'],
+        message:
+          'governanceNotApplicable contradicts a non-empty governance list — declare hooks OR justify their absence, not both',
       });
     }
   });
@@ -77,6 +99,9 @@ export const interviewSchema = z
       })
       .strict(),
     followUps: z.array(nonEmpty),
+    /** Marks a trade-off/judgment question (plan §9 element 4) — the six-element
+     * package needs ≥1 per complete concept; enforced by the template lint. */
+    criticalThinking: z.boolean().default(false),
     practicalExample: nonEmpty.optional(),
     governanceAngle: nonEmpty.optional(),
   })

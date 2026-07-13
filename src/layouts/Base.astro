@@ -19,6 +19,12 @@ const { title, description = 'An interactive atlas of modern AI systems.' } = As
     <title>{title} · Agent Atlas</title>
   </head>
   <body class="min-h-screen bg-white text-slate-900 antialiased">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:outline focus:outline-2"
+    >
+      Skip to content
+    </a>
     <slot />
   </body>
 </html>

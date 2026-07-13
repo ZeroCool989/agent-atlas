@@ -1,0 +1,91 @@
+---
+title: "Context windows"
+layer: foundation
+oneLiner: "The finite working memory of a model: everything it can consider right now, measured in tokens."
+prerequisites:
+  - tokens
+related:
+  - embeddings
+governance:
+  - gdpr
+interviewTags: ["context-windows", "context"]
+status: complete
+verdict:
+  classification: essential
+  problem: "A model can only attend to a bounded number of tokens at once — every prompt, document, and answer must fit."
+  simplerBaseline: "None: the limit exists whether or not you think about it. Ignoring it means silent truncation or failed calls."
+  mainCost: "Managing it costs engineering effort (budgeting, truncation, retrieval) and money — input tokens are billed on every call."
+sources:
+  - karpathy-lets-build-the-gpt-tokenizer
+updated: 2026-07-13
+---
+
+import ContextWindowBar from '../../../components/viz/ContextWindowBar';
+import { computeContextWindow } from '../../../lib/viz';
+
+> **Fixture note (P0.6):** deliberately compact demonstration content proving the
+> concept template. Sections are honest but brief; depth arrives with the L0 lessons.
+
+## What problem existed before this?
+
+There was no "before": every transformer has had a bounded attention span. The problem
+is older than the name — any system that reasons over text needs a working set, and
+hardware and attention costs bound how large that set can be.
+
+## Why was this invented?
+
+The context window isn't a feature; it's a budget imposed by how attention scales with
+sequence length. Vendors expose it as a hard limit so callers can plan around it rather
+than discover it by having requests fail or content silently dropped.
+
+## How does it work?
+
+Every token of your system prompt, conversation history, retrieved documents, and the
+model's own output-in-progress occupies a slot. When the budget is spent, nothing more
+fits — something must be dropped, summarized, or retrieved on demand.
+
+<ContextWindowBar
+  view={computeContextWindow({
+    usedTokens: 14500,
+    capacityTokens: 16000,
+    segments: [
+      { label: 'system prompt', tokenCount: 1200, kind: 'system' },
+      { label: 'conversation', tokenCount: 9800, kind: 'conversation' },
+      { label: 'retrieved documents', tokenCount: 3500, kind: 'retrieval' },
+    ],
+  })}
+/>
+
+## Is it actually necessary?
+
+Understanding it is — the limit binds every LLM application. You cannot opt out; you can
+only decide *deliberately* what deserves the budget instead of letting truncation decide
+for you.
+
+## What are the trade-offs?
+
+Bigger windows fit more but cost more per call and can degrade attention quality over
+very long inputs ("lost in the middle"). Smaller windows are cheap and focused but force
+aggressive selection of what the model sees.
+
+## What complexity does it introduce?
+
+Token budgeting, truncation strategies, summarization of history, and retrieval
+pipelines all exist mainly to serve this limit. Multi-turn products need an explicit
+policy for what falls out of the window and when.
+
+## What simpler alternative exists?
+
+For one-shot tasks with small inputs: nothing — just stay under the limit. Long-context
+models can replace retrieval machinery for medium corpora, at a per-call price.
+
+## When should I use it?
+
+Always: budget your context deliberately. Reserve room for the answer, keep the system
+prompt lean, and measure real token counts rather than guessing from characters.
+
+## When should I avoid it?
+
+Avoid *stuffing* it: dumping whole documents into context because they fit. Past a
+point, retrieval of the relevant slice beats brute-force inclusion on cost, latency,
+and answer quality.

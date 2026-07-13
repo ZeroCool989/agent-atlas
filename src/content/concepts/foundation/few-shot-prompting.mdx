@@ -1,0 +1,88 @@
+---
+title: "Few-shot prompting"
+layer: foundation
+oneLiner: "Steering a model by showing worked examples in the prompt instead of describing the task."
+prerequisites:
+  - tokens
+related:
+  - context-windows
+interviewTags: ["few-shot", "prompting"]
+status: needs-update
+needsUpdateReason: "Modern instruction-tuned models often perform strongly zero-shot; the sections below may overstate few-shot gains for current frontier models. Review against recent model behavior before treating the guidance as current."
+verdict:
+  classification: situational
+  problem: "Task descriptions alone can leave output format and edge-case handling ambiguous; examples pin them down."
+  simplerBaseline: "Zero-shot: a clear instruction with an explicit output format — often sufficient on instruction-tuned models."
+  mainCost: "Examples consume context-window budget on every call and can silently bias the model toward example quirks."
+governanceNotApplicable: "Prompting technique choice is not itself materially regulated; obligations attach to the system's use case and data, which are covered by the concepts this page links to."
+sources:
+  - karpathy-lets-build-the-gpt-tokenizer
+updated: 2026-07-13
+---
+
+import TokenStream from '../../../components/viz/TokenStream';
+
+> **Fixture note (P0.6):** deliberately compact demonstration content proving the
+> `needs-update` pathway. The review flag above is real guidance, not decoration.
+
+## What problem existed before this?
+
+Base language models completed text; they didn't follow instructions. Getting a specific
+behavior out of them meant shaping the prompt so the desired behavior was the natural
+continuation.
+
+## Why was this invented?
+
+GPT-3 era work showed models could "learn" a task from a handful of examples placed in
+the prompt — in-context learning — without any weight updates. Few-shot prompting
+operationalized that observation.
+
+## How does it work?
+
+You prepend input→output example pairs before the real input. The examples occupy
+tokens like any other text — this is prompt content, not training:
+
+<TokenStream
+  sourceText="Review: great! → positive"
+  showBoundaries={true}
+  showIds={false}
+  tokens={[
+    { index: 0, text: 'Review', state: 'completed' },
+    { index: 1, text: ':', state: 'completed' },
+    { index: 2, text: ' great', state: 'completed' },
+    { index: 3, text: '!', state: 'completed' },
+    { index: 4, text: ' →', state: 'active' },
+    { index: 5, text: ' positive', state: 'inactive' },
+  ]}
+/>
+
+## Is it actually necessary?
+
+Less than it used to be. Instruction-tuned models follow well-written zero-shot
+instructions for most common tasks; examples still earn their tokens for unusual
+formats and fine-grained edge-case behavior.
+
+## What are the trade-offs?
+
+Examples buy precision at the price of tokens on every call, and they anchor the model:
+biased or unrepresentative examples reproduce their bias in outputs.
+
+## What complexity does it introduce?
+
+Example selection becomes a maintained artifact — someone must curate, version, and
+re-evaluate the examples as models and requirements change.
+
+## What simpler alternative exists?
+
+Zero-shot with an explicit output schema (structured output) covers many cases that
+once needed examples.
+
+## When should I use it?
+
+Unusual output formats, subtle classification boundaries, or style imitation — cases
+where showing beats telling.
+
+## When should I avoid it?
+
+When a clear instruction already works (measure it), or when context budget is tight
+and the examples crowd out task-relevant content.
