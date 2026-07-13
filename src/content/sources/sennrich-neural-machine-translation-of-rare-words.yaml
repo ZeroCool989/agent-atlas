@@ -1,0 +1,13 @@
+type: paper
+title: "Sennrich, Haddow & Birch — Neural Machine Translation of Rare Words with Subword Units (2016)"
+url: "https://arxiv.org/abs/1508.07909"
+ingestedAt: 2026-07-13
+routedTo:
+  - tokens
+decisions: >-
+  The origin paper for BPE-as-tokenization (adapting Gage's 1994 compression
+  algorithm). Routed to: tokens — grounds the "Why was this invented?" section (rare
+  words broke word-level NMT) and the historical claim in the lesson. Creates no new
+  concept; contradicts nothing. Interview contribution: the characters-vs-words
+  trade-off question derives from its motivation section. The lesson's trainer
+  implements this paper's algorithm at character level.

@@ -31,8 +31,10 @@ followUps:
   - "Why can a model be bad at counting the letters in a word?"
   - "When would you not trust token counts from one model's tokenizer to estimate another's?"
 practicalExample: >-
-  L0 build project (planned, plan §3): the BPE tokenizer in src/lib/sim that powers the
-  Tokenizer playground — run merges on a sample string and inspect the boundaries.
+  The L0 build project in this repo: src/lib/sim/tokenizer/bpe.ts implements the real
+  BPE trainer and encoder (~150 lines, tested); the Tokens lesson trains it live on a
+  seven-line corpus and lets you watch each merge being discovered, then tokenize your
+  own text in the playground.
 governanceAngle: >-
   Token counts are the unit of billing and context limits, so they appear in cost
   controls and capacity planning; EU AI Act GPAI documentation obligations reference

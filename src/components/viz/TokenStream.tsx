@@ -10,22 +10,32 @@
  * and hiding the space would mislead. Not coupled to any tokenizer vendor: it renders
  * whatever token data the scene provides.
  */
-import type { TokenView } from '../../lib/viz';
+import type { TokenState, TokenView } from '../../lib/viz';
 
 export interface TokenStreamProps {
   sourceText: string;
   tokens: TokenView[];
   showBoundaries: boolean;
   showIds: boolean;
+  /** Screen-reader wording for each state; hosts pass domain wording (e.g. the
+   * context-window demo says "entering the context window"). Defaults are neutral. */
+  stateText?: Partial<Record<TokenState, string>>;
 }
 
-const STATE_TEXT = {
-  inactive: 'not yet in the context window',
-  active: 'entering the context window',
-  completed: 'in the context window',
-} as const;
+const DEFAULT_STATE_TEXT: Record<TokenState, string> = {
+  inactive: 'not yet processed',
+  active: 'active in this step',
+  completed: 'processed',
+};
 
-export default function TokenStream({ sourceText, tokens, showBoundaries, showIds }: TokenStreamProps) {
+export default function TokenStream({
+  sourceText,
+  tokens,
+  showBoundaries,
+  showIds,
+  stateText,
+}: TokenStreamProps) {
+  const STATE_TEXT = { ...DEFAULT_STATE_TEXT, ...stateText };
   if (!showBoundaries) {
     return (
       <p

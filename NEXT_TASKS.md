@@ -10,9 +10,10 @@ statuses live in `CURRENT_STATE.md`._
    Cloudflare Pages project `agent-atlas`, add repo secrets `CLOUDFLARE_API_TOKEN` +
    `CLOUDFLARE_ACCOUNT_ID`, set repo variable `CLOUDFLARE_DEPLOY_ENABLED=true`
    (steps in docs/DEPLOYMENT.md). CI itself already runs on every push.
-2. **P0.9 — "Tokens" exemplar end-to-end** (awaiting approval + readiness-review
-   sign-off): real BPE in `src/lib/sim/`, Tier-2 steppable visual, mental-model
-   convention, full DoD incl. six-element interview package.
+2. **Phase 0 retrospective delivered — awaiting approval to begin Phase 1.**
+   Phase 1 opens with the flagship vertical slice: "Direct model call vs deterministic
+   workflow vs tool-using agent" (plan §18/§19), building `src/lib/agent/` on the
+   ModelProvider layer.
 
 ## Rules of engagement (Phase 0)
 

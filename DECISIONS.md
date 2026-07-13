@@ -49,6 +49,26 @@ project start would be pure debt. Plan references to "Astro 5" should be read as
   path, and `z.string().url()` is deprecated in favor of `z.url()`. Schemas and tests
   are written Zod-4-native.
 
+## 2026-07-13 — P0.9: Tokens lesson decisions
+
+- **Character-level mini-BPE over a production vocabulary.** The lesson trains the
+  real Sennrich-style algorithm on a seven-line checked-in corpus (16 merges, ~36
+  vocab entries) instead of shipping GPT-2's ~1 MB byte-level vocabulary. Teaching
+  reasons: the learner watches merges being *learned* (the mechanism, not its output),
+  merges are predictable by eye, and everything on screen is computed live. The
+  honesty table in the lesson states exactly what is simplified (the diet, never the
+  algorithm). The corpus is versioned content — editing it changes the learned
+  vocabulary and the lesson's claims (guarded by unit tests).
+- **Model trained at module load, not checked in.** Training 16 merges on 7 lines is
+  microseconds; a checked-in merge table would be a second source of truth that could
+  drift from the trainer the lesson tells readers to read.
+- **TokenStream `stateText` prop** (neutral defaults): state wording is host semantics
+  — the window demo says "entering the context window", the BPE explorer says "learned
+  in this merge". Renderer stays generic per the scene/renderer separation.
+- **e2e hydration wait pattern:** `client:visible` islands below the fold race
+  Playwright clicks; tests scroll the `<astro-island>` into view and wait for its
+  `ssr` attribute to drop before interacting. Reusable for all future lesson tests.
+
 ## 2026-07-13 — P0.7: CI/CD and security decisions
 
 - **CSP as per-page `<meta>` via Astro's `security.csp`, not host headers.** Astro

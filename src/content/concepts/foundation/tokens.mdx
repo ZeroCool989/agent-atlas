@@ -5,23 +5,186 @@ oneLiner: "The unit a language model actually reads and writes — not words, no
 prerequisites: []
 related:
   - context-windows
+  - embeddings
 governance:
   - eu-ai-act
-interviewTags: ["tokens", "tokenization"]
-status: draft
+interviewTags: ["tokens", "tokenization", "bpe"]
+status: complete
+verdict:
+  classification: essential
+  problem: "Models compute over a fixed vocabulary of numbered symbols, but human text is open-ended — something must map one onto the other, and that mapping drives cost, limits, and failure modes."
+  simplerBaseline: "Characters (tiny vocabulary, but sequences too long and meaning too diluted) or whole words (compact sequences, but unbounded vocabulary and no way to handle new words). Subword tokenization is the working compromise — there is no simpler option that avoids both failure modes."
+  mainCost: "A layer of invisible preprocessing you must reason about: counts that don't match words, budgets and bills measured in a unit you can't see, and behavior that differs across models and languages."
 sources:
   - karpathy-lets-build-the-gpt-tokenizer
+  - sennrich-neural-machine-translation-of-rare-words
 updated: 2026-07-13
 ---
 
-import TokenizationDemo from '../../../components/viz/TokenizationDemo';
+import BpeTrainingExplorer from '../../../components/viz/BpeTrainingExplorer';
+import TokenizerPlayground from '../../../components/viz/TokenizerPlayground';
 
-A language model never sees words. Its input and output are **tokens**: chunks of text —
-often word pieces — produced by a tokenizer such as BPE. Token counts are what you pay
-for, what fills the context window, and why models can stumble on letter-level questions.
+A language model never sees your words. Before any "thinking" happens, your text is cut
+into **tokens** — chunks from a fixed vocabulary, each mapped to a number — and those
+numbers are all the model ever receives. Everything practical about working with LLMs
+runs through this fact: what you pay, what fits in the context window, and a whole
+family of strange failures.
 
-<TokenizationDemo client:visible />
+> **Mental model: Lego bricks.** A tokenizer owns a fixed box of bricks — some tiny
+> (single characters), some pre-assembled chunks (` token`, `ing`) — and it rebuilds
+> any text you give it out of exactly those bricks. Common patterns get big
+> pre-assembled bricks; rare words get snapped together from small pieces.
+> **Where the analogy breaks:** Lego bricks are designed by someone; token "bricks" are
+> *learned automatically from frequency statistics*, and no engineer chooses them. The
+> box also differs per model — another vendor's set has different bricks entirely.
 
-> **P0.6 fixture note:** this is a `draft` proving the content pipeline (with an
-> embedded interactive island). The full lesson — nine canonical questions, real BPE,
-> interview package — is P0.9.
+## What problem existed before this?
+
+Neural networks compute over numbers, so every text model needs a **fixed, finite
+vocabulary**: a numbered list of symbols it can read and emit. Both obvious vocabularies
+fail:
+
+- **Characters** — a tiny, complete vocabulary (nothing is ever out of vocabulary), but
+  sequences become enormous and each symbol carries almost no meaning. The model spends
+  its capacity learning to spell.
+- **Whole words** — meaningful symbols and short sequences, but the vocabulary is
+  unbounded (names, typos, new coinages, morphology, other languages). Every unseen word
+  becomes the same unknown symbol: information destroyed at the front door.
+
+Machine translation hit this wall hardest in the 2010s: rare and novel words were
+exactly the ones that mattered, and word-level systems couldn't represent them at all.
+
+## Why was this invented?
+
+Subword tokenization is the working compromise: keep a *bounded* vocabulary, but let
+its entries be **fragments of words learned from data**. Sennrich, Haddow & Birch
+(2016) adapted a 1994 compression algorithm — Byte Pair Encoding — to do this: start
+from characters, then repeatedly merge the most frequent adjacent pair into a new
+vocabulary entry. Frequent words end up as single tokens; rare words remain decomposable
+into pieces. Nothing is ever unrepresentable, and the vocabulary size is a dial you
+choose.
+
+## How does it work?
+
+Two phases, both mechanical:
+
+1. **Training** (once, offline): count all adjacent symbol pairs in a corpus → merge
+   the most frequent pair into a new symbol → repeat, a few thousand times. The ordered
+   list of merges *is* the tokenizer.
+2. **Encoding** (every request): split text into characters, then apply the learned
+   merges — always the earliest-learned applicable merge first — until none applies.
+   Look up each resulting symbol's id.
+
+Watch the real thing. This explorer trains an actual BPE tokenizer on a seven-line
+corpus and re-encodes the same phrase after every merge — every frequency and count
+below is computed live by [the same algorithm you can read in this
+repo](https://github.com/ZeroCool989/agent-atlas/tree/main/src/lib/sim/tokenizer):
+
+<BpeTrainingExplorer client:visible />
+
+Notice three things as you scrub: ` token` gets assembled piece by piece (`␣t` → `␣to`
+→ `␣tok` → …) because the corpus is full of token-talk; the leading space is *part of
+the token* (that's why ` token` mid-sentence and `token` at a sentence start are
+different bricks); and `tokenization` never fully assembles — its rare `z` keeps it in
+fragments. That's exactly how production tokenizers treat your unusual words.
+
+### Try it yourself
+
+<TokenizerPlayground client:visible />
+
+## Is it actually necessary?
+
+Understanding it: yes, unconditionally — it is the unit of billing, context limits, and
+latency for every LLM you will ever call, and you cannot opt out. *Implementing* it:
+almost never in production (every model ships its tokenizer), but building one once is
+the fastest route to real understanding, which is why the tiny trainer above is this
+platform's first build project.
+
+## What are the trade-offs?
+
+The vocabulary size is a genuine dial with real stakes. **Bigger vocabulary** → shorter
+sequences (cheaper attention, more fits in the window) but a larger embedding matrix
+and rarer tokens that train poorly. **Smaller vocabulary** → more robust pieces but
+longer, costlier sequences. And because merges are *learned from a specific corpus*,
+tokenization inherits that corpus's biases: English compresses well; morphologically
+rich or underrepresented languages fragment into many more tokens — the same sentence
+can cost several times more depending on language. Code, numbers, and technical jargon
+fragment in their own characteristic ways.
+
+## What complexity does it introduce?
+
+An invisible preprocessing layer you must now reason about:
+
+- **Counting requires the tokenizer.** You cannot reliably estimate tokens from words
+  or characters — budgets and truncation logic need real counts from the model's own
+  tokenizer.
+- **Sub-token blindness.** The model receives ids, not letters — this is why models
+  miscount the r's in "strawberry": the letters aren't there to count.
+- **Boundary artifacts.** ` token` ≠ `token`; trailing spaces, casing, and punctuation
+  shift boundaries and can shift behavior.
+- **Cross-model incompatibility.** Counts, ids, and boundaries are per-tokenizer;
+  numbers computed for one model are wrong for another (see misconceptions below).
+
+## What simpler alternative exists?
+
+Character-level models genuinely work — the trade is longer sequences for a simpler,
+never-surprised vocabulary, and for some domains (DNA, some morphology-heavy tasks,
+tiny models) that trade is right. Byte-level BPE (GPT-2's variant of exactly what you
+watched above) is the production refinement: start from all 256 bytes instead of
+characters, so *nothing* — no emoji, no script — is ever out of vocabulary. There is no
+meaningful "simpler than subword" option for general LLMs; the alternatives sit on the
+same dial.
+
+## When should I use it?
+
+Token-level thinking, always: budget context deliberately (see
+[context windows](/concepts/context-windows)), measure costs in tokens per request,
+and when counting matters, count with **the target model's own tokenizer** — not a
+rule of thumb, not another model's.
+
+## When should I avoid it?
+
+Avoid transplanting token intuitions across models — a prompt "worth 800 tokens" for
+one tokenizer may be 1,100 for another. Avoid character-count heuristics (≈4
+chars/token) anywhere money or truncation depends on the number; they drift most
+exactly where it hurts (code, non-English text). And avoid hand-rolling a tokenizer in
+production: match the model, use its official one.
+
+## Common misconceptions
+
+- **"A token is a word."** Sometimes — frequent English words earn single tokens. But
+  you watched `tokenization` stay in five pieces while ` token` was one. Token ≈ word
+  is exactly as wrong as your text is unusual.
+- **"A token is a character."** Only at the floor. Characters are the *starting point*
+  BPE merges away from; most tokens span several.
+- **"Every model uses the same tokenizer."** No — vocabulary, merges, and ids are
+  training artifacts. The playground's ids above are meaningless to any other model.
+- **"Token counts are predictable from word counts."** Only for text resembling the
+  training corpus. The playground's "unseen word" experiment shows the same word count
+  producing very different token counts.
+- **"Tokenization treats languages equally."** It compresses what its corpus contained.
+  Identical meaning can cost multiples more in tokens across languages — a fairness
+  *and* a budgeting issue.
+
+## Teaching model vs production vs research
+
+Honesty about what you just watched:
+
+| | This lesson's tokenizer | Production (GPT-2/4-class) | Research frontier |
+|---|---|---|---|
+| Base symbols | characters seen in corpus | all 256 bytes (nothing unknown) | bytes, or none |
+| Vocabulary | 36 entries, 16 merges | 50k–200k entries | varies |
+| Training data | 7 hand-written lines | terabytes of web text | — |
+| Algorithm | **BPE — the real one** | BPE variants (byte-level, regex pre-splits) + optimized implementations | tokenizer-free / learned segmentation research |
+
+The *algorithm* is not simplified — only its diet. Everything you observed (merge
+order, leading spaces, fragmentation of rare words) happens identically at production
+scale, just 10,000× bigger.
+
+## Build it, then own it
+
+The L0 build project is the tokenizer behind this page:
+[`src/lib/sim/tokenizer/bpe.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/sim/tokenizer/bpe.ts)
+(~150 readable lines: `trainBpe`, `encode`, `decode`, with tests). Read it top to
+bottom, then explain the two phases out loud — that's the interview-ready version of
+this concept, and the interview questions below will test you on it.

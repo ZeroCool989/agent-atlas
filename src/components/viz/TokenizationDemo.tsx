@@ -32,6 +32,11 @@ export default function TokenizationDemo() {
         tokens={scene.tokens}
         showBoundaries={scene.showBoundaries}
         showIds={scene.showIds}
+        stateText={{
+          inactive: 'not yet in the context window',
+          active: 'entering the context window',
+          completed: 'in the context window',
+        }}
       />
 
       {scene.window && <ContextWindowBar view={scene.window} />}

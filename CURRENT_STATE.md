@@ -15,9 +15,20 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 | P0.6 Layouts + routes + template lint | ✅ complete (2026-07-13) |
 | P0.7 CI/CD | ✅ repo-side complete (2026-07-13) — deploy awaits Cloudflare secrets (see NEXT_TASKS) |
 | P0.8 Docs (INTAKE.md, AUTHORING.md, README) | ✅ complete (2026-07-13) |
-| P0.9 "Tokens" exemplar | not started |
+| P0.9 "Tokens" exemplar | ✅ complete (2026-07-13) — **Phase 0 done** |
 
 ## What exists right now
+
+- **The Tokens lesson (P0.9) — the gold-standard exemplar:** `status: complete`,
+  passing the full DoD lint. Real BPE trainer/encoder in `src/lib/sim/tokenizer/`
+  (the L0 build project, ~150 readable lines + 14 tests) trained live on a checked-in
+  seven-line corpus; `BpeTrainingExplorer` (watch 16 merges being discovered, real
+  frequencies, merge table, corpus inspection) and `TokenizerPlayground` (type
+  anything; ids, counts, honest unknown-character handling) as `client:visible`
+  islands; mental model with its breaking point; misconceptions section; teaching-vs-
+  production-vs-research honesty table; 3-question interview package (incl.
+  critical-thinking and cost/limits); Sennrich BPE paper ingested via the intake
+  pipeline. New scene type `createBpeScene`; TokenStream gained a `stateText` prop.
 
 - **CI/CD + security posture (P0.7):** `.github/workflows/ci.yml` runs typecheck →
   validate → unit tests → build → Playwright e2e on every push/PR, then a gated deploy

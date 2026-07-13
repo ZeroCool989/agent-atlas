@@ -1,0 +1,47 @@
+question: "How do tokens drive cost and limits, and why do counts differ between models and languages?"
+concepts:
+  - tokens
+  - context-windows
+roles:
+  - engineer
+  - consultant
+difficulty: standard
+answers:
+  beginner: >-
+    Every API bills per token, in and out, and the context window is a token budget —
+    so tokens are literally the meter. Counts differ between models because each has
+    its own learned vocabulary: the same text splits differently. And they differ
+    across languages because a tokenizer compresses best what it saw most in training,
+    which is usually English.
+  professional: >-
+    Cost = input tokens × input rate + output tokens × output rate, per call — so
+    prompt bloat compounds across every request, and history-heavy designs pay
+    repeatedly for the same tokens. Latency also scales with token counts. Counts are
+    tokenizer-specific: budgeting done with one model's tokenizer silently breaks when
+    you switch providers, so token counting belongs behind the same abstraction as the
+    model call. The language effect is material for multilingual products: identical
+    content can cost 2–4× more tokens in underrepresented languages — a real budget
+    line, and a fairness consideration.
+  deep: >-
+    Treat token economics as a first-class engineering surface: instrument real counts
+    per request segment (system, history, retrieval, output) rather than estimating;
+    the ≈4-chars-per-token heuristic degrades exactly where spend concentrates (code,
+    JSON, non-English). Vocabulary size choices upstream show up in your bill —
+    larger-vocab models compress your text into fewer, individually pricier tokens.
+    Language inequity has a governance face too: per-user cost and effective context
+    capacity differ by user language, which product and compliance teams should know
+    before it appears in support tickets.
+followUps:
+  - "Where would you put token counting in a multi-provider architecture?"
+  - "How would you detect that a prompt change doubled your token spend?"
+practicalExample: >-
+  This repo's teaching tokenizer (src/lib/sim/tokenizer) exposes exactly the mechanics:
+  encode() returns real tokens with ids, and the Tokens lesson's playground shows the
+  same word count producing different token counts for seen vs unseen words. The
+  ModelProvider layer (src/lib/model) carries per-call token usage as first-class
+  metadata for the same reason.
+governanceAngle: >-
+  Token counts are the billing and capacity record: cost controls, quota fairness
+  across user languages, and EU AI Act GPAI documentation (training scale is
+  conventionally reported in tokens) all consume this number — it needs to be measured,
+  not estimated.

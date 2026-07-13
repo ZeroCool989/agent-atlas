@@ -1,0 +1,37 @@
+question: "Why don't models just use characters or whole words — and when would character-level actually be the right choice?"
+concepts:
+  - tokens
+roles:
+  - engineer
+  - architect
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    Characters make sequences far too long — the model wastes capacity learning to
+    spell. Whole words make the vocabulary unbounded, so every new or rare word becomes
+    an unknown symbol. Subword tokens are the compromise: a fixed vocabulary whose
+    entries are learned fragments, so common words are single tokens and rare words
+    stay representable in pieces.
+  professional: >-
+    It's a vocabulary-size dial with failure modes at both ends: character-level gives
+    total coverage but quadratically painful sequence lengths and semantically empty
+    symbols; word-level gives meaningful symbols but destroys out-of-vocabulary
+    information at the front door — which is what killed word-level machine
+    translation on rare words. BPE-style subwords tune the dial by data: frequency
+    decides what deserves a dedicated symbol. Character- or byte-level is genuinely
+    right when the "words" assumption breaks — DNA sequences, morphologically extreme
+    languages, robustness-critical small models — because the trade flips: coverage
+    and simplicity matter more than sequence length.
+  deep: >-
+    The dial trades attention cost against embedding quality: shorter sequences reduce
+    the O(n²) attention bill, but each added vocabulary entry gets rarer training
+    signal, so oversized vocabularies carry undertrained tail tokens with fragile
+    representations. Byte-level BPE removes the unknown-symbol problem entirely (256
+    base symbols cover everything) at slightly worse compression for non-Latin
+    scripts. Tokenizer-free architectures periodically challenge the whole layer —
+    worth tracking precisely because tokenization is a preprocessing artifact, not a
+    law of nature.
+followUps:
+  - "Why do models miscount letters in words?"
+  - "What breaks if you swap a model's tokenizer after training?"

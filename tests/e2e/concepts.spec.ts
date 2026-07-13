@@ -23,7 +23,7 @@ test.describe('concept index', () => {
 
   test('status filter and combined filters work; form reflects the URL', async ({ page }) => {
     await page.goto('/concepts?status=complete');
-    await expect(page.locator('li[data-status="complete"]:visible')).toHaveCount(1);
+    await expect(page.locator('li[data-status="complete"]:visible')).toHaveCount(2); // tokens + context-windows
     await expect(page.getByLabel('Status')).toHaveValue('complete');
 
     await page.goto('/concepts?layer=foundation&status=needs-update');
@@ -75,7 +75,7 @@ test.describe('concept pages', () => {
     // Prerequisite shows target status
     const prereqs = page.getByRole('heading', { name: 'Learn these first' }).locator('..');
     await expect(prereqs.getByRole('link', { name: 'Tokens' })).toBeVisible();
-    await expect(prereqs).toContainText('draft');
+    await expect(prereqs).toContainText('complete'); // prerequisite shows target status
 
     // Governance: careful wording, linked framework
     const governance = page.locator('section[aria-label="Governance connections"]');
@@ -115,16 +115,40 @@ test.describe('concept pages', () => {
     );
   });
 
-  test('draft page with an embedded island hydrates only that island', async ({ page }) => {
+  test('the Tokens lesson: mental model, live BPE explorer, playground, misconceptions, honesty table', async ({ page }) => {
     const scripts: string[] = [];
     page.on('request', (req) => {
       if (req.resourceType() === 'script') scripts.push(req.url());
     });
     await page.goto('/concepts/tokens');
-    await expect(page.getByText(/This is a draft/)).toBeVisible();
-    const next = page.getByRole('button', { name: 'Next' });
-    await next.click(); // island works
-    await expect(page.getByRole('heading', { name: '2. Token boundaries' })).toBeVisible();
+
+    // Mental model with its breaking point (honest-analogy rule)
+    await expect(page.getByText(/Mental model: Lego bricks/)).toBeVisible();
+    await expect(page.getByText(/Where the analogy breaks/)).toBeVisible();
+
+    // The BPE training explorer is real and steppable: computed frequencies appear.
+    const explorer = page.locator('section[aria-label="BPE training walkthrough"]');
+    await expect(explorer.getByRole('heading', { name: 'Before any merges' })).toBeVisible();
+    // client:visible below the fold — scroll it into view and wait for hydration
+    // (Astro drops the `ssr` attribute from <astro-island> once hydrated).
+    const island = page.locator('astro-island', { has: explorer });
+    await island.scrollIntoViewIfNeeded();
+    await expect(island).not.toHaveAttribute('ssr', /.*/);
+    await explorer.getByRole('button', { name: 'Next' }).click();
+    await expect(explorer.getByRole('heading', { name: /Merge 1 of 16/ })).toBeVisible();
+    await expect(explorer.getByText(/seen 18×/).first()).toBeVisible(); // real corpus frequency
+
+    // The playground tokenizes typed input live.
+    const playground = page.locator('section[aria-label="Tokenizer playground"]');
+    await playground.getByRole('textbox').fill('the model learns tokens');
+    await expect(playground.getByText(/4 words → \d+ tokens/)).toBeVisible();
+
+    // Misconceptions and honesty sections exist.
+    await expect(page.getByRole('heading', { name: 'Common misconceptions' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Teaching model vs production/ })).toBeVisible();
+    await expect(page.getByText(/only its diet/)).toBeVisible();
+
+    // Complete lesson with islands: hydrated JS present, but only island JS.
     expect(scripts.length).toBeGreaterThan(0);
   });
 
