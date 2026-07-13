@@ -1,1 +1,42 @@
 @import "tailwindcss";
+
+/*
+ * Semantic visualization colors (docs/VISUAL_LANGUAGE.md). Components reference these
+ * variables, never hard-coded colors, so the palette can be settled later in one
+ * place. State is never communicated by color alone — every state also has a shape,
+ * border, glyph, or text indicator.
+ */
+:root {
+  --viz-neutral: #64748b; /* inactive/available content */
+  --viz-surface: #f1f5f9; /* backgrounds of viz canvases */
+  --viz-boundary: #94a3b8; /* token boundaries, separators */
+  --viz-active: #1d4ed8; /* the element being processed now */
+  --viz-active-surface: #dbeafe;
+  --viz-complete: #047857; /* work that is done */
+  --viz-complete-surface: #d1fae5;
+  --viz-warning: #b45309; /* near-capacity, data inconsistencies */
+  --viz-warning-surface: #fef3c7;
+  --viz-error: #b91c1c; /* invalid states, overflow accents */
+  --viz-error-surface: #fee2e2;
+}
+
+/*
+ * The single animation opt-in class. Motion communicates state transitions only
+ * (appear, flow, highlight, accumulate — see VISUAL_LANGUAGE.md); under
+ * prefers-reduced-motion transitions are removed entirely, not slowed: every scene is
+ * complete without animation by construction.
+ */
+.viz-transition {
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease,
+    width 300ms ease,
+    opacity 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viz-transition {
+    transition: none;
+  }
+}

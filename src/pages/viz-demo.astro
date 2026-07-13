@@ -1,0 +1,31 @@
+---
+import TokenizationDemo from '../components/viz/TokenizationDemo';
+import Base from '../layouts/Base.astro';
+---
+
+<Base
+  title="Visual foundation demo"
+  description="Proof of Agent Atlas's scene-driven visualization architecture."
+>
+  <main class="mx-auto max-w-3xl space-y-6 px-6 py-16">
+    <header>
+      <h1 class="text-3xl font-bold tracking-tight">Visual foundation demo</h1>
+      <p class="mt-2 text-slate-600">
+        A minimal walkthrough — raw text → token boundaries → token ids → context window —
+        proving the scene-driven visual architecture (pure scene functions, Stepper,
+        TokenStream, ContextWindowBar). The full Tokens lesson builds on this.
+      </p>
+    </header>
+
+    {/* client:visible — hydrate only when scrolled into view. The step-0 scene is
+        server-rendered, so the page teaches before (and without) JavaScript. */}
+    <TokenizationDemo client:visible />
+
+    <noscript>
+      <p class="text-sm text-slate-500">
+        JavaScript is disabled: you are seeing the first step. The step controls need JavaScript;
+        the content above is complete for step 1 of 5.
+      </p>
+    </noscript>
+  </main>
+</Base>

@@ -49,6 +49,30 @@ project start would be pure debt. Plan references to "Astro 5" should be read as
   path, and `z.string().url()` is deprecated in favor of `z.url()`. Schemas and tests
   are written Zod-4-native.
 
+## 2026-07-13 — P0.5: visual-system decisions
+
+- **Scene truth vs rendering** is the binding rule (docs/VISUAL_LANGUAGE.md): scene
+  data carries semantic state only (no CSS/colors/durations); renderers decide
+  presentation. Out-of-range steps CLAMP (never reject) so every scrub position maps to
+  a complete scene; NaN → 0.
+- **Context-window edge-case policy:** impossible inputs (negative, zero capacity,
+  non-integers) → `invalid` + error panel, never a misleading bar; overflow is a
+  legitimate teaching state (percent > 100 shown honestly, bar capped); segment/usage
+  mismatches render as visible warnings while used/capacity math stands.
+- **Hydration:** educational visuals hydrate `client:visible` (in-prose islands need
+  interactivity only when seen). Content pages stay zero-JS — e2e-enforced.
+- **Reduced motion:** transitions are removed, not slowed (`.viz-transition` +
+  media query); no information lives in animation by construction. Stepper exposes
+  `data-reduced-motion` for styling hooks.
+- **No animation/graphics dependencies:** HTML/CSS + small React state only. D3,
+  canvas, Motion, React Flow, Three.js all rejected for these primitives; `motion`
+  only if CSS proves insufficient for a concrete future need (per plan §12 it remains
+  an option, not a default).
+- **New dev-only test dependencies:** `jsdom` + `@testing-library/react` (component
+  tests per the P0.5 acceptance criteria). Not shipped to the site.
+- **Demo tokenization is illustrative** (hand-chosen subword splits, visible notice on
+  the page); real BPE arrives with the Tokens lesson (P0.9/L0 build project).
+
 ## 2026-07-13 — P0.4: model-layer decisions
 
 - **Scenario format: JSON + Zod validation** (`*.scenario.json`, `parseScenario`).

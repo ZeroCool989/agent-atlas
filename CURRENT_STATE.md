@@ -11,7 +11,7 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 | P0.2 Content schemas | ✅ complete (2026-07-13) |
 | P0.3 Graph builder + integrity CI | ✅ complete (2026-07-13) |
 | P0.4 ModelProvider + ScriptedProvider | ✅ complete (2026-07-13) |
-| P0.5 Viz foundation | not started |
+| P0.5 Viz foundation | ✅ complete (2026-07-13) |
 | P0.6 Layouts + routes + template lint | not started |
 | P0.7 CI/CD | not started |
 | P0.8 Docs (INTAKE.md, AUTHORING.md) | not started |
@@ -19,6 +19,14 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 
 ## What exists right now
 
+- **Viz foundation (P0.5):** pure scene layer in `src/lib/viz/` (`(input, step) =>
+  Scene` with clamping, `computeContextWindow` with documented edge-case policy,
+  timeline types); renderers in `src/components/viz/` (`Stepper` — keyboard-operable,
+  timer-safe, instance-independent; `TokenStream`; `ContextWindowBar`;
+  `TokenizationDemo` composition) wired on `/viz-demo` via `client:visible` with a
+  server-rendered step-0 first frame. Semantic `--viz-*` CSS variables + reduced-motion
+  removal in `global.css`; vocabulary and rules in `docs/VISUAL_LANGUAGE.md`. Home page
+  still ships zero JS (e2e-enforced). 30 new tests (104 total), 5 e2e.
 - **Model layer (P0.4):** `src/lib/model/` — provider-neutral `ModelProvider` contract
   (`complete(request) => response` with typed messages, tool definitions/calls, six-value
   stop-reason vocabulary, all-optional usage metadata, typed errors) and

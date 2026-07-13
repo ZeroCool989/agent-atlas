@@ -6,18 +6,18 @@ statuses live in `CURRENT_STATE.md`._
 
 ## Up next
 
-1. **P0.5 — Viz foundation.** `<Stepper>` (play/pause/scrub, keyboard-accessible) +
-   the `(step) => Scene` pure-function model + the primitives Tokens needs
-   (`TokenStream`, `ContextWindowBar`); static non-hydrated first frame; start
-   `docs/VISUAL_LANGUAGE.md`. Visuals accessible and educational, not decorative.
-   _Accepted when:_ scene functions unit-tested; Stepper keyboard-operable; JS-disabled
-   render shows a meaningful first frame.
-2. **P0.6 — Layouts + routes + template lint.** Tracked deferral: the six-element
-   interview-package lint for `complete` concepts lands here.
-3. **P0.7 — CI/CD** (GitHub Actions → Cloudflare Pages; keep portable per DECISIONS.md;
+1. **P0.6 — Layouts + routes + template lint.** Concept template with the nine
+   canonical sections, verdict box, governance hooks, interview links; `/concepts`
+   index + `/concepts/[slug]`; lint that `complete` concepts satisfy the template.
+   **Tracked deferral lands here:** the six-element interview-package lint for
+   `complete` concepts (30s answer, 2-min answer, follow-ups, critical-thinking
+   question, practical example, governance perspective). _Accepted when:_ stub and
+   complete fixtures render; removing a required section from a complete fixture
+   fails CI.
+2. **P0.7 — CI/CD** (GitHub Actions → Cloudflare Pages; keep portable per DECISIONS.md;
    `npm run validate` is ready to be called as a pipeline step).
-4. **P0.8 — Docs** (INTAKE.md, AUTHORING.md).
-5. **P0.9 — "Tokens" exemplar end-to-end.**
+3. **P0.8 — Docs** (INTAKE.md, AUTHORING.md).
+4. **P0.9 — "Tokens" exemplar end-to-end.**
 
 ## Rules of engagement (Phase 0)
 
