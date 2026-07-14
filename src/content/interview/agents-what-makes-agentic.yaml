@@ -1,0 +1,36 @@
+question: "What makes a workflow agentic? Is tool calling alone enough?"
+concepts:
+  - workflows-vs-agents
+roles:
+  - engineer
+  - architect
+difficulty: screen
+answers:
+  beginner: >-
+    A workflow becomes agentic when the model — not the developer — decides the next
+    step, inside a loop where each action's result feeds the next decision. Tool
+    calling alone isn't enough: plenty of ordinary code calls the same tools with the
+    developer deciding when. Agency is about who selects actions, not whether tools
+    exist.
+  professional: >-
+    The test is step selection at runtime. In a deterministic workflow the developer
+    enumerated every step; in a model-assisted workflow the model makes one bounded
+    choice among developer-written branches; in an agent the model observes
+    accumulated state and selects the next action each turn, with an open number of
+    steps. Tool calling is the enabling API, not the definition — a single
+    model-chosen tool call with no loop is closer to routing than agency. The
+    practical consequence: as step selection moves to the model, you inherit variance,
+    an unbounded cost envelope, and the need for limits, traces, and evaluation.
+  deep: >-
+    Formally it's a control-flow question: who owns the transition function. Workflow:
+    transitions are code (testable, enumerable). Agent: the transition is a model call
+    over conversation state — a learned, stochastic policy. That's why "agent" is a
+    property of the RUNTIME architecture, not of the model: the same model is a
+    classifier in one system and an agent in another. It's also why the engineering
+    burden shifts from writing paths to bounding a policy you didn't write: allowlists,
+    argument validation, step limits, outcome classification, and eval harnesses are
+    the agent-side replacements for what unit tests did for workflows.
+followUps:
+  - "Where should tool-argument validation live, and why not in the prompt?"
+  - "What's the difference between a model stop reason and a runtime outcome?"
+  - "How do you prevent infinite loops mechanically?"

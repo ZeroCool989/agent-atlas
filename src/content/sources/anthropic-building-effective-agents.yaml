@@ -1,0 +1,15 @@
+type: article
+title: "Anthropic — Building Effective Agents"
+url: "https://www.anthropic.com/research/building-effective-agents"
+ingestedAt: 2026-07-14
+routedTo:
+  - workflows-vs-agents
+decisions: >-
+  Industry-canonical statement of the workflow/agent distinction (workflows
+  orchestrate models through predefined code paths; agents dynamically direct their
+  own processes) and of the "start simple, add autonomy only when needed" guidance.
+  Routed to: workflows-vs-agents — grounds the definition and the climb-the-ladder-
+  downward recommendation. Creates no new concept; contradicts nothing. Interview
+  contribution: the "is tool calling alone an agent?" follow-up mirrors its taxonomy.
+  Visualization note: its augmented-LLM/workflow/agent diagrams corroborate the
+  four-architecture comparison built for the lesson.

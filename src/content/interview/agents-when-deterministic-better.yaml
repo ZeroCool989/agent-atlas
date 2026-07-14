@@ -1,0 +1,36 @@
+question: "When is deterministic code better than an agent — and how would you argue a team out of building one?"
+concepts:
+  - workflows-vs-agents
+roles:
+  - architect
+  - consultant
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    Whenever you can list the steps in advance, deterministic code wins: it's cheaper
+    (zero or few model calls), faster, testable, and behaves the same way every time.
+    An agent earns its place only when the next step genuinely depends on what previous
+    steps revealed and the paths can't be enumerated.
+  professional: >-
+    The argument is a checklist, not an opinion. Can we enumerate the paths? Then a
+    workflow. Is the variation only in routing? Then one classification call plus
+    branches. Are the actions consequential or irreversible? Then model-driven step
+    selection needs approval gates we'd have to build. Can we afford per-run variance
+    in cost, latency, and behavior? Do we have an evaluation story that would tell us
+    the agent works? Most proposals fail two or more of these. The strongest framing
+    for a team: an agent replaces code you can test with a policy you must measure —
+    you should get adaptability worth that trade.
+  deep: >-
+    Quantify the trade: a workflow's failure modes are enumerable and unit-testable;
+    an agent converts them into a distribution you sample with evals. Estimate tokens
+    per run × runs per day under the agent's WORST realistic step count, add the
+    engineering cost of the runtime (validation, limits, traces, eval harness), and
+    compare with the cost of just writing the branches. Where agents genuinely win —
+    open-ended research, diagnostics with feedback loops — the branch count is
+    effectively infinite and the comparison flips. The failure pattern to name in
+    review: "agent" chosen because the roadmap wanted the word, discovered when the
+    team starts hard-coding the model's decisions back into prompts — a workflow with
+    extra steps.
+followUps:
+  - "How would you evaluate whether an agent actually completed its task, beyond 'the loop ended'?"

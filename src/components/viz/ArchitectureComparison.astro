@@ -1,0 +1,14 @@
+---
+/**
+ * Server-side wrapper: RUNS all four architectures at build time (real runtime, real
+ * scripted providers) and hands the computed traces to the island as serializable
+ * props — so the static first frame already shows real data, and the island ships no
+ * agent-runtime code, only the renderer.
+ */
+import { buildComparison, COMPARISON_QUESTION } from '../../lib/agent';
+import ArchitectureComparisonIsland from './ArchitectureComparisonIsland';
+
+const runs = await buildComparison();
+---
+
+<ArchitectureComparisonIsland client:visible runs={runs} question={COMPARISON_QUESTION} />

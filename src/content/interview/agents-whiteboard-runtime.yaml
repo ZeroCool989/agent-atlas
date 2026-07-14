@@ -1,0 +1,55 @@
+question: "Whiteboard a minimal tool-using agent runtime: components, boundaries, and where it can fail."
+concepts:
+  - workflows-vs-agents
+roles:
+  - engineer
+  - architect
+difficulty: deep
+answers:
+  beginner: >-
+    Draw a loop: the model sees the goal, the conversation so far, and a list of
+    allowed tools; it either answers (loop ends) or asks for a tool. The runtime — not
+    the model — checks the request, runs the tool, and appends the result to the
+    conversation, then calls the model again. Around the loop: a maximum step count so
+    it can never run forever, and a log of every event.
+  professional: >-
+    Boxes: conversation state (messages), a model provider behind an interface, a tool
+    registry (name → schema → execute function), and the loop driver. Per iteration:
+    call model with state + tool definitions → if plain text, finish with outcome
+    "completed" → else for each tool call: reject unknown tools (registry is the
+    allowlist), validate arguments against the schema, execute, append the result as
+    an observation. Enforce max steps as an outcome, not an exception. Keep model stop
+    reasons separate from runtime outcomes (completed / max-steps / tool-error /
+    model-error / invalid-tool-request). Failure points to mark on the board: the
+    model call itself, tool selection (wrong/unknown tool, bad arguments), tool
+    execution, a poisoned observation steering the next turn, and the loop bound.
+    Every event goes to a structured trace — that trace is your debugging surface,
+    your eval input, and your audit record.
+  deep: >-
+    The design decisions worth defending on a whiteboard: (1) validation placement —
+    at the runtime boundary with strict schemas, never delegated to prompt
+    instructions, because the model is the untrusted party; (2) error policy — end the
+    run honestly versus feed the error back for retry: retry is a reliability pattern
+    with a cost (more calls, possible loops) and belongs behind the same step limit;
+    (3) idempotency — duplicate call ids must not double-execute consequential
+    actions; (4) approval gates — a pre-execution hook on designated tools, returning
+    an "escalation" outcome, is sufficient for human-in-the-loop without redesign;
+    (5) evaluation seam — the trace plus final state is exactly what an eval harness
+    replays, so the runtime's observability decisions determine whether the agent is
+    measurable at all. The whole thing is ~200 lines without a framework — knowing
+    that changes how you evaluate framework pitches.
+followUps:
+  - "How would you add human approval for a payment tool without restructuring the loop?"
+  - "Which of these components changes when you go from scripted to live models?"
+practicalExample: >-
+  This repo implements exactly this runtime in src/lib/agent/ (runner.ts is the loop,
+  tools.ts the allowlist registry, calculator.ts a tool that is a parser rather than
+  eval). The workflows-vs-agents lesson steps through its real execution traces, and
+  19 unit tests exercise every failure path listed above.
+governanceAngle: >-
+  The runtime IS the control implementation: the registry is least privilege, argument
+  validation is input control, step limits bound agency, and the trace is the audit
+  record showing who decided what. When a regulatory framework applies to a concrete
+  system, these are the mechanisms that make autonomy level, oversight points, and
+  failure handling demonstrable — applicability itself always depends on system, role,
+  use case, data, and jurisdiction.

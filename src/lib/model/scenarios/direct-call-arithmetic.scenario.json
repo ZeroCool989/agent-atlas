@@ -1,0 +1,25 @@
+{
+  "id": "direct-call-arithmetic",
+  "description": "A direct model call answering an arithmetic question from weights alone — scripted to show the documented failure mode: multi-digit multiplication answered confidently and wrongly (127 × 49 is 6,223, not 6,213). Real-model behavior varies; the scheduled local experiment will record actual outcomes. Used by the flagship workflows-vs-agents lesson.",
+  "model": "scripted-direct-v1",
+  "turns": [
+    {
+      "expect": {
+        "roleSequence": ["user"],
+        "lastMessageContains": "127"
+      },
+      "respond": {
+        "text": "127 × 49 = 6,213.",
+        "stopReason": "completed",
+        "usage": {
+          "latencyMs": 350,
+          "inputTokens": 18,
+          "outputTokens": 11,
+          "totalTokens": 29,
+          "cost": { "amount": 0.00024, "currency": "USD", "basis": "declared" }
+        }
+      },
+      "teaching": "No tools were offered and none exist. The model produced a fluent, confident, WRONG product — weights approximate arithmetic, they don't compute it. Nothing in this architecture can catch the error."
+    }
+  ]
+}

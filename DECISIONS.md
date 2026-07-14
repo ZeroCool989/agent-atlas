@@ -49,6 +49,27 @@ project start would be pure debt. Plan references to "Astro 5" should be read as
   path, and `z.string().url()` is deprecated in favor of `z.url()`. Schemas and tests
   are written Zod-4-native.
 
+## 2026-07-14 — F1 (Phase 1 flagship slice): agent-runtime decisions
+
+- **Invalid tool requests and tool failures END the run** (`invalid-tool-request` /
+  `tool-error`) rather than feeding errors back for model retry. Retry-on-error is a
+  real production pattern, but it is a RELIABILITY addition — implementing it in the
+  minimum loop would hide how often models get tools wrong and blur the lesson's
+  boundary. The runner documents the alternative where the policy lives.
+- **`decidedBy` on every trace event** ('developer' | 'model' | 'runtime') — the
+  lesson's central comparison encoded in the data model, so the visualization renders
+  the teaching dimension instead of decorating it.
+- **Comparison traces computed at build time** in an .astro wrapper (`await
+  buildComparison()`) and passed to the island as serializable props: the static first
+  frame shows real data, and the island ships only the renderer, not the runtime.
+- **Calculator is a recursive-descent parser** — the "no arbitrary code through tools"
+  rule made concrete and teachable; `eval()` never appears.
+- **`escalation-required` documented but not implemented** — reserved in the outcome
+  vocabulary for the human-approval lesson; implementing it now would be speculative.
+- **e2e note:** Playwright's `reuseExistingServer` will latch onto a leftover
+  `astro dev` daemon on 4321 and run e2e against the dev server (breaking zero-JS
+  assertions). Stop the daemon (`npx astro dev stop`) before local e2e runs.
+
 ## 2026-07-13 — P0.9: Tokens lesson decisions
 
 - **Character-level mini-BPE over a production vocabulary.** The lesson trains the

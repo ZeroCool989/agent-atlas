@@ -1,0 +1,25 @@
+{
+  "id": "model-assisted-classify",
+  "description": "The single model decision in a model-assisted workflow: classify the request so the application can follow one of two developer-written branches. Used by the flagship workflows-vs-agents lesson.",
+  "model": "scripted-classifier-v1",
+  "turns": [
+    {
+      "expect": {
+        "roleSequence": ["user"],
+        "lastMessageContains": "127"
+      },
+      "respond": {
+        "text": "calculation",
+        "stopReason": "completed",
+        "usage": {
+          "latencyMs": 180,
+          "inputTokens": 31,
+          "outputTokens": 2,
+          "totalTokens": 33,
+          "cost": { "amount": 0.00011, "currency": "USD", "basis": "declared" }
+        }
+      },
+      "teaching": "The model's entire contribution is one word: which developer-defined branch to take. Cheap, fast, and bounded — model discretion without an action loop."
+    }
+  ]
+}

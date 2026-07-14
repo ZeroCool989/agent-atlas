@@ -1,7 +1,27 @@
 # Current state
 
-_Updated after each completed Phase 0 task. Roadmap: `docs/IMPLEMENTATION_PLAN.md` §18;
+_Updated after each completed task. Roadmap: `docs/IMPLEMENTATION_PLAN.md` §18;
 task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
+
+## Phase 1 progress
+
+| Task | Status |
+|---|---|
+| F1 Flagship slice: workflows vs agents + minimal agent runtime | ✅ complete (2026-07-14) |
+
+- **Flagship slice (F1):** `src/lib/agent/` — the minimal tool-using agent runtime
+  (ADR-0005: plain TS on the ModelProvider interface): `runner.ts` (the loop: validate
+  → execute → observe → repeat, step-limited, typed outcomes separate from stop
+  reasons, full trace events with `decidedBy`), `tools.ts` (allowlist registry),
+  `calculator.ts` (recursive-descent parser, never eval), `workflows.ts` (direct call /
+  deterministic / model-assisted implemented for real), `comparison.ts` (runs all four
+  at build time). Lesson `/concepts/workflows-vs-agents` (complete, full DoD):
+  four-architecture comparison island driven by real traces, mental model
+  (recipe→taste-tester→contractor + breaking point), trade-off table, three
+  problem-first transitions, minimum-loop-vs-optional-additions, security/governance
+  section with careful applicability wording, 3-question interview package incl.
+  whiteboard + critical-thinking. New `createTraceScene`; 2 new scenarios; Anthropic
+  "Building effective agents" ingested. 32 new tests (194 total), 17 e2e.
 
 ## Phase 0 progress
 

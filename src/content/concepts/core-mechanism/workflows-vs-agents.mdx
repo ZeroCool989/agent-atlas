@@ -1,0 +1,215 @@
+---
+title: "Workflows vs agents"
+layer: core-mechanism
+oneLiner: "The autonomy spectrum: what actually changes when the model, not the developer, decides the next step."
+prerequisites:
+  - tokens
+  - context-windows
+related:
+  - embeddings
+governance:
+  - eu-ai-act
+interviewTags: ["agents", "workflows", "agent-loop", "tool-calling"]
+status: complete
+verdict:
+  classification: essential
+  problem: "Some tasks can't be solved by a fixed sequence of steps — the right next action depends on what previous actions revealed. Someone has to decide steps at runtime; the question is who: the developer, in advance, or the model, per turn."
+  simplerBaseline: "A deterministic workflow — developer-defined steps with no model discretion — solves most problems teams reach for agents on, and is cheaper, faster, testable, and predictable. Model-assisted routing covers most of the rest."
+  mainCost: "Handing step selection to the model buys adaptability and pays in predictability: per-run variance, an open-ended cost/latency envelope, a security surface at every tool boundary, and an observability burden — you now need traces, limits, and evaluation to know what your own system did."
+sources:
+  - anthropic-building-effective-agents
+updated: 2026-07-14
+---
+
+import ArchitectureComparison from '../../../components/viz/ArchitectureComparison.astro';
+
+Everyone ships "agents" now; almost nobody agrees what one is. This lesson pins the
+word down mechanically: four architectures solve the *same* task below, and exactly one
+thing changes as you move up — **who decides the next step**. That single question
+separates a workflow from an agent, predicts the costs you'll pay, and tells you when
+the move is unjustified.
+
+> **Mental model: recipe → taste-tester → contractor.** A deterministic workflow is a
+> *recipe*: every step written down, executed exactly, every time. A model-assisted
+> workflow adds a *taste-tester*: at one point, someone judges — "needs the sauce
+> route" — but both routes were written in advance. An agent is a *contractor*: you
+> state the goal, hand over approved tools and a budget, and they decide the steps.
+> **Where the analogy breaks:** a human contractor has professional judgment,
+> liability, and can be sued. A model has none of these — so the runtime around it must
+> supply what the analogy assumes: hard limits, an allowlist of tools, validation, and
+> an audit trail. The runtime is the adult in the room.
+
+## What problem existed before this?
+
+Deterministic software has one great limitation: the developer must enumerate every
+path in advance. For tasks where the right next action depends on intermediate results
+— "look this up, and depending on what you find, compute or search again" — the path
+can't be written down. Before capable models, we handled this with brittle rule
+explosions, or a human in the loop making each judgment call.
+
+## Why was this invented?
+
+Tool-calling models made a new division of labor possible: the model contributes
+*judgment about the next action*, while ordinary code contributes *execution*. The
+agent loop is the minimal harness for that division — first named clearly in patterns
+like ReAct and codified in industry practice (Anthropic's "Building effective agents"
+draws the same workflow/agent line this lesson teaches: workflows orchestrate models
+through predefined paths; agents direct their own process).
+
+## How does it work?
+
+Step through all four architectures on the same question. Watch the right-hand column —
+*who decided* — and notice the loop appears only in the fourth:
+
+<ArchitectureComparison />
+
+The trace you just scrubbed is real: these four implementations run in this repository
+([`src/lib/agent/`](https://github.com/ZeroCool989/agent-atlas/tree/main/src/lib/agent)),
+and the events are what the runtime actually recorded. The direct call's wrong answer
+is scripted to show a documented failure mode of weights-only arithmetic — the
+scheduled real-model experiment will record live behavior.
+
+**The minimum agent loop** — six things, nothing more:
+
+1. a **goal** (the instruction);
+2. a **model** capable of selecting a next action;
+3. **available tools** (an allowlist the developer wrote);
+4. an **execution loop** (model → runtime → model);
+5. **observations** — each result appended to state so the next model call sees it;
+6. a **stopping condition** — a plain answer, a step limit, or an escalation.
+
+Everything else you've heard attached to "agents" — long-term memory, RAG, planning,
+reflection, MCP, multi-agent orchestration, human approval gates, vector databases —
+is an **optional addition solving a specific problem** (forgetting, knowledge access,
+long horizons, quality, interoperability, scale, consequence). None of them is required
+for a system to be an agent, and each one adds its own complexity bill.
+
+## The three transitions (problem-first)
+
+**Direct call → deterministic workflow.** *Problem solved:* the model can't execute
+anything — it answered `6,213` because weights approximate arithmetic. The workflow
+guarantees correctness by running real code. *Cost:* it only handles inputs the
+developer anticipated. *Unjustified when* a plain answer is genuinely enough.
+
+**Deterministic workflow → model-assisted workflow.** *Problem solved:* inputs vary too
+much for one fixed pipeline; the model classifies, then developer-written branches run.
+Model discretion enters — one decision wide, no loop. *Cost:* one probabilistic
+decision now sits in your control flow; misclassification is a new failure mode.
+*Unjustified when* a regex or a rule can do the routing.
+
+**Model-assisted workflow → tool-using agent.** *Problem solved:* the number and order
+of steps can't be known in advance — the next action depends on the last observation.
+Only now does an open loop earn its place. *Cost:* everything in the verdict box —
+variance, open-ended spend, a security surface per tool, and the need for traces,
+limits, and evaluation. *Unjustified when* you can enumerate the paths — which is more
+often than the hype suggests. **Climb this ladder downward:** start deterministic,
+escalate only when the current rung demonstrably fails.
+
+## Is it actually necessary?
+
+The *distinction* is non-negotiable engineering literacy — it decides architectures,
+budgets, and risk assessments. The *agent itself* usually isn't: most production
+"agent" use cases are workflows wearing a fashionable name, and are better for it.
+The honest default is the simplest architecture that solves the problem.
+
+## What are the trade-offs?
+
+| | Direct call | Deterministic workflow | Model-assisted workflow | Tool-using agent |
+|---|---|---|---|---|
+| Steps determined by | n/a (one step) | developer, in advance | developer (model picks branch) | **model, per turn** |
+| Tools | none | code the developer calls | code the developer calls | selected by model, executed by runtime |
+| Loop | no | no | no | **yes** |
+| Deterministic | no (model output) | **yes** | branch choice varies | no |
+| Reliability | answer may be wrong | highest | high | needs limits + evaluation |
+| Latency / cost | 1 model call | zero model calls | 1 model call + code | N model calls, N unknown |
+| Security surface | prompt only | conventional code | prompt + one decision | **every tool × every turn** |
+| Observability needs | minimal | logs | logs + one decision | **full execution traces** |
+| Use when | judgment/text only | paths enumerable | routing varies, paths enumerable | steps genuinely unknowable |
+
+## What complexity does it introduce?
+
+The runtime you saw in the trace — and someone must build and operate it: conversation
+state, tool validation, execution, step limits, outcome classification, trace
+collection. Two distinctions the code enforces are worth internalizing: **tool
+*selection* is the model's only power; *validation and execution* belong to the
+runtime** — and a **model stop reason** ("I want a tool" / "I'm done talking") is not a
+**runtime outcome** (`completed`, `max-steps-reached`, `tool-error`,
+`invalid-tool-request`). And neither proves the user's actual goal was achieved —
+knowing *that* requires evaluation, a concept of its own.
+
+## What simpler alternative exists?
+
+Almost always: the previous rung of the ladder. A deterministic workflow with good
+error messages beats an agent for every enumerable task. A model-assisted router covers
+"inputs vary." Even within agents, one tool and a step limit of 3 is a complete,
+useful system — the smallest honest agent, not a toy.
+
+## When should I use it?
+
+When the steps are genuinely unknowable in advance *and* the actions are safe to
+delegate: research across sources, multi-step diagnostics, tasks where each observation
+legitimately changes what to do next. Always with the runtime guarantees you saw:
+allowlisted tools, validated arguments, step limits, full traces.
+
+## When should I avoid it?
+
+When paths are enumerable (most business processes); when actions are consequential and
+irreversible (payments, deletions, external communications) without a human approval
+gate; when you can't afford variance in cost, latency, or behavior; when you have no
+evaluation story — an agent you can't measure is an agent you can't trust; and when the
+honest motivation is the word "agent" in a roadmap.
+
+## Common misconceptions
+
+- **"It calls tools, so it's an agent."** Tool *calling* is an API feature. The
+  deterministic workflow above used the same calculator — the developer decided. Agency
+  begins when the *model* selects actions inside a loop.
+- **"Workflows are legacy; agents are the upgrade."** They're different points on a
+  control-vs-adaptability dial. For enumerable tasks the workflow is the *better*
+  architecture, not the older one.
+- **"`completed` means it worked."** It means the loop ended with an answer. Whether
+  the answer is right — and whether the goal is achieved — is evaluation, and nothing
+  in the loop provides it.
+- **"Agents need memory / RAG / planning / multi-agent."** The minimum loop is six
+  items. Everything else is an addition with a job description; adopt each only when
+  you have its problem.
+
+## Security and governance
+
+Every row of the trade-off table has a governance shadow, and the runtime you stepped
+through is where the controls live — this is engineering first, paperwork second:
+
+- **Least privilege** = the tool registry: the model can request anything; the runtime
+  executes only what the developer allowlisted. The lesson's calculator is a parser,
+  not `eval()` — a tool is *exactly* its implementation, never "run code".
+- **Input validation** at the runtime boundary (strict argument schemas — you watched
+  a rejection end the run); **output handling** on the way back: tool results and model
+  text entering your systems deserve the same suspicion as user input. **Prompt
+  injection** matters *more* here than in chat: any text a tool returns becomes an
+  observation the model acts on — a poisoned observation can steer the next action.
+  The narrower the allowlist and the harder the limits, the less an injection can do.
+- **Bounded agency**: the step limit, rejected duplicate call ids, and honest outcomes
+  are the mechanical answer to "excessive agency" — the failure class where a system
+  does more than anyone intended. **Human approval** for consequential actions is a
+  gate the runtime can add exactly where tools execute (a planned addition; the
+  outcome vocabulary already reserves escalation).
+- **Audit and accountability**: the execution trace is the accountability record —
+  who decided what, which tool ran with which arguments, why the run ended. When an
+  agent acts on a third-party model, that trace is also your evidence of what *you*
+  controlled versus what the model vendor's behavior contributed.
+- **Regulatory frame, carefully:** none of the EU AI Act, DORA, GDPR, FINMA guidance,
+  ISO 42001, or NIST AI RMF applies *merely because* a tool-using agent exists.
+  Applicability depends on the system, your role in it, the use case, the data
+  processed, the jurisdiction, and the resulting risk classification. What this
+  architecture determines is the *evidence you'll have when a framework does apply*:
+  autonomy level, human oversight points, logging, and failure handling — precisely
+  the properties the trace, limits, and approval gates make demonstrable.
+
+## Build it, then own it
+
+The whole runtime is ~200 readable lines:
+[`runner.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/agent/runner.ts)
+(the loop), [`tools.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/agent/tools.ts)
+(the allowlist), [`calculator.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/agent/calculator.ts)
+(a tool that cannot become a shell). Read `runner.ts` top to bottom — it *is* the
+whiteboard answer — then try the interview questions below.
