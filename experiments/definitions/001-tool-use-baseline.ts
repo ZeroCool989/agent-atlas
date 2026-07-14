@@ -23,7 +23,7 @@ const experiment: ExperimentDefinition = {
       kind: 'real',
       label: 'claude',
       provider: 'claude',
-      model: 'claude-sonnet-5',
+      model: 'claude-sonnet-4-5-20250929',
       temperature: 0,
       pricing: { inputPerMTok: 3, outputPerMTok: 15, currency: 'USD' },
     },

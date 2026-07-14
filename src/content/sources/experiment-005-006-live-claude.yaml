@@ -1,0 +1,55 @@
+type: note
+title: "Live experiments 005/006 — Claude (claude-sonnet-4-5) real agent runs, 2026-07-14"
+url: "https://github.com/ZeroCool989/agent-atlas/blob/main/experiments/results/005-live-claude-calculator/report.md"
+ingestedAt: 2026-07-14
+routedTo:
+  - workflows-vs-agents
+  - tokens
+decisions: >-
+  First LIVE validation of the Phase 0/1 architecture against a real provider
+  (Anthropic claude-sonnet-4-5-20250929), routed per docs/INTAKE.md. Only observable
+  evidence enters the knowledge base; no inference about model reasoning.
+
+  STATUS: architecture validated end-to-end; no redesign required.
+
+  FINDINGS (observable).
+  005 (calculator ×3, temp 0): all three runs identical — outcome completed, tool
+  order [calculator], stop reasons [tool-call, completed], 1324/68/1392 tokens,
+  ~$0.005/run (estimated). Only latency varied (3497/3938/3524 ms). Clean separation:
+  deterministic runtime + consistent temp-0 model + variable network. The model
+  answered "127 * 49 = 6223" (no comma) vs the scripted scenario's "6,223" — same
+  correct value, different formatting.
+  006 (square root, calculator only, temp 0): the model selected calculator with
+  expression "2 ** 0.5". Argument SCHEMA validation passed; the parser rejected the
+  expression (no ** operator) → runtime outcome tool-error. Bounded, honest, no crash,
+  no fabricated answer.
+
+  LINKED CONCEPTS: workflows-vs-agents (the runtime, tool boundary, outcomes),
+  tokens (real token counts vs the tokenizer lesson).
+
+  LIMITATIONS: one provider, one model, tiny samples (n=3 and n=1); a single day's
+  network conditions; costs are list-price estimates, not billed amounts; scripted
+  reference behavior is unchanged.
+
+  PROPOSED EDUCATIONAL UPDATES (NOT yet applied — for review):
+  1. workflows-vs-agents: add a teaching note that tool argument validation is TWO
+     layers — schema shape vs tool-semantic evaluation — with 006 as the concrete
+     example (valid shape, unevaluable expression). Strengthens the security/governance
+     section's input-validation point.
+  2. workflows-vs-agents: replace the "scripted" caveat on the agent trace with a note
+     that a real model (Claude) reproduced the same tool-select → execute → answer
+     shape at temp 0 across 3 runs; keep the direct-call failure as scripted (not yet
+     measured live).
+  3. Interview insight: "a model can emit a syntactically valid tool call whose
+     arguments the tool still cannot execute — where does that get caught?" (Answer:
+     tool execution, after schema validation, surfaced as a runtime outcome.)
+  4. Governance note: the 006 trace is an audit record showing an unsupported action
+     was contained by the runtime, not the model — evidence of bounded agency.
+
+  FRAMEWORK CHANGE (minimal, live-justified): experiment success criterion
+  mustIncludeText is now digit-grouping/whitespace-insensitive (005 showed exact
+  string matching is brittle across model formatting); regression test added.
+
+  UNRESOLVED QUESTIONS: does the direct-call architecture actually produce a wrong
+  product live (flagship scripted claim)? how do GPT/Gemini compare on 005/006? does
+  higher temperature change tool selection (003, not yet run live)?

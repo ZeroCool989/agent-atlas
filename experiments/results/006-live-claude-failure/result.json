@@ -1,0 +1,101 @@
+{
+  "frameworkVersion": 1,
+  "experiment": {
+    "id": "006-live-claude-failure",
+    "version": 1,
+    "goal": "Observe how a real model reacts when a task invites a tool call the calculator cannot satisfy — and confirm the runtime bounds every reaction to an honest outcome.",
+    "question": "Asked for a square root with only a +−×÷ calculator available, does the model emit an unparseable expression (→ tool-error), work around the limitation, or answer from weights?",
+    "expectedObservation": "One of: (a) the model calls the calculator with an expression like sqrt(2) or 2^0.5 that the parser rejects → runtime outcome tool-error; (b) the model rewrites the task into supported arithmetic; or (c) it answers ~1.414 from weights without the tool. All are safe and observable; none is pre-judged correct.",
+    "notes": "Failure/observation experiment — success criteria are intentionally loose; the recorded behavior IS the result.",
+    "maxSteps": 4,
+    "repeats": 1
+  },
+  "generatedAt": "2026-07-14T16:35:45.844Z",
+  "runs": [
+    {
+      "rowLabel": "claude",
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "variant": "sqrt",
+      "repeat": 1,
+      "outcome": "tool-error",
+      "success": false,
+      "successChecks": [
+        "FAIL: outcome is \"completed\" (got \"tool-error\")"
+      ],
+      "modelCalls": 1,
+      "stopReasons": [
+        "tool-call"
+      ],
+      "toolSelectionOrder": [
+        "calculator"
+      ],
+      "toolCallCount": 1,
+      "validationFailures": 0,
+      "malformedToolCalls": 0,
+      "warnings": [],
+      "latencyMsTotal": 2517,
+      "inputTokens": 631,
+      "outputTokens": 70,
+      "totalTokens": 701,
+      "estimatedCost": {
+        "amount": 0.002943,
+        "currency": "USD",
+        "basis": "estimated"
+      },
+      "trace": [
+        {
+          "step": 0,
+          "type": "run-started",
+          "decidedBy": "runtime",
+          "detail": "Goal received. The runtime holds the state; the model will decide the actions (limit: 4 model calls)."
+        },
+        {
+          "step": 1,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 1: the model sees 1 message(s) and 1 available tool(s)."
+        },
+        {
+          "step": 1,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "tool-call",
+          "usage": {
+            "latencyMs": 2517,
+            "inputTokens": 631,
+            "outputTokens": 70,
+            "totalTokens": 701
+          },
+          "detail": "The model chose to act: 1 tool call(s), stop reason \"tool-call\" — it is waiting for something outside itself."
+        },
+        {
+          "step": 1,
+          "type": "tool-selected",
+          "decidedBy": "model",
+          "toolName": "calculator",
+          "toolCallId": "toolu_01SdacRUc8v1fv2tvnXbdrJu",
+          "detail": "The MODEL selected \"calculator\" with arguments {\"expression\":\"2 ** 0.5\"}. Selection is the model's only power — nothing has executed yet."
+        },
+        {
+          "step": 1,
+          "type": "tool-validated",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "toolu_01SdacRUc8v1fv2tvnXbdrJu",
+          "detail": "Arguments passed strict validation against the tool’s schema."
+        },
+        {
+          "step": 1,
+          "type": "tool-executed",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "toolu_01SdacRUc8v1fv2tvnXbdrJu",
+          "outcome": "tool-error",
+          "detail": "Execution failed: unexpected character \"*\" at position 3. The runtime ends the run honestly rather than hiding the failure. (Feeding errors back for retry is a reliability pattern — a later addition, not part of the minimum loop.)"
+        }
+      ]
+    }
+  ],
+  "skipped": []
+}

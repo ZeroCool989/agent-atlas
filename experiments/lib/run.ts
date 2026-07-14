@@ -42,9 +42,13 @@ function evaluateSuccess(
   check(result.outcome === expectedOutcome, `outcome is "${expectedOutcome}" (got "${result.outcome}")`);
 
   if (criteria.mustIncludeText !== undefined && expectedOutcome === 'completed' && !row.expectedOutcome) {
+    // Normalize digit-group separators and spaces before matching: the 005 live run
+    // showed Claude answers "6223" while the scripted scenario wrote "6,223" — both
+    // correct. Success criteria check semantic content, not a model's formatting.
+    const normalize = (s: string) => s.replace(/[,\s]/g, '');
     check(
-      (result.finalText ?? '').includes(criteria.mustIncludeText),
-      `final text includes "${criteria.mustIncludeText}"`,
+      normalize(result.finalText ?? '').includes(normalize(criteria.mustIncludeText)),
+      `final text includes "${criteria.mustIncludeText}" (formatting-insensitive)`,
     );
   }
   const toolsUsed = result.trace.filter((e) => e.type === 'tool-executed' && e.outcome === undefined);

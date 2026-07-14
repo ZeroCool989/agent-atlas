@@ -19,11 +19,11 @@ const experiment: ExperimentDefinition = {
   variants: [{ key: 'plain', system: 'Use the calculator tool for arithmetic.', prompt: 'What is 127 * 49?' }],
   matrix: [
     { kind: 'scripted', label: 'scripted-agent', scenario: 'calculator-tool-use' },
-    { kind: 'real', label: 'claude-t0', provider: 'claude', model: 'claude-sonnet-5', temperature: 0, pricing: { inputPerMTok: 3, outputPerMTok: 15, currency: 'USD' } },
-    { kind: 'real', label: 'claude-t02', provider: 'claude', model: 'claude-sonnet-5', temperature: 0.2, pricing: { inputPerMTok: 3, outputPerMTok: 15, currency: 'USD' } },
-    { kind: 'real', label: 'claude-t05', provider: 'claude', model: 'claude-sonnet-5', temperature: 0.5, pricing: { inputPerMTok: 3, outputPerMTok: 15, currency: 'USD' } },
-    { kind: 'real', label: 'claude-t08', provider: 'claude', model: 'claude-sonnet-5', temperature: 0.8, pricing: { inputPerMTok: 3, outputPerMTok: 15, currency: 'USD' } },
-    { kind: 'real', label: 'claude-t10', provider: 'claude', model: 'claude-sonnet-5', temperature: 1.0, pricing: { inputPerMTok: 3, outputPerMTok: 15, currency: 'USD' } },
+    { kind: 'real', label: 'claude-t0', provider: 'claude', model: 'claude-sonnet-4-5-20250929', temperature: 0, pricing: { inputPerMTok: 3, outputPerMTok: 15, currency: 'USD' } },
+    { kind: 'real', label: 'claude-t02', provider: 'claude', model: 'claude-sonnet-4-5-20250929', temperature: 0.2, pricing: { inputPerMTok: 3, outputPerMTok: 15, currency: 'USD' } },
+    { kind: 'real', label: 'claude-t05', provider: 'claude', model: 'claude-sonnet-4-5-20250929', temperature: 0.5, pricing: { inputPerMTok: 3, outputPerMTok: 15, currency: 'USD' } },
+    { kind: 'real', label: 'claude-t08', provider: 'claude', model: 'claude-sonnet-4-5-20250929', temperature: 0.8, pricing: { inputPerMTok: 3, outputPerMTok: 15, currency: 'USD' } },
+    { kind: 'real', label: 'claude-t10', provider: 'claude', model: 'claude-sonnet-4-5-20250929', temperature: 1.0, pricing: { inputPerMTok: 3, outputPerMTok: 15, currency: 'USD' } },
   ],
   successCriteria: { expectedOutcome: 'completed', mustUseTool: 'calculator' },
 };

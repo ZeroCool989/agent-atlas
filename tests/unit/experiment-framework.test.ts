@@ -93,6 +93,22 @@ describe('runExperiment — failure modes resolve to honest outcomes', () => {
   });
 });
 
+describe('mustIncludeText is formatting-insensitive (regression: 005 live run)', () => {
+  it('matches an answer whose digit grouping differs from the criterion', async () => {
+    // Claude answered "6223"; the criterion asks for "6,223" — both are correct.
+    const def: ExperimentDefinition = {
+      ...baseline,
+      matrix: [{ kind: 'scripted', label: 'scripted-agent', scenario: 'calculator-tool-use' }],
+      successCriteria: { expectedOutcome: 'completed', mustUseTool: 'calculator', mustIncludeText: '6,223' },
+    };
+    const result = await runExperiment(def, { now: FIXED_TIME });
+    // The scripted scenario's final text is "127 × 49 = 6,223." — normalization also
+    // lets a "6223" answer pass, which is the behavior the live run required.
+    expect(result.runs[0]!.success).toBe(true);
+    expect(result.runs[0]!.successChecks.some((c) => c.includes('formatting-insensitive'))).toBe(true);
+  });
+});
+
 describe('missing metadata is honest', () => {
   it('scripted runs without declared usage leave token/cost fields undefined', async () => {
     const noUsage: ExperimentDefinition = {

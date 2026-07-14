@@ -1,0 +1,758 @@
+{
+  "frameworkVersion": 1,
+  "experiment": {
+    "id": "005-live-claude-calculator",
+    "version": 1,
+    "goal": "Prove the Phase 0/1 architecture (ModelProvider → runtime → tools → trace) works against a real provider, and measure repeatability at temperature 0.",
+    "question": "Given a calculator tool, does Claude select and use it for arithmetic, and is that behavior consistent across three temperature-0 runs?",
+    "expectedObservation": "Claude selects the calculator, the runtime executes it, and the model reports 6,223. Runtime behavior is deterministic; token counts and latency vary with the model and network.",
+    "notes": "First live run. Model id verified against the live API on 2026-07-14. Costs are estimated from list pricing in the row.",
+    "maxSteps": 6,
+    "repeats": 3
+  },
+  "generatedAt": "2026-07-14T16:34:58.722Z",
+  "runs": [
+    {
+      "rowLabel": "scripted-agent",
+      "provider": "scripted",
+      "model": "scenario:calculator-tool-use",
+      "variant": "plain",
+      "repeat": 1,
+      "outcome": "completed",
+      "success": true,
+      "successChecks": [
+        "PASS: outcome is \"completed\" (got \"completed\")",
+        "PASS: final text includes \"6,223\" (formatting-insensitive)",
+        "PASS: tool \"calculator\" was actually executed"
+      ],
+      "finalText": "127 × 49 = 6,223.",
+      "modelCalls": 2,
+      "stopReasons": [
+        "tool-call",
+        "completed"
+      ],
+      "toolSelectionOrder": [
+        "calculator"
+      ],
+      "toolCallCount": 1,
+      "validationFailures": 0,
+      "malformedToolCalls": 0,
+      "warnings": [],
+      "latencyMsTotal": 800,
+      "inputTokens": 167,
+      "outputTokens": 36,
+      "totalTokens": 203,
+      "trace": [
+        {
+          "step": 0,
+          "type": "run-started",
+          "decidedBy": "runtime",
+          "detail": "Goal received. The runtime holds the state; the model will decide the actions (limit: 6 model calls)."
+        },
+        {
+          "step": 1,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 1: the model sees 1 message(s) and 1 available tool(s)."
+        },
+        {
+          "step": 1,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "tool-call",
+          "usage": {
+            "latencyMs": 420,
+            "inputTokens": 63,
+            "outputTokens": 24,
+            "totalTokens": 87,
+            "cost": {
+              "amount": 0.00071,
+              "currency": "USD",
+              "basis": "declared"
+            }
+          },
+          "detail": "The model chose to act: 1 tool call(s), stop reason \"tool-call\" — it is waiting for something outside itself."
+        },
+        {
+          "step": 1,
+          "type": "tool-selected",
+          "decidedBy": "model",
+          "toolName": "calculator",
+          "toolCallId": "call-1",
+          "detail": "The MODEL selected \"calculator\" with arguments {\"expression\":\"127 * 49\"}. Selection is the model's only power — nothing has executed yet."
+        },
+        {
+          "step": 1,
+          "type": "tool-validated",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "call-1",
+          "detail": "Arguments passed strict validation against the tool’s schema."
+        },
+        {
+          "step": 1,
+          "type": "tool-executed",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "call-1",
+          "detail": "The RUNTIME executed the tool deterministically → 6223."
+        },
+        {
+          "step": 1,
+          "type": "observation-appended",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "call-1",
+          "detail": "The result becomes an observation in the conversation state. The next model call will see it — this append is what closes the loop."
+        },
+        {
+          "step": 2,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 2: the model sees 3 message(s) and 1 available tool(s)."
+        },
+        {
+          "step": 2,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "completed",
+          "usage": {
+            "latencyMs": 380,
+            "inputTokens": 104,
+            "outputTokens": 12,
+            "totalTokens": 116,
+            "cost": {
+              "amount": 0.00088,
+              "currency": "USD",
+              "basis": "declared"
+            }
+          },
+          "detail": "The model answered in plain text, stop reason \"completed\"."
+        },
+        {
+          "step": 2,
+          "type": "run-completed",
+          "decidedBy": "runtime",
+          "outcome": "completed",
+          "detail": "No tool call → the loop ends. \"Completed\" means the loop ended with an answer — not that the answer is correct. Verifying THAT is evaluation, a separate concept."
+        }
+      ]
+    },
+    {
+      "rowLabel": "scripted-agent",
+      "provider": "scripted",
+      "model": "scenario:calculator-tool-use",
+      "variant": "plain",
+      "repeat": 2,
+      "outcome": "completed",
+      "success": true,
+      "successChecks": [
+        "PASS: outcome is \"completed\" (got \"completed\")",
+        "PASS: final text includes \"6,223\" (formatting-insensitive)",
+        "PASS: tool \"calculator\" was actually executed"
+      ],
+      "finalText": "127 × 49 = 6,223.",
+      "modelCalls": 2,
+      "stopReasons": [
+        "tool-call",
+        "completed"
+      ],
+      "toolSelectionOrder": [
+        "calculator"
+      ],
+      "toolCallCount": 1,
+      "validationFailures": 0,
+      "malformedToolCalls": 0,
+      "warnings": [],
+      "latencyMsTotal": 800,
+      "inputTokens": 167,
+      "outputTokens": 36,
+      "totalTokens": 203,
+      "trace": [
+        {
+          "step": 0,
+          "type": "run-started",
+          "decidedBy": "runtime",
+          "detail": "Goal received. The runtime holds the state; the model will decide the actions (limit: 6 model calls)."
+        },
+        {
+          "step": 1,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 1: the model sees 1 message(s) and 1 available tool(s)."
+        },
+        {
+          "step": 1,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "tool-call",
+          "usage": {
+            "latencyMs": 420,
+            "inputTokens": 63,
+            "outputTokens": 24,
+            "totalTokens": 87,
+            "cost": {
+              "amount": 0.00071,
+              "currency": "USD",
+              "basis": "declared"
+            }
+          },
+          "detail": "The model chose to act: 1 tool call(s), stop reason \"tool-call\" — it is waiting for something outside itself."
+        },
+        {
+          "step": 1,
+          "type": "tool-selected",
+          "decidedBy": "model",
+          "toolName": "calculator",
+          "toolCallId": "call-1",
+          "detail": "The MODEL selected \"calculator\" with arguments {\"expression\":\"127 * 49\"}. Selection is the model's only power — nothing has executed yet."
+        },
+        {
+          "step": 1,
+          "type": "tool-validated",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "call-1",
+          "detail": "Arguments passed strict validation against the tool’s schema."
+        },
+        {
+          "step": 1,
+          "type": "tool-executed",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "call-1",
+          "detail": "The RUNTIME executed the tool deterministically → 6223."
+        },
+        {
+          "step": 1,
+          "type": "observation-appended",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "call-1",
+          "detail": "The result becomes an observation in the conversation state. The next model call will see it — this append is what closes the loop."
+        },
+        {
+          "step": 2,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 2: the model sees 3 message(s) and 1 available tool(s)."
+        },
+        {
+          "step": 2,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "completed",
+          "usage": {
+            "latencyMs": 380,
+            "inputTokens": 104,
+            "outputTokens": 12,
+            "totalTokens": 116,
+            "cost": {
+              "amount": 0.00088,
+              "currency": "USD",
+              "basis": "declared"
+            }
+          },
+          "detail": "The model answered in plain text, stop reason \"completed\"."
+        },
+        {
+          "step": 2,
+          "type": "run-completed",
+          "decidedBy": "runtime",
+          "outcome": "completed",
+          "detail": "No tool call → the loop ends. \"Completed\" means the loop ended with an answer — not that the answer is correct. Verifying THAT is evaluation, a separate concept."
+        }
+      ]
+    },
+    {
+      "rowLabel": "scripted-agent",
+      "provider": "scripted",
+      "model": "scenario:calculator-tool-use",
+      "variant": "plain",
+      "repeat": 3,
+      "outcome": "completed",
+      "success": true,
+      "successChecks": [
+        "PASS: outcome is \"completed\" (got \"completed\")",
+        "PASS: final text includes \"6,223\" (formatting-insensitive)",
+        "PASS: tool \"calculator\" was actually executed"
+      ],
+      "finalText": "127 × 49 = 6,223.",
+      "modelCalls": 2,
+      "stopReasons": [
+        "tool-call",
+        "completed"
+      ],
+      "toolSelectionOrder": [
+        "calculator"
+      ],
+      "toolCallCount": 1,
+      "validationFailures": 0,
+      "malformedToolCalls": 0,
+      "warnings": [],
+      "latencyMsTotal": 800,
+      "inputTokens": 167,
+      "outputTokens": 36,
+      "totalTokens": 203,
+      "trace": [
+        {
+          "step": 0,
+          "type": "run-started",
+          "decidedBy": "runtime",
+          "detail": "Goal received. The runtime holds the state; the model will decide the actions (limit: 6 model calls)."
+        },
+        {
+          "step": 1,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 1: the model sees 1 message(s) and 1 available tool(s)."
+        },
+        {
+          "step": 1,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "tool-call",
+          "usage": {
+            "latencyMs": 420,
+            "inputTokens": 63,
+            "outputTokens": 24,
+            "totalTokens": 87,
+            "cost": {
+              "amount": 0.00071,
+              "currency": "USD",
+              "basis": "declared"
+            }
+          },
+          "detail": "The model chose to act: 1 tool call(s), stop reason \"tool-call\" — it is waiting for something outside itself."
+        },
+        {
+          "step": 1,
+          "type": "tool-selected",
+          "decidedBy": "model",
+          "toolName": "calculator",
+          "toolCallId": "call-1",
+          "detail": "The MODEL selected \"calculator\" with arguments {\"expression\":\"127 * 49\"}. Selection is the model's only power — nothing has executed yet."
+        },
+        {
+          "step": 1,
+          "type": "tool-validated",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "call-1",
+          "detail": "Arguments passed strict validation against the tool’s schema."
+        },
+        {
+          "step": 1,
+          "type": "tool-executed",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "call-1",
+          "detail": "The RUNTIME executed the tool deterministically → 6223."
+        },
+        {
+          "step": 1,
+          "type": "observation-appended",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "call-1",
+          "detail": "The result becomes an observation in the conversation state. The next model call will see it — this append is what closes the loop."
+        },
+        {
+          "step": 2,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 2: the model sees 3 message(s) and 1 available tool(s)."
+        },
+        {
+          "step": 2,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "completed",
+          "usage": {
+            "latencyMs": 380,
+            "inputTokens": 104,
+            "outputTokens": 12,
+            "totalTokens": 116,
+            "cost": {
+              "amount": 0.00088,
+              "currency": "USD",
+              "basis": "declared"
+            }
+          },
+          "detail": "The model answered in plain text, stop reason \"completed\"."
+        },
+        {
+          "step": 2,
+          "type": "run-completed",
+          "decidedBy": "runtime",
+          "outcome": "completed",
+          "detail": "No tool call → the loop ends. \"Completed\" means the loop ended with an answer — not that the answer is correct. Verifying THAT is evaluation, a separate concept."
+        }
+      ]
+    },
+    {
+      "rowLabel": "claude",
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "variant": "plain",
+      "repeat": 1,
+      "outcome": "completed",
+      "success": true,
+      "successChecks": [
+        "PASS: outcome is \"completed\" (got \"completed\")",
+        "PASS: final text includes \"6,223\" (formatting-insensitive)",
+        "PASS: tool \"calculator\" was actually executed"
+      ],
+      "finalText": "127 * 49 = 6223",
+      "modelCalls": 2,
+      "stopReasons": [
+        "tool-call",
+        "completed"
+      ],
+      "toolSelectionOrder": [
+        "calculator"
+      ],
+      "toolCallCount": 1,
+      "validationFailures": 0,
+      "malformedToolCalls": 0,
+      "warnings": [],
+      "latencyMsTotal": 3443,
+      "inputTokens": 1324,
+      "outputTokens": 68,
+      "totalTokens": 1392,
+      "estimatedCost": {
+        "amount": 0.004992,
+        "currency": "USD",
+        "basis": "estimated"
+      },
+      "trace": [
+        {
+          "step": 0,
+          "type": "run-started",
+          "decidedBy": "runtime",
+          "detail": "Goal received. The runtime holds the state; the model will decide the actions (limit: 6 model calls)."
+        },
+        {
+          "step": 1,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 1: the model sees 1 message(s) and 1 available tool(s)."
+        },
+        {
+          "step": 1,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "tool-call",
+          "usage": {
+            "latencyMs": 1813,
+            "inputTokens": 627,
+            "outputTokens": 55,
+            "totalTokens": 682
+          },
+          "detail": "The model chose to act: 1 tool call(s), stop reason \"tool-call\" — it is waiting for something outside itself."
+        },
+        {
+          "step": 1,
+          "type": "tool-selected",
+          "decidedBy": "model",
+          "toolName": "calculator",
+          "toolCallId": "toolu_01MJVPFmDjHB1gb8riT7wZHa",
+          "detail": "The MODEL selected \"calculator\" with arguments {\"expression\":\"127 * 49\"}. Selection is the model's only power — nothing has executed yet."
+        },
+        {
+          "step": 1,
+          "type": "tool-validated",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "toolu_01MJVPFmDjHB1gb8riT7wZHa",
+          "detail": "Arguments passed strict validation against the tool’s schema."
+        },
+        {
+          "step": 1,
+          "type": "tool-executed",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "toolu_01MJVPFmDjHB1gb8riT7wZHa",
+          "detail": "The RUNTIME executed the tool deterministically → 6223."
+        },
+        {
+          "step": 1,
+          "type": "observation-appended",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "toolu_01MJVPFmDjHB1gb8riT7wZHa",
+          "detail": "The result becomes an observation in the conversation state. The next model call will see it — this append is what closes the loop."
+        },
+        {
+          "step": 2,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 2: the model sees 3 message(s) and 1 available tool(s)."
+        },
+        {
+          "step": 2,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "completed",
+          "usage": {
+            "latencyMs": 1630,
+            "inputTokens": 697,
+            "outputTokens": 13,
+            "totalTokens": 710
+          },
+          "detail": "The model answered in plain text, stop reason \"completed\"."
+        },
+        {
+          "step": 2,
+          "type": "run-completed",
+          "decidedBy": "runtime",
+          "outcome": "completed",
+          "detail": "No tool call → the loop ends. \"Completed\" means the loop ended with an answer — not that the answer is correct. Verifying THAT is evaluation, a separate concept."
+        }
+      ]
+    },
+    {
+      "rowLabel": "claude",
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "variant": "plain",
+      "repeat": 2,
+      "outcome": "completed",
+      "success": true,
+      "successChecks": [
+        "PASS: outcome is \"completed\" (got \"completed\")",
+        "PASS: final text includes \"6,223\" (formatting-insensitive)",
+        "PASS: tool \"calculator\" was actually executed"
+      ],
+      "finalText": "127 * 49 = 6223",
+      "modelCalls": 2,
+      "stopReasons": [
+        "tool-call",
+        "completed"
+      ],
+      "toolSelectionOrder": [
+        "calculator"
+      ],
+      "toolCallCount": 1,
+      "validationFailures": 0,
+      "malformedToolCalls": 0,
+      "warnings": [],
+      "latencyMsTotal": 3694,
+      "inputTokens": 1324,
+      "outputTokens": 68,
+      "totalTokens": 1392,
+      "estimatedCost": {
+        "amount": 0.004992,
+        "currency": "USD",
+        "basis": "estimated"
+      },
+      "trace": [
+        {
+          "step": 0,
+          "type": "run-started",
+          "decidedBy": "runtime",
+          "detail": "Goal received. The runtime holds the state; the model will decide the actions (limit: 6 model calls)."
+        },
+        {
+          "step": 1,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 1: the model sees 1 message(s) and 1 available tool(s)."
+        },
+        {
+          "step": 1,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "tool-call",
+          "usage": {
+            "latencyMs": 1870,
+            "inputTokens": 627,
+            "outputTokens": 55,
+            "totalTokens": 682
+          },
+          "detail": "The model chose to act: 1 tool call(s), stop reason \"tool-call\" — it is waiting for something outside itself."
+        },
+        {
+          "step": 1,
+          "type": "tool-selected",
+          "decidedBy": "model",
+          "toolName": "calculator",
+          "toolCallId": "toolu_01GCC2PNpk5tN2jL455hLCjn",
+          "detail": "The MODEL selected \"calculator\" with arguments {\"expression\":\"127 * 49\"}. Selection is the model's only power — nothing has executed yet."
+        },
+        {
+          "step": 1,
+          "type": "tool-validated",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "toolu_01GCC2PNpk5tN2jL455hLCjn",
+          "detail": "Arguments passed strict validation against the tool’s schema."
+        },
+        {
+          "step": 1,
+          "type": "tool-executed",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "toolu_01GCC2PNpk5tN2jL455hLCjn",
+          "detail": "The RUNTIME executed the tool deterministically → 6223."
+        },
+        {
+          "step": 1,
+          "type": "observation-appended",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "toolu_01GCC2PNpk5tN2jL455hLCjn",
+          "detail": "The result becomes an observation in the conversation state. The next model call will see it — this append is what closes the loop."
+        },
+        {
+          "step": 2,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 2: the model sees 3 message(s) and 1 available tool(s)."
+        },
+        {
+          "step": 2,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "completed",
+          "usage": {
+            "latencyMs": 1824,
+            "inputTokens": 697,
+            "outputTokens": 13,
+            "totalTokens": 710
+          },
+          "detail": "The model answered in plain text, stop reason \"completed\"."
+        },
+        {
+          "step": 2,
+          "type": "run-completed",
+          "decidedBy": "runtime",
+          "outcome": "completed",
+          "detail": "No tool call → the loop ends. \"Completed\" means the loop ended with an answer — not that the answer is correct. Verifying THAT is evaluation, a separate concept."
+        }
+      ]
+    },
+    {
+      "rowLabel": "claude",
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "variant": "plain",
+      "repeat": 3,
+      "outcome": "completed",
+      "success": true,
+      "successChecks": [
+        "PASS: outcome is \"completed\" (got \"completed\")",
+        "PASS: final text includes \"6,223\" (formatting-insensitive)",
+        "PASS: tool \"calculator\" was actually executed"
+      ],
+      "finalText": "127 * 49 = 6223",
+      "modelCalls": 2,
+      "stopReasons": [
+        "tool-call",
+        "completed"
+      ],
+      "toolSelectionOrder": [
+        "calculator"
+      ],
+      "toolCallCount": 1,
+      "validationFailures": 0,
+      "malformedToolCalls": 0,
+      "warnings": [],
+      "latencyMsTotal": 3261,
+      "inputTokens": 1324,
+      "outputTokens": 68,
+      "totalTokens": 1392,
+      "estimatedCost": {
+        "amount": 0.004992,
+        "currency": "USD",
+        "basis": "estimated"
+      },
+      "trace": [
+        {
+          "step": 0,
+          "type": "run-started",
+          "decidedBy": "runtime",
+          "detail": "Goal received. The runtime holds the state; the model will decide the actions (limit: 6 model calls)."
+        },
+        {
+          "step": 1,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 1: the model sees 1 message(s) and 1 available tool(s)."
+        },
+        {
+          "step": 1,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "tool-call",
+          "usage": {
+            "latencyMs": 1679,
+            "inputTokens": 627,
+            "outputTokens": 55,
+            "totalTokens": 682
+          },
+          "detail": "The model chose to act: 1 tool call(s), stop reason \"tool-call\" — it is waiting for something outside itself."
+        },
+        {
+          "step": 1,
+          "type": "tool-selected",
+          "decidedBy": "model",
+          "toolName": "calculator",
+          "toolCallId": "toolu_019xnLew1NYtGUXcZzkkibiZ",
+          "detail": "The MODEL selected \"calculator\" with arguments {\"expression\":\"127 * 49\"}. Selection is the model's only power — nothing has executed yet."
+        },
+        {
+          "step": 1,
+          "type": "tool-validated",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "toolu_019xnLew1NYtGUXcZzkkibiZ",
+          "detail": "Arguments passed strict validation against the tool’s schema."
+        },
+        {
+          "step": 1,
+          "type": "tool-executed",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "toolu_019xnLew1NYtGUXcZzkkibiZ",
+          "detail": "The RUNTIME executed the tool deterministically → 6223."
+        },
+        {
+          "step": 1,
+          "type": "observation-appended",
+          "decidedBy": "runtime",
+          "toolName": "calculator",
+          "toolCallId": "toolu_019xnLew1NYtGUXcZzkkibiZ",
+          "detail": "The result becomes an observation in the conversation state. The next model call will see it — this append is what closes the loop."
+        },
+        {
+          "step": 2,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 2: the model sees 3 message(s) and 1 available tool(s)."
+        },
+        {
+          "step": 2,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "completed",
+          "usage": {
+            "latencyMs": 1582,
+            "inputTokens": 697,
+            "outputTokens": 13,
+            "totalTokens": 710
+          },
+          "detail": "The model answered in plain text, stop reason \"completed\"."
+        },
+        {
+          "step": 2,
+          "type": "run-completed",
+          "decidedBy": "runtime",
+          "outcome": "completed",
+          "detail": "No tool call → the loop ends. \"Completed\" means the loop ended with an answer — not that the answer is correct. Verifying THAT is evaluation, a separate concept."
+        }
+      ]
+    }
+  ],
+  "skipped": []
+}
