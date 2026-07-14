@@ -49,6 +49,32 @@ project start would be pure debt. Plan references to "Astro 5" should be read as
   path, and `z.string().url()` is deprecated in favor of `z.url()`. Schemas and tests
   are written Zod-4-native.
 
+## 2026-07-14 — EXP (real-model experiment platform): decisions
+
+- **Raw `fetch` adapters, no SDKs** (ADR-0005): the vendor→neutral mapping is the
+  lesson and the zero-dependency rule holds. Adapters live in
+  `src/lib/model/providers/`, imported ONLY by `experiments/`; nothing in the deployed
+  site references them, so no key can reach the browser.
+- **Generation settings are provider-instance config, not `ModelRequest` fields.** An
+  experiment run = a configured provider; the runtime's request shape stays exactly as
+  it was. One backward-compatible addition to the shared types: `ModelResponse.warnings?`
+  (and a matching `TraceEvent.warnings?`) for observable anomalies like malformed
+  tool-call JSON — measurable behavior, never hidden.
+- **OpenAI adapter takes a `baseUrl`** → Qwen/Llama/Mistral/DeepSeek/local are "trivial"
+  additions via their OpenAI-compatible endpoints (`openAiCompatible()`), not new
+  adapters.
+- **Every experiment includes a scripted row** so the whole framework runs and is
+  CI-verified with zero keys; missing-key real rows are SKIPPED with a visible reason,
+  never an error.
+- **Results are checked-in learning artifacts** under `experiments/results/` (not
+  gitignored); `generatedAt` is pinned in committed results for reproducibility (the
+  CLI stamps real time; determinism is proven in tests with an injected clock). The
+  `raw` provider payload is dropped before writing (kept off the RunRecord entirely).
+- **Reports never fabricate conclusions:** computed sections are filled from data;
+  Lessons Learned / Future Questions are curator prompts seeded with observations.
+- **Cost is always `estimated`** and only computed when a definition supplies pricing;
+  absent metadata stays absent.
+
 ## 2026-07-14 — F1 (Phase 1 flagship slice): agent-runtime decisions
 
 - **Invalid tool requests and tool failures END the run** (`invalid-tool-request` /

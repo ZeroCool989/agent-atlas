@@ -1,0 +1,28 @@
+{
+  "id": "failure-step-limit",
+  "description": "Failure-experiment scenario: the scripted model keeps requesting calculations and never produces a final answer. Run with maxSteps 2: expected runtime behavior → max-steps-reached.",
+  "model": "scripted-failure-v1",
+  "turns": [
+    {
+      "respond": {
+        "toolCalls": [{ "id": "call-1", "toolName": "calculator", "arguments": { "expression": "1 + 1" } }],
+        "stopReason": "tool-call"
+      },
+      "teaching": "Turn 1: the model acts…"
+    },
+    {
+      "respond": {
+        "toolCalls": [{ "id": "call-2", "toolName": "calculator", "arguments": { "expression": "2 + 2" } }],
+        "stopReason": "tool-call"
+      },
+      "teaching": "…turn 2: and acts again, never concluding. The step limit is what guarantees this ends."
+    },
+    {
+      "respond": {
+        "toolCalls": [{ "id": "call-3", "toolName": "calculator", "arguments": { "expression": "3 + 3" } }],
+        "stopReason": "tool-call"
+      },
+      "teaching": "This turn is never reached at maxSteps 2."
+    }
+  ]
+}

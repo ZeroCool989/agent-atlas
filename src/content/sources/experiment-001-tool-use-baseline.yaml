@@ -1,0 +1,16 @@
+type: note
+title: "Experiment 001 — tool-use baseline (scripted run)"
+url: "https://github.com/ZeroCool989/agent-atlas/blob/main/experiments/results/001-tool-use-baseline/report.md"
+ingestedAt: 2026-07-14
+routedTo:
+  - workflows-vs-agents
+decisions: >-
+  The first experiment result entered into the ledger, per docs/INTAKE.md — recording
+  that the experiment framework runs the lessons' runtime against providers and
+  captures observable behavior. This scripted baseline validates the pipeline
+  end-to-end; it makes NO claim about real-model behavior (the three real rows were
+  skipped for lack of keys). Routed to: workflows-vs-agents (the runtime it exercises).
+  Creates no new concept; contradicts nothing. Contributes no interview change yet.
+  Open follow-up: once real rows run, compare tool selection and cost across
+  Claude/GPT/Gemini and propose an evidence-backed update to the flagship lesson's
+  currently-scripted direct-call failure claim.

@@ -1,0 +1,50 @@
+---
+/**
+ * The AI Engineering Laboratory index: lists checked-in experiment results (learning
+ * artifacts), reading experiments/results/<id>/result.json at build time. Developer
+ * tooling produces these locally; the deployed page just renders the recorded evidence.
+ * No API keys, no runtime, no live calls in the browser.
+ */
+import type { ExperimentResult } from '../../../experiments/lib/types';
+import Base from '../../layouts/Base.astro';
+
+const modules = import.meta.glob<ExperimentResult>('../../../experiments/results/*/result.json', {
+  eager: true,
+  import: 'default',
+});
+const experiments = Object.values(modules).sort((a, b) => (a.experiment.id < b.experiment.id ? -1 : 1));
+---
+
+<Base title="Experiments" description="The Agent Atlas AI Engineering Laboratory: reproducible experiments recording observable model behavior.">
+  <main id="main" class="mx-auto max-w-3xl space-y-6 px-6 py-12">
+    <header>
+      <h1 class="text-3xl font-bold tracking-tight">AI Engineering Laboratory</h1>
+      <p class="mt-2 text-slate-600">
+        Reproducible experiments that run the same agent runtime the lessons teach against
+        scripted and (locally) real model providers, recording only observable behavior —
+        never guessed reasoning. Results here are checked-in learning artifacts.
+      </p>
+      <p class="mt-2 text-sm text-slate-500">
+        Experiments are developer tools: they run locally via <code>npm run experiment</code>,
+        require API keys only for real-provider rows, and are never part of the public build.
+        See <a class="underline" href="https://github.com/ZeroCool989/agent-atlas/tree/main/experiments">experiments/</a>.
+      </p>
+    </header>
+
+    <ul class="space-y-3">
+      {
+        experiments.map((result) => (
+          <li class="rounded border border-slate-200 p-4">
+            <a href={`/experiments/${result.experiment.id}`} class="font-medium underline">
+              {result.experiment.id} (v{result.experiment.version})
+            </a>
+            <p class="mt-1 text-sm text-slate-600">{result.experiment.question}</p>
+            <p class="mt-1 text-xs text-slate-500">
+              {result.runs.length} run(s){result.skipped.length > 0 ? `, ${result.skipped.length} row(s) skipped (missing keys)` : ''}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  </main>
+</Base>

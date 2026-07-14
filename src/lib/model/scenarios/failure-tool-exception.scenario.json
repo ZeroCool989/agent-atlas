@@ -1,0 +1,16 @@
+{
+  "id": "failure-tool-exception",
+  "description": "Failure-experiment scenario: the scripted model calls unreliable-lookup, whose execution deterministically fails. Expected runtime behavior: tool-executed (failed) → outcome tool-error.",
+  "model": "scripted-failure-v1",
+  "turns": [
+    {
+      "respond": {
+        "toolCalls": [
+          { "id": "call-1", "toolName": "unreliable-lookup", "arguments": { "query": "population of Bern" } }
+        ],
+        "stopReason": "tool-call"
+      },
+      "teaching": "Valid request, failing execution — the failure is surfaced as an honest runtime outcome, never converted into a fake answer."
+    }
+  ]
+}

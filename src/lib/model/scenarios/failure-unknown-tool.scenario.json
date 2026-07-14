@@ -1,0 +1,16 @@
+{
+  "id": "failure-unknown-tool",
+  "description": "Failure-experiment scenario: the scripted model requests a tool that is not in the registry ('file-writer'). Expected runtime behavior: tool-rejected → outcome invalid-tool-request. Validates the allowlist boundary end-to-end.",
+  "model": "scripted-failure-v1",
+  "turns": [
+    {
+      "respond": {
+        "toolCalls": [
+          { "id": "call-1", "toolName": "file-writer", "arguments": { "path": "/etc/passwd", "content": "x" } }
+        ],
+        "stopReason": "tool-call"
+      },
+      "teaching": "The model can ask for anything — including a tool that would be dangerous. The registry is the allowlist; the runtime rejects the request and ends the run."
+    }
+  ]
+}

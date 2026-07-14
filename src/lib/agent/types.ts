@@ -80,6 +80,8 @@ export interface TraceEvent {
   outcome?: RunOutcome;
   /** Declared/reported metadata only — absent when the provider reports none. */
   usage?: ModelUsage;
+  /** Adapter-observed anomalies (e.g. malformed tool-call JSON) — measurable behavior. */
+  warnings?: string[];
   detail: string;
 }
 

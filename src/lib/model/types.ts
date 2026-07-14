@@ -112,6 +112,12 @@ export interface ModelResponse {
   provider?: string;
   model?: string;
   /**
+   * Observable anomalies the adapter had to work around (e.g. tool-call arguments
+   * that were not valid JSON) — measurable behavior for experiments, never hidden.
+   * Added for the real-provider adapters (evidence-driven optional extension).
+   */
+  warnings?: string[];
+  /**
    * Escape hatch: the raw provider payload, for adapter debugging only. Shared code
    * must never read it — anything the application needs belongs in the typed fields.
    */

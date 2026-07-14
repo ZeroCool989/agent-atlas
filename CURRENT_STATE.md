@@ -8,6 +8,22 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 | Task | Status |
 |---|---|
 | F1 Flagship slice: workflows vs agents + minimal agent runtime | ✅ complete (2026-07-14) |
+| EXP Real-model experiment platform (AI Engineering Laboratory) | ✅ complete (2026-07-14) |
+
+- **Experiment platform (EXP):** provider adapters in `src/lib/model/providers/`
+  (Claude, OpenAI, Gemini via raw fetch, no SDKs; `openAiCompatible()` covers
+  Qwen/Llama/Mistral/DeepSeek/local by base URL) mapping vendor shapes into the neutral
+  `ModelProvider` — the runtime never sees a vendor API. `experiments/` framework:
+  schema-validated versioned definitions, a matrix runner (scripted + real rows ×
+  prompt variants × repeats) over the *same* `src/lib/agent` runtime, a measurement
+  record (outcome, tokens, latency, cost estimate, tool order, validation failures,
+  malformed calls, warnings, full trace), auto-generated markdown reports, and a CLI
+  (`npm run experiment`). Four definitions (baseline, prompting styles, temperature
+  sweep, failure modes) + four failure scenarios. Two checked-in results (001 baseline,
+  004 failures) run with zero keys. `/experiments` viewer (build-time from result.json,
+  reuses `TraceStepList`/`createTraceScene`). Missing keys skip visibly; no key ever in
+  the deployed build. Docs: `experiments/README.md`, `.env.example`. 23 new tests
+  (217 total), 21 e2e.
 
 - **Flagship slice (F1):** `src/lib/agent/` — the minimal tool-using agent runtime
   (ADR-0005: plain TS on the ModelProvider interface): `runner.ts` (the loop: validate

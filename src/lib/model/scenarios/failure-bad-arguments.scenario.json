@@ -1,0 +1,16 @@
+{
+  "id": "failure-bad-arguments",
+  "description": "Failure-experiment scenario: the scripted model calls the calculator with a wrong argument shape ('expr' instead of 'expression'). Expected runtime behavior: validation rejection → outcome invalid-tool-request.",
+  "model": "scripted-failure-v1",
+  "turns": [
+    {
+      "respond": {
+        "toolCalls": [
+          { "id": "call-1", "toolName": "calculator", "arguments": { "expr": "127 * 49" } }
+        ],
+        "stopReason": "tool-call"
+      },
+      "teaching": "Arguments are validated against the tool's strict schema at the runtime boundary — a near-miss key name is a rejection, not a guess."
+    }
+  ]
+}

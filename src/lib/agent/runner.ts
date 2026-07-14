@@ -84,6 +84,7 @@ export async function runAgent(
       decidedBy: 'model',
       stopReason: response.stopReason,
       ...(Object.keys(response.usage).length > 0 ? { usage: response.usage } : {}),
+      ...(response.warnings && response.warnings.length > 0 ? { warnings: response.warnings } : {}),
       detail:
         response.toolCalls.length > 0
           ? `The model chose to act: ${response.toolCalls.length} tool call(s), stop reason "${response.stopReason}" — it is waiting for something outside itself.`

@@ -1,0 +1,74 @@
+---
+/**
+ * One experiment's page: its pre-registered question and method, the interactive trace
+ * viewer over its recorded runs, and its computed observations/limitations. Built from
+ * the checked-in result.json — the deployed page renders evidence, runs nothing.
+ */
+import type { ExperimentResult } from '../../../experiments/lib/types';
+import ExperimentTraceViewer from '../../components/viz/ExperimentTraceViewer';
+import Base from '../../layouts/Base.astro';
+
+export async function getStaticPaths() {
+  const modules = import.meta.glob<ExperimentResult>('../../../experiments/results/*/result.json', {
+    eager: true,
+    import: 'default',
+  });
+  return Object.values(modules).map((result) => ({
+    params: { id: result.experiment.id },
+    props: { result },
+  }));
+}
+
+const { result } = Astro.props;
+const { experiment, runs, skipped } = result;
+---
+
+<Base title={`Experiment ${experiment.id}`} description={experiment.question}>
+  <main id="main" class="mx-auto max-w-3xl space-y-6 px-6 py-12">
+    <nav aria-label="Breadcrumb" class="text-sm text-slate-500">
+      <a href="/experiments" class="underline">Experiments</a>
+      <span aria-hidden="true"> / </span>
+      {experiment.id}
+    </nav>
+
+    <header>
+      <h1 class="text-3xl font-bold tracking-tight">{experiment.id} <span class="text-lg text-slate-400">v{experiment.version}</span></h1>
+      <p class="mt-2 text-slate-600">{experiment.goal}</p>
+    </header>
+
+    <section aria-label="Question and method" class="rounded border border-slate-200 p-4 text-sm">
+      <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Question</h2>
+      <p class="mt-1">{experiment.question}</p>
+      <p class="mt-2"><span class="font-semibold">Expected observation (pre-registered):</span> {experiment.expectedObservation}</p>
+      <p class="mt-2 text-slate-600">
+        Every run executes through the same agent runtime (max {experiment.maxSteps} model calls,
+        {experiment.repeats} repeat(s)); only the provider/model/prompt differs. This page shows
+        observable behavior only.
+      </p>
+    </section>
+
+    {
+      runs.length > 0 ? (
+        <ExperimentTraceViewer client:visible runs={runs} question={experiment.question} />
+      ) : (
+        <p class="rounded border border-slate-200 p-4 text-sm text-slate-600">
+          No runs recorded for this experiment yet — all matrix rows were skipped (missing API keys).
+          Run it locally with <code>npm run experiment</code>.
+        </p>
+      )
+    }
+
+    {
+      skipped.length > 0 && (
+        <p class="text-sm text-slate-500">
+          Skipped rows (missing keys): {skipped.map((s) => `${s.label} (${s.reason})`).join(' · ')}
+        </p>
+      )
+    }
+
+    <p class="text-sm">
+      Full data: <code>experiments/results/{experiment.id}/result.json</code> and{' '}
+      <code>report.md</code> in the repository.
+    </p>
+  </main>
+</Base>
