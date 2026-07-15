@@ -1,0 +1,15 @@
+{
+  "id": "tool-calling-semantic-failure",
+  "description": "Scripted mirror of the MEASURED Experiment 006 behavior: the model calls the calculator with a schema-valid but grammatically unsupported expression ('2 ** 0.5'). Schema validation passes; execution fails → runtime outcome tool-error. Used as the tool-calling lesson's deterministic fallback when the live 006 trace is unavailable.",
+  "model": "scripted-semantic-failure-v1",
+  "turns": [
+    {
+      "respond": {
+        "text": "I'll compute the square root with the calculator.",
+        "toolCalls": [{ "id": "call-1", "toolName": "calculator", "arguments": { "expression": "2 ** 0.5" } }],
+        "stopReason": "tool-call"
+      },
+      "teaching": "The arguments are a valid string (schema layer passes) — but the calculator's grammar has no '**', so execution fails. Valid shape, unexecutable meaning."
+    }
+  ]
+}

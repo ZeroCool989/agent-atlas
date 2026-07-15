@@ -1,0 +1,50 @@
+question: "Whiteboard the validation path for a tool call. What happens when validation succeeds but execution still fails?"
+concepts:
+  - tool-calling
+roles:
+  - engineer
+  - architect
+difficulty: deep
+answers:
+  beginner: >-
+    Draw three gates the runtime checks in order: (1) is the request well-formed, (2) do
+    the arguments match the tool's schema, (3) can the tool actually execute them. A call
+    can pass the first two and still fail the third — for example asking a plus-minus
+    calculator for a square root: the arguments are a valid string, but the tool can't
+    compute it. That's a tool error, and the runtime reports it honestly instead of
+    inventing an answer.
+  professional: >-
+    Boxes left to right: the model emits a tool call; the runtime checks message validity
+    (non-empty conversation, syntactically valid call); then schema validation (arguments
+    match the declared input schema — right keys, right types, no extras); then it
+    executes, which is where semantic validity is decided — the tool either does the work
+    or returns an error. Schema-valid but unexecutable is a real and common case: valid
+    JSON and a valid shape do not guarantee the tool can act on the values. On failure at
+    any gate the runtime ends the run with a typed outcome (invalid-tool-request for the
+    first two, tool-error for execution) and never fabricates a result. All of it lands in
+    the trace.
+  deep: >-
+    The three layers exist because "well-formed" and "correct" are different properties,
+    checked by different mechanisms: parsing/JSON, a schema validator, and the tool's own
+    logic. This is measured, not hypothetical — Experiment 006 recorded a real model
+    calling calculator("2 ** 0.5"): JSON valid, schema valid, execution rejected. Design
+    consequences: validation must be at the runtime boundary (the model can't validate
+    itself); the execution layer needs its own error contract, distinct from schema
+    errors, because callers handle them differently (bad schema is often unrecoverable;
+    an execution failure might be retried or escalated); and duplicate call ids must be
+    rejected before execution so a replayed id can't double-run a consequential action.
+    The whole thing is ~200 lines without a framework, which changes how you evaluate
+    framework pitches.
+followUps:
+  - "Which errors would you feed back to the model for a retry, and which would you fail hard?"
+  - "How would you add a per-tool timeout, and at which layer?"
+practicalExample: >-
+  src/lib/agent in this repo implements exactly these gates: runner.ts calls the tool's
+  parseArgs (schema, layer 2) then execute (semantic, layer 3); the ValidationLayers viz
+  on the tool-calling page computes all three layers with the real calculator, and the
+  "2 ** 0.5" row is the measured Experiment 006 case.
+governanceAngle: >-
+  The layered validation and its trace are the auditable evidence that inputs were
+  checked and unexecutable or disallowed requests were contained by the runtime — the
+  concrete substance behind accuracy and human-oversight expectations, though which
+  framework applies depends on the system, data, use case, and jurisdiction.

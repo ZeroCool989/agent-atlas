@@ -1,0 +1,75 @@
+---
+/**
+ * The signature Tool Calling visualization: every example tool call flows through the
+ * three gates a real request passes — message validity → schema → semantic execution —
+ * and each gate's pass/fail is COMPUTED by the real calculator tool
+ * (buildValidationLayerCases). Static, server-rendered, zero JS: it prints in the HTML
+ * and is always visible. The "2 ** 0.5" row is the case Experiment 006 measured live.
+ */
+import { buildValidationLayerCases } from '../../lib/agent';
+
+const cases = buildValidationLayerCases();
+const gates = [
+  { key: 'message', label: '1 · Message', sub: 'request well-formed?' },
+  { key: 'schema', label: '2 · Schema', sub: 'arguments match the tool schema?' },
+  { key: 'semantic', label: '3 · Semantic', sub: 'can the tool execute them?' },
+] as const;
+---
+
+<div class="space-y-3 rounded border border-slate-200 p-4" role="group" aria-label="Three validation layers">
+  <p class="text-sm text-slate-600">
+    A tool call passes three gates before it produces a result. The model's part ends the
+    moment it emits the call; every gate below belongs to the <strong>runtime</strong>.
+  </p>
+
+  {
+    cases.map((c) => (
+      <div class="rounded border border-slate-200 p-3">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <p class="text-sm font-medium">
+            {c.label}: <code class="font-mono">{c.toolName}({JSON.stringify(c.arguments)})</code>
+          </p>
+          <span class="rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-500">
+            {c.provenance === 'measured' ? `measured · ${c.evidence}` : c.provenance}
+          </span>
+        </div>
+
+        <ol class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+          {gates.map((gate, index) => {
+            const layer = c[gate.key];
+            const style = layer.pass
+              ? { borderColor: 'var(--viz-complete)', background: 'var(--viz-complete-surface)' }
+              : { borderColor: 'var(--viz-error)', background: 'var(--viz-error-surface)' };
+            return (
+              <>
+                <li class="flex-1 rounded border-2 p-2 text-xs" style={style}>
+                  <p class="font-semibold">
+                    <span aria-hidden="true">{layer.pass ? '✓' : '✗'}</span> {gate.label}
+                  </p>
+                  <p class="text-[11px] text-slate-500">{gate.sub}</p>
+                  <p class="mt-1">{layer.detail}</p>
+                  <span class="sr-only">{`gate ${gate.label}: ${layer.pass ? 'passed' : 'failed'} — ${layer.detail}`}</span>
+                </li>
+                {index < gates.length - 1 && (
+                  <li aria-hidden="true" class="hidden items-center px-1 text-slate-400 sm:flex">→</li>
+                )}
+              </>
+            );
+          })}
+        </ol>
+
+        <p class="mt-2 text-xs text-slate-600">
+          {c.result !== undefined
+            ? `Result: ${c.result}`
+            : 'Rejected before a result — the runtime ends the run honestly; no answer is invented.'}
+        </p>
+      </div>
+    ))
+  }
+
+  <p class="text-xs text-slate-500">
+    The <code class="font-mono">2 ** 0.5</code> row is the signature case: valid JSON, valid
+    schema, <strong>unexecutable meaning</strong>. Experiment 006 measured a real model
+    (Claude) doing exactly this. Schema validity is not correctness.
+  </p>
+</div>

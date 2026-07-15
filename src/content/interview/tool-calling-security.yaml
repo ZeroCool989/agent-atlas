@@ -1,0 +1,41 @@
+question: "How do you secure tool execution, and how does tool calling relate to prompt injection?"
+concepts:
+  - tool-calling
+roles:
+  - engineer
+  - architect
+  - governance
+difficulty: standard
+answers:
+  beginner: >-
+    Security lives in the runtime, never the model. Only run tools from an allow-list,
+    validate every argument against a strict schema, keep tools narrow (a calculator that
+    parses, never one that runs code), bound the number of steps, and log everything.
+    Prompt injection matters because whatever a tool returns becomes text the model acts
+    on — so a poisoned tool result can steer the next action. Treat tool output as
+    untrusted input.
+  professional: >-
+    The controls, all runtime-side: least privilege (register the narrowest tools that do
+    the job; the model can request anything, the runtime executes only what's registered);
+    input validation at the boundary with strict schemas; output handling that treats tool
+    results as untrusted; execution boundaries (a tool is exactly its implementation — no
+    eval, no shell, no unbounded fs/network); duplicate-call-id rejection so a replayed id
+    can't double-execute; step limits and per-tool timeouts; and honest error outcomes.
+    Prompt injection is the sharpest risk here versus plain chat: tool results re-enter the
+    model as observations, so an attacker who controls a tool's output (a web page, a
+    document, a compromised service) can attempt to redirect the agent. The narrower the
+    allow-list and the harder the limits, the smaller the blast radius; consequential
+    tools should sit behind a human approval gate.
+  deep: >-
+    Threat-model the boundary: the model is untrusted (it can be manipulated by injected
+    content) and tools are semi-trusted (their outputs may be attacker-influenced). So the
+    security-relevant invariants are: no capability the model can reach exceeds what you'd
+    grant an untrusted caller; every effectful tool is idempotent or guarded against
+    replay; and no tool returns data that is executed rather than treated as data.
+    Defense in depth: minimize tool scope, validate and sanitize both arguments and
+    results, isolate side-effecting tools behind approval, and make the trace complete
+    enough to detect and reconstruct an injection after the fact. Excessive agency — a
+    system doing more than intended — is the failure class all of this bounds.
+followUps:
+  - "How would you contain a tool whose output comes from an untrusted web page?"
+  - "Where would you put a human-approval gate without restructuring the loop?"

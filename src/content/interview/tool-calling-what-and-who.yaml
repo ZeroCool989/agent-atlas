@@ -1,0 +1,35 @@
+question: "What is tool calling, who executes the tool, and why doesn't the model execute it itself?"
+concepts:
+  - tool-calling
+roles:
+  - engineer
+  - architect
+difficulty: screen
+answers:
+  beginner: >-
+    Tool calling is how a text-only model asks other code to do real work — it outputs a
+    tool name and arguments instead of prose. The model does NOT execute the tool: it
+    only makes the request. Separate application code — the runtime — validates the
+    request and runs the tool, then feeds the result back. The model chooses; the
+    runtime does.
+  professional: >-
+    Structurally, tool calling is a structured output: the model emits "call tool X with
+    these JSON arguments," and the runtime detects and acts on it. Execution lives in the
+    runtime, not the model, for two reasons. First, capability: the model only generates
+    text; it literally cannot run code, query a database, or send a request — other code
+    must. Second, trust: the model is the untrusted party, so validation, the allow-list,
+    and execution have to sit on the runtime side of the boundary where you control them.
+    The clean split is model = decides which tool and what arguments; runtime = validates,
+    executes, observes, bounds, logs.
+  deep: >-
+    The separation is what makes the system analyzable and securable. If the model
+    "executed" tools, there would be no boundary at which to validate inputs, enforce
+    least privilege, bound the loop, or audit actions — the model's stochastic output
+    would be directly wired to effects. Keeping selection and execution distinct turns an
+    agent into a controllable system: a stochastic policy proposing actions, and
+    deterministic code deciding whether and how to carry them out. It is also why "the
+    model called a tool" and "the tool ran" are different events with different owners in
+    the trace.
+followUps:
+  - "Where should business logic live — in the tool, the runtime, or the prompt?"
+  - "What is the difference between a model stop reason and a runtime outcome?"

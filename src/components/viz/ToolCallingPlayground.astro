@@ -1,0 +1,40 @@
+---
+/**
+ * Composition root for the playground: builds the scripted outcome-class cases through
+ * the real runtime, then OVERRIDES `success` and `semantic-failure` with the MEASURED
+ * Claude traces from Experiments 005 and 006 when those checked-in results contain a
+ * real run. If the evidence is absent (e.g. the result was regenerated without a key),
+ * it falls back to the scripted case — the build never breaks, and provenance is
+ * always labelled honestly.
+ */
+import { buildToolCallingCases } from '../../lib/agent';
+import type { ToolCallingCase } from '../../lib/agent';
+import exp005 from '../../../experiments/results/005-live-claude-calculator/result.json';
+import exp006 from '../../../experiments/results/006-live-claude-failure/result.json';
+import ToolCallingPlaygroundIsland from './ToolCallingPlaygroundIsland';
+
+const cases = await buildToolCallingCases();
+
+function claudeRun(result: { runs: Array<{ provider: string; outcome: string; finalText?: string; trace: unknown[] }> }) {
+  return result.runs.find((r) => r.provider === 'claude');
+}
+
+function override(key: ToolCallingCase['key'], evidence: string, run: ReturnType<typeof claudeRun>): void {
+  if (!run) return;
+  const index = cases.findIndex((c) => c.key === key);
+  if (index < 0) return;
+  cases[index] = {
+    ...cases[index]!,
+    provenance: 'measured',
+    evidence,
+    outcome: run.outcome as ToolCallingCase['outcome'],
+    ...(run.finalText !== undefined ? { finalText: run.finalText } : {}),
+    trace: run.trace as ToolCallingCase['trace'],
+  };
+}
+
+override('success', 'Experiment 005 (Claude, temp 0)', claudeRun(exp005 as never));
+override('semantic-failure', 'Experiment 006 (Claude, temp 0)', claudeRun(exp006 as never));
+---
+
+<ToolCallingPlaygroundIsland client:visible cases={cases} />

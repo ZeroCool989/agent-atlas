@@ -4,6 +4,7 @@ url: "https://github.com/ZeroCool989/agent-atlas/blob/main/experiments/results/0
 ingestedAt: 2026-07-14
 routedTo:
   - workflows-vs-agents
+  - tool-calling
   - tokens
 decisions: >-
   First LIVE validation of the Phase 0/1 architecture against a real provider

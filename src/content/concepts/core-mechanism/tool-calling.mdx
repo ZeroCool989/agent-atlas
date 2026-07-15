@@ -1,0 +1,246 @@
+---
+title: "Tool calling"
+layer: core-mechanism
+oneLiner: "How a text-only model gets real work done: it writes a work order, and the runtime — never the model — validates and executes it."
+prerequisites:
+  - tokens
+  - workflows-vs-agents
+related:
+  - context-windows
+governance:
+  - eu-ai-act
+interviewTags: ["tool-calling", "function-calling", "validation", "agent-loop"]
+status: complete
+verdict:
+  classification: essential
+  problem: "A language model can only produce text. Anything real — calculating dependably, querying a system, taking an action — has to be done by other code. Tool calling is the protocol by which the model asks."
+  simplerBaseline: "If the task is pure language (summarize, rewrite, classify), no tool is needed — a direct call is simpler. Tool calling earns its complexity only when the model must trigger real work it cannot do itself."
+  mainCost: "A new boundary to secure and operate: the runtime must validate every request, execute only allow-listed tools, bound the loop, and log it — and any text a tool returns becomes input the model will act on."
+sources:
+  - anthropic-building-effective-agents
+  - experiment-005-006-live-claude
+  - experiment-007-live-direct-call
+updated: 2026-07-15
+---
+
+import ValidationLayers from '../../../components/viz/ValidationLayers.astro';
+import ToolCallingPlayground from '../../../components/viz/ToolCallingPlayground.astro';
+
+A language model produces one kind of output: text (sometimes structured text). It
+cannot itself add two large numbers dependably, read a database, send an email, or
+touch a file. **Tool calling** is the protocol that lets it *ask* other code to do those
+things — the model names a tool and fills in arguments; separate code decides whether to
+run it and does the actual work. Getting the boundary between "ask" and "do" exactly
+right is the whole subject of this lesson, and it is where security and correctness live.
+
+> **Mental model: the model writes a work order.** The model is a smart analyst who can
+> read, reason, and decide what needs doing — but has no hands and touches no equipment.
+> To make anything happen it fills out a *work order*: the job name (tool) and the
+> details (arguments). It hands that order to the **runtime**, which checks the job is
+> one it's allowed to dispatch, that the form is filled in correctly, and only then
+> sends a crew (the tool) to do the work. The finished order comes back as an
+> *observation* the analyst reads.
+> **Where the analogy breaks:** a real clerk is suspicious of a strange report; the
+> model is not. Whatever a tool returns becomes text the model acts on without doubt —
+> so a compromised or hostile tool result can steer it. And the model has no memory of
+> past orders beyond what is written in the current conversation. The runtime, not the
+> model's good sense, is what keeps the system safe.
+
+## What problem existed before this?
+
+Before tool calling, an LLM application was a single text-in/text-out call. That is
+enough for language tasks, but it fails the moment the answer must be *dependable* or
+must *change the world*. [Experiment 007](/experiments/007-live-direct-call) makes the
+first half concrete: asked to multiply, a real model answered a small product correctly
+but larger ones confidently and wrongly, with nothing able to catch the error. And no
+amount of prompting lets a pure text model actually send an email or read a row from a
+database — it can only *describe* doing so.
+
+## Why was this invented?
+
+The fix is a division of labour: let the model contribute *judgment about what to do*,
+and let ordinary code contribute *doing it*. Model providers exposed this as a
+structured output — the model emits a tool name and JSON arguments instead of prose —
+so that application code can reliably detect "the model wants tool X with these inputs"
+and act on it. Tool calling is that structured request; everything interesting is what
+the application does with it.
+
+## How does it work?
+
+The full path, once per tool the model requests:
+
+<ToolCallingPlayground />
+
+Switch between the outcome classes and scrub each trace. Two of them —
+**successful call** and **semantic failure** — are *measured* traces from real Claude
+runs (Experiments 005 and 006); the rest are scripted demonstrations of runtime
+behavior, labelled as such. Watch the actor column: the model's only act is
+**selecting** the tool; every validation and the execution itself belong to the
+runtime. A model *stop reason* ("I want a tool") is not a runtime *outcome*
+(`completed`, `invalid-tool-request`, `tool-error`) — and none of them proves the final
+answer is correct.
+
+## Is it actually necessary?
+
+For dependable computation, real actions, or access to live systems: yes — there is no
+other honest way for a text model to do those things. For pure language tasks it is
+unnecessary overhead. The judgment is the same as the whole [workflows-vs-agents
+spectrum](/concepts/workflows-vs-agents): add the capability when the task genuinely
+needs it, not because it is available.
+
+## What are the trade-offs?
+
+Tool calling buys dependability and reach, and charges a boundary you must secure and
+operate. Every tool is new attack surface and new operational surface. The model can
+*request* anything — including a tool that does not exist or one with dangerous
+arguments — so the runtime must be the adult: allow-list, validate, execute, bound, log.
+And the model will act on whatever a tool returns, which makes tool output a
+prompt-injection channel.
+
+## The three validation layers
+
+The single most important mechanic, and the one the live experiment made vivid. A tool
+call passes **three gates**, all owned by the runtime, before it produces a result:
+
+<ValidationLayers />
+
+The `2 ** 0.5` row is the signature case, measured live in Experiment 006: the arguments
+are **valid JSON** and **match the calculator's schema**, yet **execution fails** because
+the grammar has no power operator. This is why "the tool call was well-formed" is not the
+same as "the tool call was correct":
+
+1. **Message validity** — is the request itself well-formed (a non-empty conversation, a
+   syntactically valid tool call)? Malformed requests never reach a tool.
+2. **Schema validation** — do the arguments match the tool's declared input schema
+   (right keys, right types, no extras)? A wrong key is rejected here, before execution.
+3. **Semantic execution** — can the tool actually *do* the thing with those arguments?
+   Schema-valid inputs can still be unexecutable (`2 ** 0.5`) or fail at runtime
+   (`1 / 0`, an external service down).
+
+Validation belongs at the runtime boundary, never in the prompt: the model is the
+untrusted party, so you cannot ask it to validate its own request.
+
+## What complexity does it introduce?
+
+A runtime with real responsibilities, and a clean chain of ownership:
+
+- **Model** — decides *which* tool and *what* arguments. That is its entire power.
+- **Runtime** — validates (all three layers), enforces the allow-list, executes
+  approved tools, appends observations, bounds the loop, classifies outcomes, logs.
+- **Tool** — performs one well-defined job over validated inputs. It is *exactly* its
+  implementation: the lesson's calculator is a parser, not `eval` — a "calculator" tool
+  can never become "run code".
+- **External system** — whatever the tool ultimately talks to (a service, a database).
+  Its failures arrive as tool errors the runtime must handle.
+
+## What simpler alternative exists?
+
+For language tasks, a [direct call](/concepts/workflows-vs-agents). For a fixed sequence
+of known steps, a deterministic workflow that calls the same tool from application code
+without giving the model discretion. Tool calling is specifically for when the model
+must *choose* to invoke real work at runtime.
+
+## When should I use it?
+
+When the task needs dependable computation, a real action, or live data, and the model
+genuinely needs to decide when to reach for it. Always with the runtime guarantees:
+allow-listed tools, validated arguments, bounded steps, full traces.
+
+## When should I avoid it?
+
+When a direct call or a deterministic workflow already solves the problem; when the
+"tool" would be dangerous to expose (never wire the model to arbitrary code, a shell, or
+an unbounded filesystem/network capability); and when you have no way to validate or
+bound what the model might request. A tool you cannot secure is a tool you should not
+add.
+
+## Evidence from real experiments
+
+Distinguishing *theory*, *scripted demonstration*, and *measured observation* is a house
+rule here.
+
+- **Measured — Experiment 005** (Claude, temperature 0, 3 runs): given a calculator, the
+  model selected it, the runtime executed it, and the model reported the correct result,
+  identically across all three runs. *Limitation:* one provider/model, tiny sample, one
+  day's conditions — evidence that this path works, not a benchmark.
+- **Measured — Experiment 006** (Claude, temperature 0): asked for a square root with
+  only a `+ − × ÷` calculator, the model called `calculator("2 ** 0.5")`. Schema
+  validation passed; execution failed → `tool-error`. This is the three-layer distinction
+  as *observed behavior*, not a hypothetical. *Limitation:* a single run of one model.
+- **Measured — Experiment 007** (Claude, temperature 0): with *no* tool, arithmetic was
+  correct on a small product and confidently wrong on larger ones — the motivation for
+  tool calling stated in evidence. *Limitation:* one model, three problems.
+- **Scripted demonstrations** — the schema-failure, unknown-tool, and external
+  tool-error traces in the playground are deterministic runtime behaviors, appropriate to
+  script; they are labelled *scripted* and make no claim about any model.
+
+Nothing here generalizes to "all models"; each measured statement carries its scope.
+
+## Security
+
+Tool calling is where an LLM system's security is won or lost, and every control lives in
+the runtime:
+
+- **Allow-list / least privilege** — the registry is the allow-list; the model may
+  request anything, the runtime executes only what the developer registered (the
+  unknown-tool case shows a `file-writer` request rejected). Expose the narrowest tools
+  that do the job.
+- **Input validation** — strict argument schemas at the boundary (layer 2), never
+  delegated to prompt instructions.
+- **Output validation** — a tool result is untrusted input: it becomes an observation
+  the model acts on, so treat tool output with the same suspicion as user input. This is
+  the **prompt-injection** surface — a poisoned result can steer the next action. The
+  narrower the allow-list and the harder the limits, the less an injection can achieve.
+- **Execution boundaries** — a tool is exactly its implementation; the calculator parses,
+  it does not `eval`. Never execute arbitrary model text.
+- **Duplicate call IDs** — rejected, so a replayed id cannot double-execute a
+  consequential action.
+- **Maximum steps and timeouts** — the loop bound (and per-tool timeouts, for real tools)
+  are the mechanical answer to runaway behavior and hanging dependencies.
+- **Error handling** — failures surface as honest outcomes, never as fabricated answers.
+
+The model never owns security. The runtime always does.
+
+## Production reality
+
+A minimal tool-using loop needs only the six mechanics above. Production systems add more,
+each solving an *operational* problem, none required to make a system "an agent":
+
+- **Retry logic / circuit breakers** — for flaky external tools (feed the error back, or
+  stop hammering a failing dependency).
+- **Caching** — avoid re-calling deterministic or expensive tools.
+- **Rate limiting / timeouts** — protect tools and budgets.
+- **Observability / monitoring / audit logs** — the trace, persisted and searchable.
+- **Approval workflows** — a human gate before consequential tools execute.
+
+Reach for these when you have the problem they solve, not by default. Adding retries to a
+lesson-sized loop teaches the wrong instinct.
+
+## Governance
+
+The engineering controls above *are* the governance story, made concrete:
+
+- **Least privilege and bounded agency** — the allow-list and step limit are auditable
+  evidence that the system can only do what it was permitted to do.
+- **Audit trails and accountability** — the execution trace records who decided what,
+  which tool ran with which arguments, and why the run ended.
+- **Third-party and operational resilience** — when a tool calls an external system (or
+  the model is a vendor's), the trace separates what you controlled from what a
+  dependency contributed, and the error handling is your resilience story.
+- **Human approval** — the approval gate is where consequential actions get oversight.
+- **Regulatory frame, carefully** — none of the EU AI Act, DORA, GDPR, ISO 42001, FINMA
+  guidance, or NIST AI RMF applies *merely because* a system calls tools. Applicability
+  depends on the system, your role, the use case, the data, and the jurisdiction. What
+  tool calling determines is the *evidence you will have* — allow-lists, validation,
+  logs, oversight points — when a framework does apply.
+
+## Build it, then own it
+
+The whole boundary is a few readable files:
+[`runner.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/agent/runner.ts)
+(the loop and the three validation gates),
+[`tools.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/agent/tools.ts)
+(the allow-list registry), and
+[`calculator.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/agent/calculator.ts)
+(a tool that is a parser, not a shell). Read `runner.ts` and find the three gates in the
+code; then try the interview questions below.

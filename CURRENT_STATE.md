@@ -9,6 +9,20 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 |---|---|
 | F1 Flagship slice: workflows vs agents + minimal agent runtime | ✅ complete (2026-07-14) |
 | EXP Real-model experiment platform (AI Engineering Laboratory) | ✅ complete (2026-07-14) |
+| EXP-LIVE Live validation (Claude): 005/006/007 + flagship lesson evidence update | ✅ complete (2026-07-15) |
+| TC Tool Calling concept (evidence-backed) | ✅ complete (2026-07-15) |
+
+- **Tool Calling lesson (TC):** `/concepts/tool-calling` (complete, full DoD) built on
+  tokens + workflows-vs-agents. Signature **static** three-gate validation viz
+  (`ValidationLayers.astro`, zero JS) computing message → schema → semantic layers with
+  the real calculator; the `2 ** 0.5` row is the measured Experiment 006 case. Tool
+  Calling **Playground** (`ToolCallingPlayground` island) replaying five outcome classes
+  (success, schema-failure, semantic-failure, unknown-tool, tool-error) — success and
+  semantic-failure are the MEASURED Claude traces from Experiments 005/006 (loaded from
+  checked-in results, scripted fallback), the rest scripted runtime behaviors, all
+  provenance-labelled. Dedicated Evidence section (005/006/007, each with limitations),
+  security + production + governance sections. `unreliable-lookup` moved into
+  `src/lib/agent/`. 4 interview questions. 20 new tests (233 total), 21 e2e.
 
 - **Experiment platform (EXP):** provider adapters in `src/lib/model/providers/`
   (Claude, OpenAI, Gemini via raw fetch, no SDKs; `openAiCompatible()` covers

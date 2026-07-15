@@ -1,0 +1,41 @@
+question: "When should you avoid tool calling, and how is a single tool call different from an agent?"
+concepts:
+  - tool-calling
+  - workflows-vs-agents
+roles:
+  - architect
+  - consultant
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    Avoid tool calling when the task is pure language (summarize, rewrite, classify) — a
+    direct call is simpler — or when a fixed sequence of steps is known, where
+    deterministic code calling the tool itself is more predictable than letting the model
+    decide. And a single tool call is not an agent: tool calling is a capability; an agent
+    is a loop where the model repeatedly chooses the next action based on what it observed.
+    You can call a tool once inside a plain workflow with no agency at all.
+  professional: >-
+    The decision is the same essentiality test as the whole autonomy spectrum: add tool
+    calling only when the model must trigger real work it can't do itself, and give the
+    model discretion over WHEN only when the steps can't be enumerated in advance. Avoid
+    it when a direct call or a deterministic workflow already solves the problem; when the
+    tool would be dangerous to expose; or when you can't validate or bound what the model
+    might request. On the agent distinction: tool calling is a single request/response for
+    one action; an agent wraps tool calls in a loop with observations feeding the next
+    decision. Many production "agents" are really one or two tool calls inside otherwise
+    deterministic control flow — and are better for it, because they keep most of the
+    system testable.
+  deep: >-
+    The critical-thinking trap is treating tool calling as inherently agentic and reaching
+    for a full loop when a single call suffices. Frame it as who owns control flow: if the
+    developer knows the tool call happens at step N, that's a workflow invoking a tool —
+    fully testable. If the model decides whether and when to call, and how to react to the
+    result, that's agency, with all the variance and evaluation burden that implies. The
+    cost of over-reaching is real: an open loop turns enumerable, unit-testable behavior
+    into a distribution you must sample with evals. So the honest default is the least
+    autonomy that solves the problem — often a deterministic workflow that happens to call
+    a tool, not an agent.
+followUps:
+  - "Give an example where one tool call inside a deterministic workflow beats an agent."
+  - "How would you tell, reviewing a system, whether a tool call is agentic or not?"

@@ -49,6 +49,29 @@ project start would be pure debt. Plan references to "Astro 5" should be read as
   path, and `z.string().url()` is deprecated in favor of `z.url()`. Schemas and tests
   are written Zod-4-native.
 
+## 2026-07-15 — TC (Tool Calling concept): decisions
+
+- **Three-layer validation viz is static (`ValidationLayers.astro`, zero JS).** It's a
+  conceptual gate diagram, not a stepped trace — always visible, prints in HTML, no
+  hydration. Gate pass/fail is computed by the REAL calculator tool
+  (buildValidationLayerCases), so the signature `2 ** 0.5` case is real, matching the
+  measured Experiment 006 error string exactly.
+- **Playground reuses real evidence where it exists.** `buildToolCallingCases()` runs
+  the real runtime on scripted scenarios for all five outcome classes; the page wrapper
+  OVERRIDES `success` and `semantic-failure` with the measured Claude traces from
+  Experiments 005/006 (loaded from checked-in result.json), falling back to the scripted
+  case if a real run is absent so the build never breaks. Provenance always labelled
+  (measured vs scripted) — the scripted/measured/theory distinction is a visible house
+  rule.
+- **`unreliable-lookup` moved from experiments/lib to src/lib/agent** (demo-tools.ts):
+  it's a legitimate teaching tool (external-failure case), now reusable by lessons;
+  experiments import it back. This is the only src↔experiments coupling, and it points
+  the sanctioned direction (experiments → src). The lesson page reads experiment RESULT
+  JSON (src → experiments/results) only at the .astro composition layer, as data.
+- **Shared `TraceStepList`** already extracted (EXP) is reused by the playground —
+  one trace renderer across the flagship comparison, experiment viewer, and tool-calling
+  playground.
+
 ## 2026-07-14 — EXP (real-model experiment platform): decisions
 
 - **Raw `fetch` adapters, no SDKs** (ADR-0005): the vendor→neutral mapping is the

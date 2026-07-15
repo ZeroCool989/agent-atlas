@@ -10,12 +10,13 @@ statuses live in `CURRENT_STATE.md`._
    Cloudflare Pages project `agent-atlas`, add repo secrets `CLOUDFLARE_API_TOKEN` +
    `CLOUDFLARE_ACCOUNT_ID`, set repo variable `CLOUDFLARE_DEPLOY_ENABLED=true`
    (steps in docs/DEPLOYMENT.md). CI itself already runs on every push.
-2. **Experiment platform delivered — awaiting review/approval before the next concept.**
-   Per the platform brief, do NOT start Memory, RAG, MCP, Planning, Reflection, or
-   Multi-Agent until this framework is reviewed. When approved, recommended next:
-   run the real rows once (add keys, `npm run experiment`) and route the evidence into
-   the flagship lesson via intake; then the **tool-calling** concept page.
-   USER ACTION still open: Cloudflare deploy enablement (docs/DEPLOYMENT.md).
+2. **Tool Calling delivered — awaiting review before the next concept.** Per the
+   standing hold, do NOT start Memory, RAG, MCP, Planning, Reflection, or Multi-Agent
+   until reviewed. Candidate next steps once approved (user's priority #3):
+   an **experiment dashboard** (browse evidence across experiments/models); or the
+   next core-mechanism concept. USER ACTIONS still open: Cloudflare deploy enablement
+   (docs/DEPLOYMENT.md); optionally run 002/003 live to compare prompting styles and
+   temperature.
 
 ## Rules of engagement (Phase 0)
 
