@@ -88,7 +88,11 @@ export default function ArchitectureComparisonIsland({ runs, question }: Archite
         <p className="rounded border border-slate-200 p-2 text-sm" style={{ background: 'var(--viz-surface)' }}>
           <span className="font-semibold">Output:</span> <code>{selected.finalText}</code>
           {selected.key === 'direct' && (
-            <span className="text-slate-600"> — confidently wrong (127 × 49 = 6,223). Nothing in this architecture can catch it.</span>
+            <span className="text-slate-600">
+              {' '}— correct here, but <strong>nothing verified it</strong>. On larger products the
+              same architecture is confidently wrong (Experiment 007). Unverifiable correctness
+              isn’t dependable.
+            </span>
           )}
         </p>
       )}

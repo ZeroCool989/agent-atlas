@@ -32,7 +32,11 @@ test('flagship lesson: mental model, live four-architecture comparison, table, g
 
   // Direct call is labeled honestly wrong
   await comparison.locator('label', { hasText: 'Direct model call' }).click();
-  await expect(comparison.getByText(/confidently wrong/)).toBeVisible();
+  await expect(comparison.getByText(/nothing verified it/)).toBeVisible();
+
+  // Evidence Note: measured observations, clearly distinguished from the scripted demo.
+  await expect(page.getByText(/Evidence Note — Experiment 007/)).toBeVisible();
+  await expect(page.getByText(/because correctness has to/)).toBeVisible();
 
   // Comparison table and minimum-loop mechanics in the prose
   await expect(page.getByRole('cell', { name: 'model, per turn' })).toBeVisible();

@@ -10,8 +10,11 @@ decisions: >-
   Anthropic, model claude-sonnet-4-5-20250929, temperature 0, 3 problems × 2 repeats.
   Ground truth computed with the repo calculator. Only observable evidence recorded.
 
-  STATUS: evidence collected; proposed educational updates below are NOT yet applied
-  (awaiting review, per the no-silent-content-change rule).
+  STATUS: evidence collected AND applied to the lesson on 2026-07-15 (approved). The
+  updates below were applied in strengthened form: both the correct small product and
+  the wrong larger products are taught together, an Evidence Note distinguishes the
+  scripted demonstration from these measured observations, and a new interview question
+  (agents-unverified-correctness) captures the insight.
 
   FINDINGS (observable, reproducible at temp 0).
   - 127 × 49: model answered 6223 both runs = CORRECT. The scripted scenario's claim

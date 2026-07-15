@@ -220,7 +220,7 @@ describe('the three non-agent architectures', () => {
     const runs = await buildComparison();
     expect(runs.map((r) => r.key)).toEqual(['direct', 'deterministic', 'model-assisted', 'agent']);
     const byKey = Object.fromEntries(runs.map((r) => [r.key, r]));
-    expect(byKey['direct']!.finalText).toContain('6,213'); // the scripted wrong answer
+    expect(byKey['direct']!.finalText).toContain('6,223'); // scripted demo, calibrated to measured behavior (Exp 007: small product correct)
     expect(byKey['deterministic']!.finalText).toContain('6,223');
     expect(byKey['model-assisted']!.finalText).toContain('6,223');
     expect(byKey['agent']!.finalText).toContain('6,223');

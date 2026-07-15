@@ -1,0 +1,48 @@
+question: "A direct model call answered 127×49 correctly but 4831×7692 wrong, both with total confidence. What does that tell you about relying on model outputs, and what would you change?"
+concepts:
+  - workflows-vs-agents
+roles:
+  - engineer
+  - architect
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    It tells me the model can be right or wrong with the same confidence, and you can't
+    tell which from the answer alone. So I wouldn't depend on a raw model answer for
+    anything that has to be correct — I'd have it call a tool that actually computes the
+    result, and verify that result, rather than trusting the text.
+  professional: >-
+    The lesson isn't "models are bad at math" — the model got the small product right.
+    It's that correctness degrades with scale and fails without any internal signal, so
+    a direct call gives you an answer you cannot verify from the inside. That moves the
+    engineering question from "is the model accurate?" to "is correctness dependable and
+    checkable?" The fix is architectural: give the model a tool for the operation, let
+    the runtime execute it deterministically, and treat the tool result — not the
+    model's prose — as the answer. For anything consequential, add verification and log
+    the check. This is exactly why production systems adopt tools even when the model is
+    usually right.
+  deep: >-
+    This is really about where the trust boundary sits. A weights-only answer is a
+    single unverifiable sample from a distribution that happens to concentrate on the
+    right value for easy inputs and spread out as difficulty rises — and confidence
+    (fluency) is uncorrelated with correctness, so it's not a usable signal. Engineering
+    responses, in order of strength: move the computation into a deterministic tool
+    (removes the error class entirely for that operation); add an independent verifier
+    (re-derive or check the result); and make both auditable in the trace. The measured
+    007 result is a clean argument against "the model is good enough now" — good enough
+    on average is not the same as dependable, and dependability is what production and
+    governance both require.
+followUps:
+  - "How would you verify a tool result that itself could be wrong?"
+  - "Where would you draw the line between 'trust the model' and 'require a tool'?"
+practicalExample: >-
+  Experiment 007 in this repo (experiments/results/007-live-direct-call) is the measured
+  evidence: real direct-call runs, correct on 127×49, wrong on larger products, compared
+  to ground truth computed by the repo calculator. The workflows-vs-agents lesson's
+  Evidence Note is built from it.
+governanceAngle: >-
+  Presenting an unverifiable confident answer as authoritative is the risk behind
+  accuracy and human-oversight expectations; a tool-plus-verification architecture with
+  an audit trace is the concrete control, though which framework applies depends on the
+  system, use case, data, and jurisdiction.

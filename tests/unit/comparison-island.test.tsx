@@ -82,8 +82,9 @@ describe('ArchitectureComparisonIsland', () => {
     expect(screen.getByText(/declared metadata: 350 ms · 29 tokens/)).toBeTruthy();
   });
 
-  it('labels the direct call’s wrong answer honestly', () => {
+  it('labels the direct call as correct-but-unverified, citing the evidence', () => {
     renderIsland();
-    expect(screen.getByText(/confidently wrong/)).toBeTruthy();
+    expect(screen.getByText(/nothing verified it/)).toBeTruthy();
+    expect(screen.getByText(/Experiment 007/)).toBeTruthy();
   });
 });
