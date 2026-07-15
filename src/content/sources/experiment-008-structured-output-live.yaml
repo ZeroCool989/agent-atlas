@@ -1,0 +1,36 @@
+type: note
+title: "Live measurement 008 — free-form structured output (Claude), 2026-07-15"
+url: "https://github.com/ZeroCool989/agent-atlas/tree/main/src/lib/structured"
+ingestedAt: 2026-07-15
+routedTo:
+  - structured-outputs
+decisions: >-
+  Small live measurement of the UNCONSTRAINED (free-form) structured-output case, to
+  contrast with the provider-enforced case already measured in Experiments 005/006
+  (tool-call arguments). Ran the real extractStructured pipeline against Claude
+  (claude-sonnet-4-5-20250929, temperature 0), two prompt styles × two repeats, target
+  schema {name, age, city}. Only observable evidence recorded.
+
+  FINDINGS (observable, reproducible at temp 0).
+  - Minimal prompt (no schema shown, no "JSON only" instruction), both runs: the model
+    (a) wrapped the JSON in a ```json code fence — a naive JSON.parse would fail — and
+    (b) used the wrong key "location" instead of "city". The pipeline isolated the
+    fenced JSON, schema validation rejected the wrong shape, and the retry (fed the
+    exact schema error) returned a conforming object → valid on attempt 2.
+  - Structured prompt (schema described + "output only JSON, no fences"), both runs:
+    clean, correctly-keyed JSON, valid on attempt 1, no isolation needed.
+  - Behavior was identical across repeats (deterministic at temp 0).
+
+  INTERPRETATION FOR TEACHING: free-form output is real but unreliable — fencing and
+  field-name drift both occurred with a naive prompt. Two things fix it, and the lesson
+  teaches both: (1) a clear schema + validation + retry recovers messy output; (2)
+  provider-enforced structured output (tool calling, measured in 005/006) removes the
+  fence/key-guessing failure classes at the source. Schema validation is what CAUGHT the
+  wrong key — prompting alone would have shipped "location".
+
+  LIMITATIONS: one provider/model, one extraction task, two prompt styles, two repeats,
+  one day. Not a benchmark — evidence of specific failure modes and their fixes.
+
+  LINKED CONCEPTS: structured-outputs (this lesson), tool-calling (the provider-enforced
+  case). UNRESOLVED: do other models fence by default? how often does field-name drift
+  happen across schemas? (candidates for the future experiment dashboard.)

@@ -49,6 +49,28 @@ project start would be pure debt. Plan references to "Astro 5" should be read as
   path, and `z.string().url()` is deprecated in favor of `z.url()`. Schemas and tests
   are written Zod-4-native.
 
+## 2026-07-15 — SO (Structured Outputs concept): decisions
+
+- **`extractStructured` in `src/lib/structured/`** is the L1 build project (plan §3):
+  isolate (fence/prose strip) → parse → validate (Zod) → retry-with-feedback → typed
+  Result. Plain TS on ModelProvider; the same two gates (parse, schema) as the
+  tool-calling runtime, deliberately — the lesson's thesis is that tool calling is
+  provider-enforced structured output.
+- **Structured Outputs wired as a prerequisite of Tool Calling** (the user's framing:
+  the missing prerequisite). No cycle: structured-outputs prereq=[tokens], tool-calling
+  prereq now includes structured-outputs; both complete.
+- **Live measurement 008 done as a script + intake source, NOT a framework experiment.**
+  extractStructured is not runAgent, so it doesn't fit the agent-experiment matrix; a
+  full /experiments artifact would need framework changes (deferred to the dashboard
+  task). Findings recorded as an intake `note` source (like the earlier adapter
+  validation), clearly labelled measured with limitations. Real finding: naive prompt →
+  Claude fenced JSON AND used wrong key `location`; schema validation caught it, retry
+  fixed it — a live demonstration that validation catches what prompting misses.
+- **Evidence layering:** load-bearing measured claim (provider-enforced structured
+  output works) reuses 005/006; the free-form contrast is 008; the six pipeline failure
+  modes are scripted demonstrations of the real mechanism. Scripted/measured/theory
+  kept distinct.
+
 ## 2026-07-15 — TC (Tool Calling concept): decisions
 
 - **Three-layer validation viz is static (`ValidationLayers.astro`, zero JS).** It's a

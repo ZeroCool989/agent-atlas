@@ -1,0 +1,41 @@
+question: "How does structured output relate to tool calling, and when would you prompt-and-validate versus use a provider-enforced mode?"
+concepts:
+  - structured-outputs
+  - tool-calling
+roles:
+  - engineer
+  - architect
+  - consultant
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    They're the same mechanism. A tool call's arguments are a structured output the
+    provider forces to match a schema — that's why tool-call arguments come back as clean,
+    correctly-shaped JSON. If your provider offers a constrained mode or tool calling, use
+    it: it removes failure modes like code fences and stray prose at the source. If it
+    doesn't, fall back to prompting for JSON and validating it yourself with retries.
+  professional: >-
+    Structured output is the general capability; tool calling is a provider-enforced
+    instance of it aimed at "call this function with these arguments." The decision is
+    about where enforcement happens: provider-enforced (JSON mode, response formats, tool
+    calls) constrains generation so malformed output is largely designed out — prefer it
+    for reliability and simpler code. Prompt-and-validate is the portable fallback when no
+    such mode exists or you need provider independence; it's more code and more retries
+    but works anywhere. Either way you still validate in your own code (the provider
+    guarantees shape, not that the shape is what YOUR schema needs) and you still can't
+    trust the values are correct — only that they're well-shaped.
+  deep: >-
+    The critical-thinking trap is treating provider-enforced modes as a correctness
+    guarantee. They remove syntactic and often structural failure at generation time,
+    which is real value — but Experiment 008's minimal-prompt run showed a model happily
+    producing a schema-plausible object with the WRONG field name, and only validation
+    against the intended schema caught it. So even with provider enforcement, keep your
+    own schema as the source of truth and validate against it; and keep semantic checks
+    (is this value actually right?) separate, because no output mode provides them. The
+    honest architecture: prefer provider enforcement to shrink the failure surface, retain
+    validation as the trust boundary, and treat correctness as an evaluation problem, not
+    an output-format one.
+followUps:
+  - "Give a case where provider-enforced JSON still fails your schema."
+  - "How would you keep provider independence while still using provider-enforced modes where available?"

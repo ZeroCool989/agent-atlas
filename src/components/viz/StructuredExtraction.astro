@@ -1,0 +1,13 @@
+---
+/**
+ * Composition root for the structured-extraction viz: builds the demonstration cases
+ * through the real pipeline at build time and passes them to the island. Scripted model
+ * outputs, real mechanism — labelled scripted throughout.
+ */
+import { buildStructuredCases } from '../../lib/structured';
+import StructuredExtractionIsland from './StructuredExtractionIsland';
+
+const cases = await buildStructuredCases();
+---
+
+<StructuredExtractionIsland client:visible cases={cases} />

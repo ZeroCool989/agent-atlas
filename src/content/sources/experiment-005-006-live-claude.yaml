@@ -5,6 +5,7 @@ ingestedAt: 2026-07-14
 routedTo:
   - workflows-vs-agents
   - tool-calling
+  - structured-outputs
   - tokens
 decisions: >-
   First LIVE validation of the Phase 0/1 architecture against a real provider

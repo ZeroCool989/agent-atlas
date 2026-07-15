@@ -1,0 +1,47 @@
+question: "Whiteboard a robust structured-output extractor. What are its stages, and what does it return when the model won't conform?"
+concepts:
+  - structured-outputs
+roles:
+  - engineer
+  - architect
+difficulty: deep
+answers:
+  beginner: >-
+    Draw a pipeline: take the model's text, strip any code fences or surrounding prose to
+    isolate the JSON, parse it, then validate it against a schema. If parsing or
+    validation fails, send the error back to the model and try again, up to a limit. If it
+    still won't produce valid data, return a clear failure — never make up a value. Success
+    returns a typed, validated object your code can trust.
+  professional: >-
+    Stages left to right: isolate (fence/prose stripping — a naive JSON.parse fails on
+    fenced output), parse (syntactic gate), validate against a schema (structural gate),
+    and on either failure retry with the specific error fed back so the model can correct
+    itself. Bound the retries; on exhaustion return a typed failure, not a fabricated
+    value — failing closed is the point. Decisions to defend: how many attempts and what
+    feedback (parse errors and schema errors are different messages); whether to prefer a
+    provider's constrained mode so isolation/parse rarely fail; and that validation is
+    shape-only, so semantically-wrong-but-valid outputs still get through and need
+    separate handling.
+  deep: >-
+    The design mirrors the tool-calling runtime exactly — same two gates (parse, schema)
+    at the same trust boundary — which is the point: a tool call's arguments are a
+    structured output the provider constrained. Interesting engineering lives in the retry
+    contract (idempotent, error-specific feedback improves convergence; blind retries
+    don't), the give-up semantics (a typed Result the caller must handle, so failure can't
+    be ignored), and keeping the schema single-sourced between prompt and validator to
+    avoid drift. Everything is deterministic given the model outputs, which is what makes
+    it testable without a live model.
+followUps:
+  - "How would you word the retry feedback differently for a parse error versus a schema error?"
+  - "When would you stop retrying and escalate instead?"
+practicalExample: >-
+  src/lib/structured/extract.ts in this repo is exactly this extractor (isolate → parse →
+  validate → retry → typed Result), unit-tested against scripted providers for every
+  failure mode; the structured-outputs lesson steps through it, and Experiment 008
+  measured a real model hitting two of those failure modes (fencing and a wrong field
+  name) and the retry recovering.
+governanceAngle: >-
+  Failing closed (a typed failure rather than an invented record) and logging what was
+  accepted or rejected is the concrete substance behind data-quality and accuracy
+  expectations; whether a framework applies depends on the system, data, use case, and
+  jurisdiction.

@@ -1,0 +1,36 @@
+question: "What is structured output, and why isn't 'ask the model for JSON and parse it' good enough?"
+concepts:
+  - structured-outputs
+roles:
+  - engineer
+  - architect
+difficulty: screen
+answers:
+  beginner: >-
+    Structured output is getting a model to produce data in a specific machine-readable
+    shape — named fields with known types — instead of free text, and guaranteeing it
+    before your code uses it. Just asking for JSON isn't enough because the model can
+    wrap it in code fences, add prose, produce invalid JSON, use the wrong field names,
+    or wrong types. You have to validate what came back, and retry or fail when it
+    doesn't conform.
+  professional: >-
+    A program consuming model output needs a known shape; free text doesn't provide one,
+    and "ask for JSON" is best-effort, not guaranteed. The robust pattern is a pipeline:
+    isolate the JSON (strip fences/prose), parse it, validate it against a schema, and on
+    failure retry with the error fed back — returning a typed failure if the model never
+    conforms rather than a fabricated value. Validation lives in your code, at the
+    boundary, because the model is the untrusted party. Stronger still, if the provider
+    offers a constrained/JSON mode or tool calling, let it enforce the schema during
+    generation and treat your validation as a backstop.
+  deep: >-
+    The core idea is turning a shape from a wish into a checkable contract shared between
+    the prompt (so the model targets it) and the validator (so your code enforces it).
+    Two failure gates matter and are distinct: syntactic (is it valid JSON) and
+    structural (does valid JSON match the schema) — different mechanisms, handled
+    separately, both before a value reaches your program. And a hard truth: validation
+    guarantees shape, not correctness — a schema-valid but wrong value passes, which is
+    why structured output is necessary but not sufficient and why evaluation is a
+    separate concern.
+followUps:
+  - "Where should the schema live so the prompt and the validator stay in sync?"
+  - "What's the difference between invalid JSON and schema-invalid JSON, and why handle them separately?"

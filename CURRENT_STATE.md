@@ -11,6 +11,18 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 | EXP Real-model experiment platform (AI Engineering Laboratory) | ✅ complete (2026-07-14) |
 | EXP-LIVE Live validation (Claude): 005/006/007 + flagship lesson evidence update | ✅ complete (2026-07-15) |
 | TC Tool Calling concept (evidence-backed) | ✅ complete (2026-07-15) |
+| SO Structured Outputs concept (L1 build project + live measurement 008) | ✅ complete (2026-07-15) |
+
+- **Structured Outputs lesson (SO):** `/concepts/structured-outputs` (complete, full DoD)
+  — the L1 build project and the prerequisite that explains why tool calling/schemas/
+  validation work. `extractStructured` in `src/lib/structured/` (isolate → parse →
+  validate → retry → typed Result; plain TS on ModelProvider); `buildStructuredCases`
+  drives it through six failure modes for the `StructuredExtraction` pipeline island.
+  Wired as a **prerequisite of tool-calling**. Live measurement **008** (Claude, temp 0):
+  naive prompt fenced its JSON AND used the wrong key (`location` vs `city`) — schema
+  validation caught it, retry recovered; structured prompt was clean first-attempt —
+  routed into intake. Evidence section reuses 005/006 (provider-enforced structured
+  output) + 008 (free-form). 20 new tests (251 total), 23 e2e.
 
 - **Tool Calling lesson (TC):** `/concepts/tool-calling` (complete, full DoD) built on
   tokens + workflows-vs-agents. Signature **static** three-gate validation viz

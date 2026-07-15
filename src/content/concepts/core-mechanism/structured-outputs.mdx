@@ -1,0 +1,182 @@
+---
+title: "Structured outputs"
+layer: core-mechanism
+oneLiner: "Turning a model's free text into data your program can trust: constrain the shape, validate it, and retry — the mechanism tool calling is built on."
+prerequisites:
+  - tokens
+related:
+  - tool-calling
+  - workflows-vs-agents
+governance:
+  - eu-ai-act
+interviewTags: ["structured-output", "json-mode", "schema", "validation"]
+status: complete
+verdict:
+  classification: essential
+  problem: "A model emits text, but programs need data — fields with known names and types. Reading prose with string parsing is brittle; you need output you can rely on having a specific shape."
+  simplerBaseline: "Ask for JSON in the prompt and parse it. That works often and fails silently: code fences, prose wrappers, invalid JSON, wrong field names, wrong types. 'Often' is not 'dependably'."
+  mainCost: "A validation-and-retry layer, a schema to maintain, and the honesty to fail when the model won't conform — plus the realization that a valid shape still isn't a correct value."
+sources:
+  - experiment-008-structured-output-live
+  - experiment-005-006-live-claude
+updated: 2026-07-15
+---
+
+import StructuredExtraction from '../../../components/viz/StructuredExtraction.astro';
+
+A language model produces text. A program needs *data* — a `name` that is a string, an
+`age` that is a number, fields it can read by key without guessing. **Structured output**
+is the bridge: getting a model to emit a specific, machine-readable shape, and — this is
+the part that matters — *guaranteeing* it did before your code depends on it. It is the
+mechanism underneath tool calling, JSON APIs, extraction pipelines, and every place an
+LLM's output feeds another system.
+
+> **Mental model: dictation to a clerk who fills a form.** You can dictate freely, but
+> the clerk must end up with a specific form filled in — the right boxes, the right
+> kinds of values. A good clerk (the runtime) doesn't just transcribe; they check every
+> box is filled with the right sort of thing and hand the form back to be redone if it
+> isn't. The dictation is the model's job; guaranteeing the *form* is correct is not.
+> **Where the analogy breaks:** a human clerk understands the *meaning* and would notice
+> "36 apples" in the age box; schema validation only checks *shape* — a schema-valid
+> form can still hold a wrong value (a plausible-but-incorrect age), which is why
+> structured output gives you dependability of *form*, never a guarantee of *truth*.
+
+## What problem existed before this?
+
+Early LLM applications parsed prose: run a regex over "The answer is 42" to pull out 42.
+That breaks the moment the model phrases it differently, adds a caveat, or formats a
+number with a comma. Any system that feeds model output into code — a database write, an
+API call, a UI — needs the output to have a *known shape*, and free text does not.
+
+## Why was this invented?
+
+The fix is to constrain and check the output instead of hoping. Two levels emerged:
+ask the model for JSON and *validate* it against a schema in your code (retrying when it
+doesn't conform), and — stronger — have the *provider* constrain generation so the output
+must match a schema (JSON mode, response formats, and tool-call arguments). Both make the
+shape a checkable contract rather than a wish.
+
+## How does it work?
+
+The extractor pipeline, running for real. Pick a case and scrub the stages:
+
+<StructuredExtraction />
+
+Each case drives the actual `extractStructured`
+([`src/lib/structured/`](https://github.com/ZeroCool989/agent-atlas/tree/main/src/lib/structured))
+— the model outputs are scripted demonstrations of each failure mode, but the mechanism
+handling them is real. The pipeline is four ideas: **isolate** the JSON (strip code
+fences and surrounding prose — a naive `JSON.parse` fails on both), **parse** it,
+**validate** it against a schema, and on failure **retry** with the error fed back so the
+model can correct itself. When it can't conform within the budget, it returns a *typed
+failure* — never a fabricated value.
+
+Notice the two distinct failure gates — the same distinction tool calling makes: *invalid
+JSON* fails at parse; *valid JSON with the wrong shape* fails at validation. Both are
+caught before your program sees a value.
+
+## Is it actually necessary?
+
+Whenever model output crosses into code, yes — validation is the only thing standing
+between "the model usually complies" and "my database has a row with a missing field."
+For output a human simply reads, no: plain text is fine. The dividing line is whether a
+*program* consumes the result.
+
+## What are the trade-offs?
+
+You gain a dependable shape and pay for a validation layer, a schema to keep in sync with
+your code, and retries that cost tokens and latency. And a subtle trap: structured output
+guarantees *shape*, not *correctness*. A schema-valid `age: 200` passes validation and is
+still wrong — validation is necessary, not sufficient (this is the same lesson as
+[tool calling's](/concepts/tool-calling) semantic layer, and why evaluation is its own
+concept).
+
+## What complexity does it introduce?
+
+A pipeline with real responsibilities and a clean failure contract: isolate → parse →
+validate → retry → typed value *or* typed failure. The schema becomes a maintained
+artifact shared between the prompt (so the model knows the target) and the validator (so
+your code enforces it). And you must decide the retry policy: how many attempts, what
+feedback to send, and when to give up honestly.
+
+## What simpler alternative exists?
+
+If the provider offers **constrained/JSON mode or tool calling**, prefer it: letting the
+provider enforce the schema during generation removes whole failure classes (fences,
+stray prose) at the source, so your validation becomes a backstop rather than the front
+line. Tool calling *is* structured output with a provider-enforced schema — which is
+exactly why a tool call's arguments arrive as clean, schema-shaped JSON. When no such
+mode exists, prompt-plus-validate-plus-retry is the portable fallback.
+
+## When should I use it?
+
+Any time output feeds a program: extraction, classification into fixed labels, function
+arguments, API payloads, anything downstream code reads by key. Always with validation —
+never trust the shape you asked for without checking it.
+
+## When should I avoid it?
+
+For free-form generation a human reads (an answer, a summary, an email draft), a schema
+adds friction for no benefit. And don't over-constrain: forcing rich reasoning into a
+rigid schema can degrade the content. Structured output is for the boundary where text
+becomes data, not for everything.
+
+## Common misconceptions
+
+- **"Asking for JSON is enough."** Measured false below: a real model fenced its JSON
+  *and* invented a field name on a naive prompt. Asking is not guaranteeing.
+- **"Valid JSON means correct data."** No — parsing and schema validation check
+  *shape*. A well-formed object can hold wrong values.
+- **"Structured output and tool calling are different features."** They're the same
+  mechanism: a tool call's arguments are a structured output the provider constrained.
+- **"Validation belongs in the prompt."** The model is the untrusted party; the check
+  belongs in your code, at the boundary — the same rule as tool-call validation.
+
+## Evidence from real experiments
+
+Distinguishing *theory*, *scripted demonstration*, and *measured observation* is a house
+rule here.
+
+- **Measured — Experiment 008** (Claude, temperature 0): asked to extract a person with
+  a *minimal* prompt, the model wrapped its JSON in a ```json code fence **and** used the
+  wrong key (`location` instead of `city`) — both runs. The pipeline isolated the fenced
+  JSON, schema validation caught the wrong shape, and the retry returned a conforming
+  object. With a *structured* prompt (schema shown, "JSON only"), it produced clean,
+  correctly-keyed JSON on the first attempt. *Limitation:* one model, one task, two
+  prompt styles, two repeats — evidence of specific failure modes and their fixes, not a
+  benchmark. The key point: **schema validation is what caught the wrong field** —
+  prompting alone would have shipped `location`.
+- **Measured — Experiments 005/006** (Claude): tool-call arguments are structured outputs
+  the *provider* constrained — the model produced schema-valid arguments directly (005),
+  and even a schema-valid-but-unexecutable one (006) was still well-*shaped*. This is the
+  provider-enforced path working. *Limitation:* one model, small samples.
+- **Scripted demonstrations** — the six pipeline cases in the visualization (clean,
+  fenced, prose-wrapped, invalid-JSON-then-retry, schema-mismatch-then-retry,
+  unrecoverable) are the real mechanism handling scripted model outputs, labelled
+  scripted; they show every gate deterministically.
+
+Nothing here generalizes to "all models"; each measured statement carries its scope.
+
+## Security and governance
+
+- **Validation is a trust boundary.** Model output entering your systems is untrusted
+  input; schema validation at the boundary is the same control tool calling applies to
+  tool arguments — it belongs in your code, never delegated to the prompt.
+- **Fail closed.** On non-conformance the pipeline returns a typed failure, not a
+  fabricated value — a system that invents a plausible record under the hood is a data
+  integrity and accountability hazard.
+- **Provider-enforced modes reduce attack surface** by removing whole malformed-output
+  classes, but do not remove the need to validate semantics and handle failure.
+- **Regulatory frame, carefully:** none of the EU AI Act, GDPR, DORA, ISO 42001, or NIST
+  AI RMF applies *merely because* a system produces structured output. Where they do
+  apply, validated schemas, honest failure handling, and the record of what was accepted
+  or rejected are the concrete evidence behind accuracy and data-quality expectations —
+  applicability always depends on the system, data, use case, and jurisdiction.
+
+## Build it, then own it
+
+The extractor is the L1 build project and about a hundred readable lines:
+[`extract.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/structured/extract.ts)
+(isolate → parse → validate → retry, with a typed result). Read it, then find the same
+two gates — parse and validate — in the tool-calling runtime. Then try the interview
+questions below.
