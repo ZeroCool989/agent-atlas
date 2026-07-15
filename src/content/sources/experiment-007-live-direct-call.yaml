@@ -1,0 +1,48 @@
+type: note
+title: "Live experiment 007 — direct model call arithmetic (Claude), 2026-07-15"
+url: "https://github.com/ZeroCool989/agent-atlas/blob/main/experiments/results/007-live-direct-call/report.md"
+ingestedAt: 2026-07-15
+routedTo:
+  - workflows-vs-agents
+decisions: >-
+  Live direct-call experiment (no tools) run to REPLACE the flagship lesson's last
+  scripted assumption — that a direct model call answers arithmetic wrong. Provider
+  Anthropic, model claude-sonnet-4-5-20250929, temperature 0, 3 problems × 2 repeats.
+  Ground truth computed with the repo calculator. Only observable evidence recorded.
+
+  STATUS: evidence collected; proposed educational updates below are NOT yet applied
+  (awaiting review, per the no-silent-content-change rule).
+
+  FINDINGS (observable, reproducible at temp 0).
+  - 127 × 49: model answered 6223 both runs = CORRECT. The scripted scenario's claim
+    (127×49 → 6213, wrong) is UNREALISTIC for this model. A modern model gets small
+    products right.
+  - 4831 × 7692: model answered 37159452 both runs = WRONG (truth 37160052; off by 600).
+  - 73948 × 61257: model answered 45294221436 both runs = WRONG (truth 4529832636;
+    wrong by ~10x and even the digit count is off).
+  - Failure is confident, fluent, CONSISTENT (identical wrong answer across repeats at
+    temp 0), and unverifiable from inside the architecture. Cost ~$0.0002/call.
+
+  INTERPRETATION FOR TEACHING: the honest claim is not "direct calls are always wrong"
+  but "weights-only arithmetic is correct until it isn't, degrades with scale, and
+  fails confidently and unverifiably — the direct-call architecture has nothing that
+  could catch the error." This is a STRONGER lesson than the scripted one.
+
+  PROPOSED EDUCATIONAL UPDATES (for review — apply on approval):
+  1. src/lib/model/scenarios/direct-call-arithmetic.scenario.json: change the scripted
+     problem from 127×49→6213 to a product a real model actually fails
+     (4831×7692→37159452, live-verified wrong), so the scripted demo matches reality;
+     update its teaching note and the scenario description accordingly.
+  2. workflows-vs-agents.mdx: in the direct-call section and the "confidently wrong"
+     label in ArchitectureComparisonIsland, replace "confidently wrong (127 × 49 =
+     6,223)" framing with the evidence-backed nuance: small products are usually right,
+     but arithmetic degrades with scale and fails without any internal signal; cite 007.
+  3. Interview insight: "A direct call got 127×49 right but 4831×7692 wrong, both with
+     total confidence — what does that tell you about relying on model arithmetic?"
+     (Answer: correctness is unverifiable from inside; you need a tool + verification.)
+  4. Governance note: unverifiable confident error is the risk the tool-using
+     architecture and its audit trace exist to mitigate.
+
+  LIMITATIONS: one provider/model, temp 0 only, 3 problems × 2 repeats, one day.
+  UNRESOLVED: do GPT/Gemini show the same degradation curve? where exactly is the
+  correctness threshold? does temperature change the failure?

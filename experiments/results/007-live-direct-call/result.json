@@ -1,0 +1,413 @@
+{
+  "frameworkVersion": 1,
+  "experiment": {
+    "id": "007-live-direct-call",
+    "version": 1,
+    "goal": "Measure whether a direct model call (no tools) answers arithmetic correctly, and how that degrades as the numbers grow — the evidence needed to reframe the flagship lesson honestly.",
+    "question": "With no calculator available, does the model compute 127×49, a 4-digit product, and a 5-digit product correctly and consistently — or does weights-only arithmetic break down?",
+    "expectedObservation": "A capable model likely gets the small product right and becomes less reliable as digit count grows. The key teaching point is not \"always wrong\" but \"unverifiable and not guaranteed\": the direct-call architecture has nothing that could catch an error.",
+    "notes": "Direct call = agent runtime with tools: []. Ground truth is computed separately with the repo calculator; this definition records only the model output. Costs estimated from list pricing.",
+    "maxSteps": 2,
+    "repeats": 2
+  },
+  "generatedAt": "2026-07-15T07:14:39.806Z",
+  "runs": [
+    {
+      "rowLabel": "claude",
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "variant": "small-127x49",
+      "repeat": 1,
+      "outcome": "completed",
+      "success": true,
+      "successChecks": [
+        "PASS: outcome is \"completed\" (got \"completed\")",
+        "PASS: no tools were executed"
+      ],
+      "finalText": "6223",
+      "modelCalls": 1,
+      "stopReasons": [
+        "completed"
+      ],
+      "toolSelectionOrder": [],
+      "toolCallCount": 0,
+      "validationFailures": 0,
+      "malformedToolCalls": 0,
+      "warnings": [],
+      "latencyMsTotal": 1472,
+      "inputTokens": 26,
+      "outputTokens": 6,
+      "totalTokens": 32,
+      "estimatedCost": {
+        "amount": 0.000168,
+        "currency": "USD",
+        "basis": "estimated"
+      },
+      "trace": [
+        {
+          "step": 0,
+          "type": "run-started",
+          "decidedBy": "runtime",
+          "detail": "Goal received. The runtime holds the state; the model will decide the actions (limit: 2 model calls)."
+        },
+        {
+          "step": 1,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 1: the model sees 1 message(s) and 0 available tool(s)."
+        },
+        {
+          "step": 1,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "completed",
+          "usage": {
+            "latencyMs": 1472,
+            "inputTokens": 26,
+            "outputTokens": 6,
+            "totalTokens": 32
+          },
+          "detail": "The model answered in plain text, stop reason \"completed\"."
+        },
+        {
+          "step": 1,
+          "type": "run-completed",
+          "decidedBy": "runtime",
+          "outcome": "completed",
+          "detail": "No tool call → the loop ends. \"Completed\" means the loop ended with an answer — not that the answer is correct. Verifying THAT is evaluation, a separate concept."
+        }
+      ]
+    },
+    {
+      "rowLabel": "claude",
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "variant": "small-127x49",
+      "repeat": 2,
+      "outcome": "completed",
+      "success": true,
+      "successChecks": [
+        "PASS: outcome is \"completed\" (got \"completed\")",
+        "PASS: no tools were executed"
+      ],
+      "finalText": "6223",
+      "modelCalls": 1,
+      "stopReasons": [
+        "completed"
+      ],
+      "toolSelectionOrder": [],
+      "toolCallCount": 0,
+      "validationFailures": 0,
+      "malformedToolCalls": 0,
+      "warnings": [],
+      "latencyMsTotal": 1311,
+      "inputTokens": 26,
+      "outputTokens": 6,
+      "totalTokens": 32,
+      "estimatedCost": {
+        "amount": 0.000168,
+        "currency": "USD",
+        "basis": "estimated"
+      },
+      "trace": [
+        {
+          "step": 0,
+          "type": "run-started",
+          "decidedBy": "runtime",
+          "detail": "Goal received. The runtime holds the state; the model will decide the actions (limit: 2 model calls)."
+        },
+        {
+          "step": 1,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 1: the model sees 1 message(s) and 0 available tool(s)."
+        },
+        {
+          "step": 1,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "completed",
+          "usage": {
+            "latencyMs": 1311,
+            "inputTokens": 26,
+            "outputTokens": 6,
+            "totalTokens": 32
+          },
+          "detail": "The model answered in plain text, stop reason \"completed\"."
+        },
+        {
+          "step": 1,
+          "type": "run-completed",
+          "decidedBy": "runtime",
+          "outcome": "completed",
+          "detail": "No tool call → the loop ends. \"Completed\" means the loop ended with an answer — not that the answer is correct. Verifying THAT is evaluation, a separate concept."
+        }
+      ]
+    },
+    {
+      "rowLabel": "claude",
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "variant": "medium-4831x7692",
+      "repeat": 1,
+      "outcome": "completed",
+      "success": true,
+      "successChecks": [
+        "PASS: outcome is \"completed\" (got \"completed\")",
+        "PASS: no tools were executed"
+      ],
+      "finalText": "37159452",
+      "modelCalls": 1,
+      "stopReasons": [
+        "completed"
+      ],
+      "toolSelectionOrder": [],
+      "toolCallCount": 0,
+      "validationFailures": 0,
+      "malformedToolCalls": 0,
+      "warnings": [],
+      "latencyMsTotal": 1127,
+      "inputTokens": 28,
+      "outputTokens": 7,
+      "totalTokens": 35,
+      "estimatedCost": {
+        "amount": 0.000189,
+        "currency": "USD",
+        "basis": "estimated"
+      },
+      "trace": [
+        {
+          "step": 0,
+          "type": "run-started",
+          "decidedBy": "runtime",
+          "detail": "Goal received. The runtime holds the state; the model will decide the actions (limit: 2 model calls)."
+        },
+        {
+          "step": 1,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 1: the model sees 1 message(s) and 0 available tool(s)."
+        },
+        {
+          "step": 1,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "completed",
+          "usage": {
+            "latencyMs": 1127,
+            "inputTokens": 28,
+            "outputTokens": 7,
+            "totalTokens": 35
+          },
+          "detail": "The model answered in plain text, stop reason \"completed\"."
+        },
+        {
+          "step": 1,
+          "type": "run-completed",
+          "decidedBy": "runtime",
+          "outcome": "completed",
+          "detail": "No tool call → the loop ends. \"Completed\" means the loop ended with an answer — not that the answer is correct. Verifying THAT is evaluation, a separate concept."
+        }
+      ]
+    },
+    {
+      "rowLabel": "claude",
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "variant": "medium-4831x7692",
+      "repeat": 2,
+      "outcome": "completed",
+      "success": true,
+      "successChecks": [
+        "PASS: outcome is \"completed\" (got \"completed\")",
+        "PASS: no tools were executed"
+      ],
+      "finalText": "37159452",
+      "modelCalls": 1,
+      "stopReasons": [
+        "completed"
+      ],
+      "toolSelectionOrder": [],
+      "toolCallCount": 0,
+      "validationFailures": 0,
+      "malformedToolCalls": 0,
+      "warnings": [],
+      "latencyMsTotal": 1004,
+      "inputTokens": 28,
+      "outputTokens": 7,
+      "totalTokens": 35,
+      "estimatedCost": {
+        "amount": 0.000189,
+        "currency": "USD",
+        "basis": "estimated"
+      },
+      "trace": [
+        {
+          "step": 0,
+          "type": "run-started",
+          "decidedBy": "runtime",
+          "detail": "Goal received. The runtime holds the state; the model will decide the actions (limit: 2 model calls)."
+        },
+        {
+          "step": 1,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 1: the model sees 1 message(s) and 0 available tool(s)."
+        },
+        {
+          "step": 1,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "completed",
+          "usage": {
+            "latencyMs": 1004,
+            "inputTokens": 28,
+            "outputTokens": 7,
+            "totalTokens": 35
+          },
+          "detail": "The model answered in plain text, stop reason \"completed\"."
+        },
+        {
+          "step": 1,
+          "type": "run-completed",
+          "decidedBy": "runtime",
+          "outcome": "completed",
+          "detail": "No tool call → the loop ends. \"Completed\" means the loop ended with an answer — not that the answer is correct. Verifying THAT is evaluation, a separate concept."
+        }
+      ]
+    },
+    {
+      "rowLabel": "claude",
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "variant": "large-73948x61257",
+      "repeat": 1,
+      "outcome": "completed",
+      "success": true,
+      "successChecks": [
+        "PASS: outcome is \"completed\" (got \"completed\")",
+        "PASS: no tools were executed"
+      ],
+      "finalText": "45294221436",
+      "modelCalls": 1,
+      "stopReasons": [
+        "completed"
+      ],
+      "toolSelectionOrder": [],
+      "toolCallCount": 0,
+      "validationFailures": 0,
+      "malformedToolCalls": 0,
+      "warnings": [],
+      "latencyMsTotal": 2192,
+      "inputTokens": 28,
+      "outputTokens": 8,
+      "totalTokens": 36,
+      "estimatedCost": {
+        "amount": 0.000204,
+        "currency": "USD",
+        "basis": "estimated"
+      },
+      "trace": [
+        {
+          "step": 0,
+          "type": "run-started",
+          "decidedBy": "runtime",
+          "detail": "Goal received. The runtime holds the state; the model will decide the actions (limit: 2 model calls)."
+        },
+        {
+          "step": 1,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 1: the model sees 1 message(s) and 0 available tool(s)."
+        },
+        {
+          "step": 1,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "completed",
+          "usage": {
+            "latencyMs": 2192,
+            "inputTokens": 28,
+            "outputTokens": 8,
+            "totalTokens": 36
+          },
+          "detail": "The model answered in plain text, stop reason \"completed\"."
+        },
+        {
+          "step": 1,
+          "type": "run-completed",
+          "decidedBy": "runtime",
+          "outcome": "completed",
+          "detail": "No tool call → the loop ends. \"Completed\" means the loop ended with an answer — not that the answer is correct. Verifying THAT is evaluation, a separate concept."
+        }
+      ]
+    },
+    {
+      "rowLabel": "claude",
+      "provider": "claude",
+      "model": "claude-sonnet-4-5-20250929",
+      "variant": "large-73948x61257",
+      "repeat": 2,
+      "outcome": "completed",
+      "success": true,
+      "successChecks": [
+        "PASS: outcome is \"completed\" (got \"completed\")",
+        "PASS: no tools were executed"
+      ],
+      "finalText": "45294221436",
+      "modelCalls": 1,
+      "stopReasons": [
+        "completed"
+      ],
+      "toolSelectionOrder": [],
+      "toolCallCount": 0,
+      "validationFailures": 0,
+      "malformedToolCalls": 0,
+      "warnings": [],
+      "latencyMsTotal": 1549,
+      "inputTokens": 28,
+      "outputTokens": 8,
+      "totalTokens": 36,
+      "estimatedCost": {
+        "amount": 0.000204,
+        "currency": "USD",
+        "basis": "estimated"
+      },
+      "trace": [
+        {
+          "step": 0,
+          "type": "run-started",
+          "decidedBy": "runtime",
+          "detail": "Goal received. The runtime holds the state; the model will decide the actions (limit: 2 model calls)."
+        },
+        {
+          "step": 1,
+          "type": "model-requested",
+          "decidedBy": "runtime",
+          "detail": "Model call 1: the model sees 1 message(s) and 0 available tool(s)."
+        },
+        {
+          "step": 1,
+          "type": "model-responded",
+          "decidedBy": "model",
+          "stopReason": "completed",
+          "usage": {
+            "latencyMs": 1549,
+            "inputTokens": 28,
+            "outputTokens": 8,
+            "totalTokens": 36
+          },
+          "detail": "The model answered in plain text, stop reason \"completed\"."
+        },
+        {
+          "step": 1,
+          "type": "run-completed",
+          "decidedBy": "runtime",
+          "outcome": "completed",
+          "detail": "No tool call → the loop ends. \"Completed\" means the loop ended with an answer — not that the answer is correct. Verifying THAT is evaluation, a separate concept."
+        }
+      ]
+    }
+  ],
+  "skipped": []
+}
