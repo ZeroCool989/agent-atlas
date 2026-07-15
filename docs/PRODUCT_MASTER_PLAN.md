@@ -70,7 +70,18 @@ and interview material are one graph you navigate spatially, not a list of docs.
 
 ## 3. Design Principles
 
-Ten principles, in priority order. These are the tie-breakers for every future decision.
+**Principle 0 — The Simplicity Mandate (overriding).** Every UX decision must *reduce*
+cognitive load. Do not add a feature because it is possible. Prefer **one obvious,
+elegant interaction over three configurable ones.** When simplicity and feature count
+conflict, choose simplicity — *unless there is clear evidence the added complexity
+materially improves learning* (spaced repetition's grading is the rare carve-out; §12).
+This principle overrides the ten below when they tension; the design test for any surface
+is not "what could it do" but "what is the single thing the learner needs it to do, done
+beautifully." A feature that must be explained has already failed it. §3A lists the
+concrete cuts this mandate makes to the rest of this plan.
+
+Ten principles, in priority order under the mandate. These are the tie-breakers for every
+future decision.
 
 1. **Evidence over assertion.** If we can measure it or link to the code that does it, we
    show that. The "measured / scripted / theory" distinction is a visible, first-class UI
@@ -100,6 +111,55 @@ Ten principles, in priority order. These are the tie-breakers for every future d
     product never pretends to be more complete than it is.
 
 ---
+
+## 3A. Simplicity Decisions (applying the mandate)
+
+Applying Principle 0 to my own plan. Each is a deliberate cut of proposed complexity down
+to one obvious interaction; the fuller versions in later sections are amended to match.
+
+- **Atlas graph: one control, not four filters.** The taxonomy is *already* the layout
+  (center→rim) and status is *already* the fill — encoding them again as filters is
+  redundant. The graph gets a **single toggle: "Show my path"** (highlight your frontier)
+  vs. the whole map. Nothing else. (Amends §9.)
+- **Concept page: one orientation device, not three.** Learning objectives + key
+  takeaways + a sticky rail is three things doing one job. Decision: **a single sticky
+  "on this page" rail** (scroll-spy + read progress) is the orientation device;
+  **learning objectives** open the lesson (the one "what will I learn" block); **key
+  takeaways** become the *closing recap*, not a second top-of-page block. One device for
+  orientation, one promise at the top, one recap at the end. (Amends §10.)
+- **One page action, not three.** The concept footer offers a single primary action —
+  **"Mark complete"** — which also enrolls the concept in review automatically. No
+  separate "add to review" / "bookmark from footer" buttons. Saving lives in one place
+  (§14). (Amends §10.)
+- **Progress capture: two mechanisms, not four.** Drop **highlights** (high interaction
+  cost, marginal learning value) and the **user-curated "personal glossary"** (the
+  glossary collection already exists — auto-surface saved terms instead of asking the
+  learner to build one). Keep exactly two: **bookmark a concept** and **a note per
+  concept.** (Amends §14.)
+- **Drill: two buttons, not four.** Self-grade is **"Again / Got it,"** not
+  again/hard/good/easy. This is the one place the mandate's evidence carve-out applies —
+  SM-2's finer grades have real retention support — so the scheduler keeps a 4-grade
+  *capability internally*, but the **default UI is two buttons**; a 4-grade option is
+  considered only if usage evidence shows learners want it. Simplicity first, complexity
+  on evidence. (Amends §12.)
+- **Lab: one primary filter, not four facets.** Learners arrive asking "evidence for
+  *this concept*," so the Lab's one filter is **by concept**; provider/outcome/measured
+  facets appear only once multi-provider data exists to make them meaningful. Don't build
+  four facets for five experiments. (Amends §11.)
+- **Home: fewer sections.** The Atlas *is* the featured map and the nav *is* the mode
+  switcher, so the separate "featured concepts" and "three modes" blocks are cut. Home =
+  hero thesis · the Atlas (with your progress + one "Continue" CTA) · three proofs ·
+  latest evidence · footer. (Amends §7.)
+- **Search: one interaction, two entry points.** ⌘K *is* search. The `/search` page is
+  the identical capability given a URL for no-JS/mobile/deep-link — not a second, richer
+  search UI. Build once. (Confirms §15.)
+- **Settings: essentially none.** The only "setting" is the theme toggle (and it can
+  follow the OS by default). No preference panel — every default should be the right one.
+  `/you` holds progress + export/import, not configuration. (Amends §14.)
+
+The through-line: the *visual encoding does the work a control would otherwise do*, the
+learner is given one obvious path rather than options to configure, and anything that must
+be explained is cut or redesigned until it doesn't.
 
 ## 4. User Personas
 
@@ -221,29 +281,27 @@ become the product's thesis in one screen and the Atlas in the next. It answers,
 fold, the seven discovery questions the brief demands: *what, who, why different, where to
 begin, what you'll learn, how long, and (for returning users) your progress.*
 
-**Structure (top to bottom):**
+**Structure (top to bottom) — five sections, not seven (Principle 0 / §3A):**
 
 1. **Hero — the thesis.** One line ("Understand, build, evaluate, and govern AI systems —
-   from first principles, backed by evidence"), one sub-line naming the three modes, and
-   two calls to action: **"Start the journey"** (→ `/learn`, for P1) and **"Explore the
-   Atlas"** (→ scroll to the map, for P2). A returning learner instead sees **"Continue:
-   [next concept]"** as the primary CTA, driven by local progress.
+   from first principles, backed by evidence"), one sub-line, and — for a new visitor —
+   two calls to action: **"Start the journey"** (→ `/learn`) and **"Explore the Atlas"**
+   (→ the map below). A returning learner instead sees a single **"Continue: [next
+   concept]"** primary CTA, driven by local progress.
 2. **The living Atlas.** The interactive knowledge graph (§9) — the signature surface —
    rendered large, showing the whole territory center-to-rim, the learner's progress
-   overlaid, click-through to any concept. This is the "wow" and the differentiator; it
-   is the reason someone screenshots Atlas.
+   overlaid, click-through to any concept. It *is* the featured content and the "start
+   here," so no separate featured-concepts block is needed. This is the "wow," the
+   differentiator, and the reason someone screenshots Atlas.
 3. **Why it's different (three proofs, not claims).** Three cards: *Evidence-backed* (a
    real measured result from the Lab), *Build, don't just read* (a real build project),
    *Interview-ready* (a real tiered answer). Each links to the live thing — the homepage
    proves its claims by showing them.
-4. **Featured / continue.** For new users: 3–4 hand-picked "start here" concepts. For
-   returning users: continue where you left off + suggested next + a knowledge-gap nudge.
-5. **The three modes.** Compact entry points to Academy (Learn), Research Lab, and
-   Interview Prep with a one-line description each.
-6. **Latest evidence.** The most recent experiments (research-notebook heartbeat) — signals
+4. **Latest evidence.** The most recent experiments (research-notebook heartbeat) — signals
    the project is alive and measuring.
-7. **Footer CTA + honesty statement.** "How Atlas is made: every claim is code or
-   measurement" + GitHub + roadmap.
+5. **Footer CTA + honesty statement.** "How Atlas is made: every claim is code or
+   measurement" + GitHub + roadmap. (The nav already exposes the three modes, so no
+   separate modes block on the home page.)
 
 **Performance constraint:** the hero, the three proofs, and copy are static (zero JS). The
 Atlas graph is the one hydrated island on the page, `client:visible`. The home page must
@@ -307,10 +365,11 @@ frontier highlighted). Every node is clickable → its concept. Stubs appear as 
 - **Zoom & pan** from the whole field down to a neighborhood.
 - **Hover/focus a node:** title, one-liner, status, estimated time, prerequisites, "you
   are here" relative to your progress, and quick links (lesson · build · evidence).
-- **Filter:** by layer, by status, by "has evidence," by "on my path."
-- **Progress overlay:** completed / in-progress / not-started / needs-review, using shape
-  and fill, never color alone.
-- **"Show my next step":** highlights the recommended frontier.
+- **One control — "Show my path":** a single toggle that highlights your recommended
+  frontier vs. showing the whole map. That is the *only* control (Principle 0 / §3A):
+  layer is already encoded by center→rim position and status by node fill, so filtering
+  them again would be redundant chrome. The progress overlay (completed / in-progress /
+  not-started / needs-review) is always on, using shape and fill, never color alone.
 
 **Technical stance (respects ADR-0004).** Use the existing D3-as-math approach for layout
 (force/radial), React for rendering the SVG, and the scene/renderer split so the graph is
@@ -334,19 +393,19 @@ separated relationships, governance, interview disclosure, sources, evidence. Bu
 **long, dense, and top-loaded with metadata**, with no in-page orientation. Improvements,
 in priority order:
 
-**Structure & orientation:**
+**Structure & orientation (one orientation device — Principle 0 / §3A):**
 
 - **Lesson header:** title, one-liner, essentiality badge, status, **estimated time**,
-  **difficulty band**, and 2–3 **learning objectives** ("after this you can…"). This is
-  the "what will I learn / how long" answer, currently missing.
-- **Sticky mini-contents / progress rail:** a sticky side rail (desktop) / collapsible
-  (mobile) showing the nine sections + evidence + interview, with scroll-spy and a read
-  progress bar. Dense pages need spatial orientation.
-- **Key takeaways** block near the top (3 bullets) for P2 who wants the gist before the
-  depth — progressive disclosure in action.
+  **difficulty band**, and 2–3 **learning objectives** ("after this you can…") — the one
+  "what will I learn / how long" block at the top.
+- **A single sticky "on this page" rail** (desktop) / collapsible sheet (mobile): the
+  nine sections + evidence + interview, with scroll-spy and a read-progress bar. This is
+  *the* orientation device — not a second thing alongside a separate takeaways block.
+- **Key takeaways** appear as the **closing recap** (3 bullets at the end), not a second
+  top-of-page block — the top makes the promise, the end confirms it.
 - **Visualization placement:** keep visualizations inline at the point of "how does it
-  work," which is already correct. Consider a "focus mode" that expands a playground to
-  full width.
+  work," which is already correct. A "focus mode" that expands a playground to full width
+  is a *maybe* — added only if learners struggle with the inline size, not by default.
 - **Mental model** callout styled as a signature element (it's a differentiator), with the
   "where the analogy breaks" line always visible.
 
@@ -364,7 +423,9 @@ in priority order:
 - **Repository links** — consistent "see the code" affordances (already in the
   build-it-then-own-it sections).
 
-**Footer of every concept:** "Next in your path" + "mark complete" + "add to review."
+**Footer of every concept:** one primary action — **"Mark complete"** (which auto-enrolls
+the concept in review) — plus a quiet "Next in your path" link. No separate
+add-to-review/bookmark buttons (Principle 0 / §3A); saving lives in one place (§14).
 
 **Do not reorder the nine canonical sections** — the problem-first order is pedagogically
 load-bearing and CI-enforced. This is about *chrome and orientation around* the sections,
@@ -380,9 +441,11 @@ competitor has.
 
 **Surfaces:**
 
-- **Lab home:** the experiments as a filterable gallery (by concept, by provider, by
-  outcome, measured vs scripted), each card showing the question, the headline
-  observation, and provenance. A "latest evidence" strip feeds the home page.
+- **Lab home:** the experiments as a gallery with **one primary filter — by concept**
+  (how learners arrive: "evidence for X"), each card showing the question, the headline
+  observation, and provenance. Provider/outcome/measured facets are added only once
+  multi-provider data makes them meaningful (Principle 0 / §3A — don't build four facets
+  for five experiments). A "latest evidence" strip feeds the home page.
 - **Experiment page:** keep the trace viewer; add a structured **summary header**
   (question · method · result · limitations · provenance) and the machine-readable
   metrics as compact stat tiles (latency, tokens, cost, outcome distribution).
@@ -415,8 +478,10 @@ prematurely risks diluting the core. I recommend a phased platform.
 
 - **Role tracks:** filtered views of the bank by role (engineer / architect / consultant
   / governance / product) — the schema already carries `roles`.
-- **Drill mode:** one question at a time, attempt-before-reveal, self-grade
-  (again/hard/good/easy), history in local storage.
+- **Drill mode:** one question at a time, attempt-before-reveal, self-grade with **two
+  buttons — "Again / Got it"** (Principle 0 / §3A). The scheduler retains a finer-grade
+  capability internally, but the default UI is two buttons; the 4-grade option is the
+  mandate's evidence carve-out and is added only if usage shows learners want it.
 - **Tiered answers:** 30-second / two-minute / deep, revealed progressively — already the
   content model.
 - **Whiteboard prompts:** the deep/system-design questions (already tagged `deep`)
@@ -467,14 +532,18 @@ export/import) per ADR-0003. This constrains what's possible and that's a featur
 no accounts). The brief lists profile, streaks, review reminders, cross-device — some of
 which need a backend. Here's the honest reconciliation:
 
-**Buildable now (local-first, no backend):**
+**Buildable now (local-first, no backend) — kept deliberately small (Principle 0 / §3A):**
 
 - Lesson completion, per-concept state, mastery signals.
-- Bookmarks, highlights, notes (per concept), a personal glossary of saved terms.
+- **Two capture mechanisms only: bookmark a concept, and one note per concept.**
+  Highlights are cut (high interaction cost, marginal value); the "personal glossary" is
+  cut in favor of auto-surfacing saved terms from the existing glossary collection.
 - Drill history + spaced-repetition schedule.
 - Suggested next / knowledge gaps / review-due (all deterministic over local state).
 - A quiet, opt-in activity streak.
 - **Export / import** the whole progress file (backup + manual device transfer).
+- **No settings panel:** the only preference is the theme toggle (OS-following by
+  default). Every default should be the right one.
 
 **Needs a backend → a new ADR before building (ADR-0003 revisit trigger):**
 
@@ -792,6 +861,10 @@ feature checklist.
 
 Not code — the first *decisions* to lock before Phase 1A:
 
+0. **Ratify the Simplicity Mandate as the overriding design law** (§3 Principle 0, §3A) —
+   one obvious interaction over three configurable ones; cut features that must be
+   explained; simplicity beats feature count absent clear learning evidence. This is now
+   the tie-breaker for every surface below.
 1. **Approve the priority reorder** (shell before dashboard/curriculum) — §17.
 2. **Approve the brand stance** (Stripe/Linear restraint; mastery signals over
    gamification) — §3, §8.
