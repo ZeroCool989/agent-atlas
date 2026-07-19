@@ -1,0 +1,13 @@
+---
+/**
+ * Composition root for the RAG-pipeline viz: builds the scenes through the real
+ * `src/lib/rag` pipeline at build time and hands them to the island. Real ranking and
+ * budgeting math over an illustrative knowledge base — labelled as such in the lesson.
+ */
+import { buildRagScenes } from '../../lib/viz/rag-scene';
+import RagPipelineIsland from './RagPipelineIsland';
+
+const scenes = buildRagScenes();
+---
+
+<RagPipelineIsland client:visible scenes={scenes} />

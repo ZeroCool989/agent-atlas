@@ -39,3 +39,5 @@ export type {
   TokenState,
   TokenView,
 } from './types';
+export { buildRagScenes } from './rag-scene';
+export type { RagScene } from './rag-scene';

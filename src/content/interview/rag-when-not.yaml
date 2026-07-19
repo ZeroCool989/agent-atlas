@@ -1,0 +1,40 @@
+question: "A team's first instinct for every 'the model should know our docs' feature is to build RAG. When is RAG the wrong tool, and what would you reach for instead?"
+concepts:
+  - rag
+roles:
+  - engineer
+  - architect
+difficulty: standard
+criticalThinking: true
+practicalExample: "src/lib/rag/pipeline.ts — the whole pipeline is embeddings + vector search + prompt assembly wired together; if the documents fit in the window, none of it is needed and long-context stuffing is the simpler tool."
+answers:
+  beginner: >-
+    RAG is a whole search system to build and maintain, so it's the wrong tool when something
+    simpler works. If the documents fit in the context window, just put them in the prompt —
+    no index, no retriever, no chunking, and no retrieval errors. If the model already knows the
+    answer, or a clearer prompt would do, you don't need retrieval at all. I'd reach for RAG only
+    when the knowledge is too big for the window, changes often, is private, or must be cited.
+  professional: >-
+    The trap is treating RAG as the default for "answer from our content." Cheaper options come
+    first: (1) the model may already know it; (2) long-context — if the relevant docs fit in the
+    window, paste them in, which removes the entire class of retrieval errors; (3) a better prompt
+    over pasted content; (4) fine-tuning, but only for behaviour and format, never as a way to
+    inject facts. RAG earns its complexity when the corpus is too large for the window, changes
+    too fast to bake in, or must be sourced. The reason to resist it is that RAG adds a search
+    system — chunker, embedder, index, retriever, evals — and retrieval quality becomes the
+    ceiling on answers; you've taken on "search is hard" to solve a problem a prompt might have
+    handled.
+  deep: >-
+    I'd frame it as a ladder and force the team to justify each rung: does the model already
+    know it → does it fit in long context → does a prompt over pasted text work → do we actually
+    need retrieval. The decision hinges on corpus size vs window, update frequency, and whether
+    provenance is required. Two honest nuances: long context isn't free either (cost and the
+    "lost in the middle" attention degradation on very long inputs), so at scale RAG wins — but
+    "at scale" is a measured threshold, not an assumption. And the failure of premature RAG is
+    silent: a mediocre retriever returns plausible-wrong chunks and the fluent cited answer hides
+    it, so you've added complexity and lowered trust. The senior move is to build the eval set
+    first and adopt the simplest configuration that clears the bar — often long-context for a few
+    documents, RAG only when the numbers demand it.
+followUps:
+  - "When does long-context stop being viable and RAG become necessary?"
+  - "What signal tells you a premature RAG system is hurting rather than helping?"

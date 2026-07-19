@@ -1,0 +1,39 @@
+question: "What is retrieval-augmented generation, and what problem does it solve that a bigger or fine-tuned model doesn't?"
+concepts:
+  - rag
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    RAG means: before the model answers, you retrieve relevant text from a corpus you control
+    and put it in the prompt, then ask the model to answer from that text and cite it. It
+    solves the problem that a model only knows what it was trained on — it can't know your
+    private documents or anything after its cutoff, and it can't cite a source. RAG gives it
+    the right documents at question time instead of hoping they're in its memory.
+  professional: >-
+    RAG separates knowledge from the model. The model stays responsible for language and
+    reasoning; the facts live in an external corpus you can update, search, and audit. At query
+    time you embed the question, retrieve the top-k relevant chunks by similarity, assemble them
+    into the prompt with a "answer only from this, and cite it" instruction, and generate. It
+    solves three things a bigger or fine-tuned model doesn't: freshness (add a document, not a
+    training run), private/proprietary knowledge, and provenance (answers point at sources).
+    Fine-tuning is the wrong tool for injecting facts — it reliably changes style and format,
+    not knowledge, and it re-stales the moment the facts change. RAG makes knowledge editable
+    data rather than frozen weights.
+  deep: >-
+    Mechanically RAG is a composition, not an algorithm: chunk → embed → index → (per query)
+    embed → retrieve top-k → assemble context → generate. Nothing in it is novel — it's the
+    embeddings and vector-search you already have, plus prompt assembly. The load-bearing fact
+    is that retrieval is the ceiling: the model can only use evidence you actually retrieved, so
+    answer quality is bounded by chunking and retrieval quality, not by the model. That reframes
+    the engineering — most RAG failures are search failures (wrong chunks, bad chunk boundaries,
+    distractors) that no one measured, not generation failures. The honest system also builds a
+    refusal: when the best passage is below a relevance floor, say "not in the context" instead
+    of grounding an answer on an irrelevant chunk. And RAG is a fixed workflow; if you let the
+    model decide when to retrieve, you've moved up the autonomy spectrum to a tool-using agent.
+followUps:
+  - "Walk me through the indexing pipeline vs the query pipeline — what runs when?"
+  - "Where in a RAG system is quality actually won or lost, and how would you measure it?"
+  - "How is RAG different from an agent that has a search tool?"

@@ -1,0 +1,14 @@
+type: paper
+title: "Lewis et al. — Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks"
+url: "https://arxiv.org/abs/2005.11401"
+ingestedAt: 2026-07-19
+routedTo:
+  - rag
+decisions: >-
+  The paper that named and framed RAG: combine a parametric generator with a non-parametric
+  retrieved memory so knowledge lives in an editable corpus rather than the weights. Grounds
+  the RAG concept's "why was this invented?" section (separate knowledge from the model;
+  freshness, provenance, and updatability without retraining). Cited for the framing and origin
+  only — the lesson is explicit that modern RAG generalizes well beyond the paper's exact
+  architecture, and that the bundled pipeline uses illustrative (hand-placed) vectors while the
+  ranking and budgeting math are real.

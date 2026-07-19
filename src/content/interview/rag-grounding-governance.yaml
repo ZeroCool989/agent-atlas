@@ -1,0 +1,42 @@
+question: "Does RAG stop a model from hallucinating, and what does it change about the governance and security of a system?"
+concepts:
+  - rag
+roles:
+  - engineer
+  - governance
+difficulty: deep
+governanceAngle: "Retrieved personal data is still processing under GDPR; citations can support EU AI Act transparency/traceability if real and checked; and the corpus becomes a prompt-injection and data-residency surface."
+answers:
+  beginner: >-
+    RAG reduces hallucination but doesn't stop it. Giving the model the right passages and asking
+    it to cite them makes answers more grounded and checkable, but the model can still misread a
+    passage, cite the wrong one, or answer from memory anyway. For governance, the big change is
+    that your document corpus is now part of the system's answers — so who can see what's in it,
+    where it lives, and whether it contains personal data all become your responsibility.
+  professional: >-
+    Grounding raises the honesty ceiling; it doesn't guarantee honesty. Citations make errors
+    *checkable* rather than absent — real value, but only if the citations are verified, since a
+    model can fabricate or misattribute them. On governance: retrieving someone's record into the
+    prompt is still processing personal data under GDPR, with the usual lawful-basis, access, and
+    deletion duties following the corpus. Conversely, source-cited answers can *support*
+    transparency and traceability expectations (EU AI Act documentation) better than a closed-book
+    model. On security: everything you retrieve enters the prompt, so the corpus is a
+    prompt-injection and data-exfiltration surface — a poisoned or attacker-controlled document
+    becomes instructions the model may follow. Retrieval delivers content; it doesn't sanitise it.
+  deep: >-
+    The precise claim is: RAG changes the *source* of the answer from parametric memory to
+    retrieved evidence, which lowers hallucination on in-corpus questions and adds a provenance
+    trail — but it introduces new failure and governance surfaces. Failure: retrieval errors
+    (missed or distractor passages) produce fluent cited-wrong answers; the model can ignore the
+    context; and citations themselves need validation. Governance and security, treated seriously:
+    (1) data protection follows the corpus — derived vectors of personal data are in scope, and
+    "retrieved, not trained on" is not an exemption; (2) provenance is a genuine asset for
+    auditability if you enforce that citations resolve to real passages; (3) the corpus is an
+    injection vector — untrusted or user-supplied documents can carry instructions, so you need
+    least-privilege on what retrieval can reach and treat retrieved text as data, not commands;
+    (4) residency and retention of the store matter the moment regulated data is indexed. Whether
+    a specific framework bites depends on data, use, role, and jurisdiction — but RAG defines the
+    surface you must be able to account for, which is exactly what a regulator or auditor asks about.
+followUps:
+  - "How would you verify that a RAG system's citations actually support its claims?"
+  - "How does retrieval expand the prompt-injection surface, and what controls reduce it?"

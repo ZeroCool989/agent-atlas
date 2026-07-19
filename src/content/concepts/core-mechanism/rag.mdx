@@ -8,15 +8,181 @@ prerequisites:
 related:
   - context-windows
   - tool-calling
+  - structured-outputs
+governance:
+  - gdpr
 interviewTags: ["rag", "retrieval", "grounding", "citations"]
-status: stub
+status: complete
+verdict:
+  classification: commonly-useful
+  problem: "A model answers from frozen training weights: it can't cite a source, doesn't know your private or post-cutoff facts, and states wrong things as confidently as right ones."
+  simplerBaseline: "If the documents fit in the context window, just put them in the prompt (long-context) — no retrieval system to build. Sometimes a clearer prompt, or the model already knowing, is enough."
+  mainCost: "A whole pipeline to build and keep honest — chunker, embedder, index, retriever, context assembly — where retrieval quality caps answer quality and every stage can silently degrade it."
+sources:
+  - lewis-rag-2020
 updated: 2026-07-19
 ---
 
-> **Stub** — planned territory on the atlas. This concept will cover: why RAG exists
-> (knowledge the model never saw, freshness, provenance, and grounding against
-> hallucination), the pipeline (chunk → embed → retrieve → assemble context → generate),
-> where quality is actually won or lost (chunking and retrieval, not the model), when NOT
-> to RAG (long-context inclusion, fine-tuning, or just answering directly), and that
-> "retrieved the most similar chunk" is not "answered correctly." It builds directly on
-> Embeddings and Vector search, and anchors the L2 build project (mini retrieval engine).
+import RagPipeline from '../../../components/viz/RagPipeline.astro';
+
+A language model answers from its weights — a compression of its training data, frozen at
+some cutoff. That memory is confident but unciteable, can't include your private documents,
+and goes stale the day training stops. **Retrieval-augmented generation** changes where the
+answer comes from: instead of asking the model to recall, you first *retrieve* relevant text
+from a corpus you control, put it in the prompt, and ask the model to answer from that
+evidence and cite it. RAG isn't a new algorithm — it's a composition of things you already
+have: embeddings and vector search to find the text, context assembly to place it, the model
+to phrase the answer.
+
+> **Mental model: an open-book exam.** Closed-book, the model answers from memory — fast, but
+> it can't show its work and it bluffs when unsure. RAG hands it the book, open to the right
+> page, and says "answer from this, and cite the page." **Where the analogy breaks:** the
+> model can still misread the page, cite the wrong one, or confidently answer from memory
+> anyway; and if the book doesn't contain the answer, an honest student says "it's not in
+> here" — which a RAG system only does if you *build* that refusal. The open book raises the
+> ceiling on honesty; it doesn't guarantee it.
+
+## What problem existed before this?
+
+To make a model "know" something it didn't learn, your options were bad. **Retrain or
+fine-tune** it on the new knowledge: slow, expensive, and fine-tuning teaches *style and
+format* far more reliably than it injects *facts* — and the moment the facts change you do it
+again. Or **rely on parametric memory** and accept the failure modes: no knowledge past the
+training cutoff, nothing about your private or proprietary data, no way to cite a source, and
+hallucination stated as fluently as truth. A support bot that "knows" your product only from
+generic pretraining is guessing, and you can't tell when.
+
+## Why was this invented?
+
+The insight ([Lewis et al., 2020](https://arxiv.org/abs/2005.11401)) was to **separate
+knowledge from the model**. Keep the model for what it's good at — language and reasoning —
+and move the facts into an external corpus you can update, audit, and search. At query time,
+retrieve the passages relevant to the question and condition generation on them. Knowledge
+becomes data you own and edit, not weights you retrain; adding a document is an insert, not a
+training run; and because the answer is built from specific retrieved passages, it can carry
+citations back to them.
+
+## How does it work?
+
+A pipeline, run once to *index* and again per *query*:
+
+1. **Chunk** the documents into passages small enough to retrieve precisely.
+2. **Embed** each chunk into a vector (the [Embeddings](/concepts/embeddings) concept).
+3. **Index** the vectors for fast nearest-neighbor search ([Vector search](/concepts/vector-search)).
+4. At query time, **embed the question** and **retrieve** the top-k nearest chunks.
+5. **Assemble** those chunks into the prompt with an instruction to answer only from them and
+   cite — they now spend part of the [context window](/concepts/context-windows).
+6. **Generate** the answer, grounded and cited.
+
+Watch it run — every score and token count below is computed by the real
+[`src/lib/rag`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/rag/pipeline.ts)
+pipeline, which itself calls the embeddings and prompt engines (the vectors are illustrative;
+the ranking and budgeting are exactly what production runs):
+
+<RagPipeline />
+
+Notice what dominates: the answer is only as good as step 4. Retrieve the wrong passages and
+a perfect model writes a fluent, cited, wrong answer.
+
+## Is it actually necessary?
+
+When the answer depends on knowledge the model can't have in its weights — your private docs,
+anything after its cutoff, facts that change — and you need it *citable*, RAG is the honest
+tool. When the knowledge is small and static enough to sit in the prompt directly, or the
+model already knows it, or a clearer question would do, RAG is a pipeline you're building for
+no reason. It earns its complexity when knowledge is large, changing, private, or must be
+sourced — not before.
+
+## What are the trade-offs?
+
+RAG buys **fresh, private, updatable, citable** knowledge without retraining. It charges:
+
+- **Retrieval is the ceiling.** Answer quality is bounded by what you retrieved; the model
+  can't use evidence it never saw. Garbage retrieval, garbage answer — fluently phrased.
+- **Distractors.** Retrieve a plausible-but-irrelevant passage and the model may anchor on
+  it. More context is not always better context.
+- **Grounding is not a guarantee.** The model can still ignore the passages and answer from
+  memory, misread them, or cite the wrong one. Citations make errors *checkable*, not absent.
+- **It competes for the window.** Retrieved context spends tokens that could hold the
+  conversation or the output (see the budget bar above).
+
+## What complexity does it introduce?
+
+Every stage is a real system with its own failure surface: a **chunker** (size and boundaries
+quietly decide what can be retrieved at all), an **embedding model** to run and version, a
+**vector index** to store and tune, a **retriever** whose k and thresholds you must set, the
+**context assembly**, and — the part teams skip — an **eval set** to know if any of it works.
+You are now maintaining a search system, and search is hard. The most common RAG failure isn't
+the model; it's retrieval that quietly returns the wrong chunks and no one measures it.
+
+## What simpler alternative exists?
+
+Climb the ladder only as far as you must:
+
+- **The model already knows.** For common knowledge, just ask — no retrieval.
+- **Long-context stuffing.** If the relevant documents fit in the window, put them straight in
+  the prompt. No index, no retriever, no chunking — and no retrieval errors. Windows have grown
+  enough that this is often the right first move for a handful of documents.
+- **A better prompt.** Sometimes "answer only from this text" over pasted content is the whole
+  job.
+- **Fine-tuning** for *behaviour and format*, not facts.
+
+RAG is what you reach for when the corpus is too big for the window, changes too often to bake
+in, or must be sourced. And note the distinction: **RAG is a fixed retrieve-then-generate
+workflow**; letting the model *decide* when to search is a [tool-using agent](/concepts/tool-calling)
+— same retrieval underneath, more autonomy (and less predictability) on top.
+
+## When should I use it?
+
+Question-answering over documentation, policies, tickets, or a knowledge base; support and
+internal-search assistants; anything that must answer from current or private information and
+show its sources. Especially where being able to point at *why* the system said something is a
+requirement, not a nicety.
+
+## When should I avoid it?
+
+When the knowledge is small and stable enough to live in the prompt or the weights; when you
+can't keep the corpus fresh and correct (a stale index is confidently wrong); when the task
+needs exact, deterministic answers rather than retrieved-and-phrased ones; when the latency of
+a retrieval hop breaks the experience; or when you haven't yet *measured* that the model
+answering directly is insufficient. Don't build a search system to answer questions a plain
+prompt already handles.
+
+## The pipeline, in a few readable functions
+
+The whole thing is a composition, not a black box:
+[`src/lib/rag/pipeline.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/rag/pipeline.ts)
+— `retrieve` (reuses `cosineSimilarity` from the retrieval engine), `assembleRagPrompt`
+(reuses the prompt assembler and its token budget), and `groundedAnswer`, which does the one
+thing many production systems forget: **it refuses when the best passage is below a relevance
+floor** rather than grounding an answer on an irrelevant chunk. Read it and you'll see RAG has
+no magic in it — it is embeddings + vector search + prompt assembly, wired in a line, plus the
+discipline to say "not in the context."
+
+## Governance
+
+Retrieval turns a corpus into part of the system's answers, which pulls it into scope:
+
+- **Retrieved personal data is still processing.** Putting someone's record into the prompt to
+  answer a question is, under **GDPR**, processing personal data — lawful basis, access, and
+  deletion obligations follow the corpus, and "we only retrieved it" is not an exemption.
+- **Provenance is an asset here, not just a risk.** Because RAG answers cite their sources, it
+  can *support* transparency and traceability expectations (e.g. EU AI Act documentation
+  duties) better than a closed-book model — if the citations are real and checked.
+- **The corpus is an attack surface.** Whatever you retrieve enters the prompt, so a poisoned
+  or injected document is a path to prompt injection and data exfiltration; retrieval doesn't
+  sanitise content, it delivers it.
+- **Where the vectors and documents live** (residency, retention, access) is a data-governance
+  question the moment the corpus contains regulated data. As always, whether a specific
+  framework bites depends on the data, use, role, and jurisdiction — RAG doesn't trigger one by
+  itself, but it defines the surface you must be able to account for.
+
+## Build it, then own it
+
+The practical example is the pipeline above —
+[`src/lib/rag/pipeline.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/rag/pipeline.ts)
+plus its tests. Read `retrieve` and notice it is the exact nearest-neighbor call from the
+embeddings lesson; read `assembleRagPrompt` and watch the retrieved passages become a normal
+prompt with a token budget; read `groundedAnswer` and see the refusal path. There is nothing
+in RAG you haven't already built — which is precisely the point, and the best answer to "do we
+need a vector database for this?" Then try the interview questions below.
