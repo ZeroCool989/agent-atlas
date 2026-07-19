@@ -1,0 +1,24 @@
+---
+title: "Multi-agent systems"
+layer: advanced-system
+oneLiner: "Compose several agents — each with its own role, tools, and context — under an orchestrator, for problems a single agent's context or focus can't hold. The most powerful and the most over-used pattern in the field."
+prerequisites:
+  - workflows-vs-agents
+  - planning
+  - tool-calling
+related:
+  - mcp
+  - evaluation
+interviewTags: ["multi-agent", "orchestration", "systems", "architecture"]
+status: stub
+updated: 2026-07-19
+---
+
+> **Stub** — planned territory on the atlas. This concept will cover: orchestration patterns
+> (supervisor/worker, planner/executor, debate, pipelines), why you'd split work across
+> agents (context isolation, specialization, parallelism) versus the honest cost (more model
+> calls, coordination failure modes, harder debugging and evaluation), the "is it necessary?"
+> question stated bluntly — most tasks that look multi-agent are better as one well-structured
+> agent or a deterministic workflow — and how to evaluate a *system*, not just a model. It is
+> the L4 capstone, composing everything below it on the autonomy spectrum, and pairs with the
+> multi-agent visualizer.

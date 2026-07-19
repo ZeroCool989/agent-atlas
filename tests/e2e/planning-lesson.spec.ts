@@ -20,13 +20,15 @@ test('planning lesson: mental model, steppable plan-then-execute viz with re-pla
   const next = stepper.getByRole('button', { name: /next/i });
   await expect(next).toBeEnabled();
 
-  // Step to the failure, then the re-plan.
-  for (let i = 0; i < 5; i += 1) await next.click();
-  await expect(demo.getByText(/A greedy agent would be stuck here|fail/i).first()).toBeVisible();
+  // Step forward until the failure beat shows (don't hard-code its index).
+  const failBeat = demo.getByText(/A step fails|A greedy agent would be stuck here|fail/i).first();
+  for (let i = 0; i < 15 && !(await failBeat.isVisible()); i += 1) await next.click();
+  await expect(failBeat).toBeVisible();
 
-  // Advance to the final contrast beat: the greedy, planless run that drifts.
-  for (let i = 0; i < 8; i += 1) await next.click();
-  await expect(demo.getByText(/Greedy, one step at a time/)).toBeVisible();
+  // Continue to the final contrast beat: the greedy, planless run that drifts.
+  const greedyBeat = demo.getByText(/Greedy, one step at a time/);
+  for (let i = 0; i < 15 && !(await greedyBeat.isVisible()); i += 1) await next.click();
+  await expect(greedyBeat).toBeVisible();
 
   // Nine-section body: the honest "when to avoid" answer.
   await expect(page.getByRole('heading', { name: 'When should I avoid it?' })).toBeVisible();

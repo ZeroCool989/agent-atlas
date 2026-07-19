@@ -23,7 +23,7 @@ test.describe('concept index', () => {
 
   test('status filter and combined filters work; form reflects the URL', async ({ page }) => {
     await page.goto('/concepts?status=complete');
-    await expect(page.locator('li[data-status="complete"]:visible')).toHaveCount(13); // + rag, evaluation, failure-modes
+    await expect(page.locator('li[data-status="complete"]:visible')).toHaveCount(16); // + memory, planning, mcp
     await expect(page.getByLabel('Status')).toHaveValue('complete');
 
     await page.goto('/concepts?layer=foundation&status=needs-update');
@@ -43,7 +43,7 @@ test.describe('concept index', () => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     await page.goto('/concepts?layer=core-mechanism'); // params inert without JS
-    await expect(page.locator('li[data-layer]')).toHaveCount(15);
+    await expect(page.locator('li[data-layer]')).toHaveCount(19);
     await context.close();
   });
 });
@@ -91,10 +91,10 @@ test.describe('concept pages', () => {
   });
 
   test('stub page looks intentionally incomplete, not broken', async ({ page }) => {
-    await page.goto('/concepts/memory');
+    await page.goto('/concepts/reflection');
     await expect(page.getByText(/This is a stub — planned territory/)).toBeVisible();
-    await expect(page.getByRole('heading', { level: 1, name: 'Memory' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Tool calling' })).toBeVisible(); // still connected
+    await expect(page.getByRole('heading', { level: 1, name: 'Reflection' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Evaluation' })).toBeVisible(); // still connected
   });
 
   test('needs-update page shows the review flag without invalidating the content', async ({ page }) => {
