@@ -1,17 +1,176 @@
 ---
 title: "Embeddings"
 layer: core-mechanism
-oneLiner: "Text as coordinates: vectors whose geometry encodes meaning, making similarity computable."
+oneLiner: "Text as coordinates: a trained model turns meaning into a vector, so 'similar in meaning' becomes 'close in direction' — arithmetic a computer can rank."
 prerequisites:
   - tokens
 related:
   - context-windows
-interviewTags: ["embeddings"]
-status: stub
-updated: 2026-07-13
+governance:
+  - gdpr
+interviewTags: ["embeddings", "vectors", "cosine-similarity", "semantic-search", "retrieval"]
+status: complete
+verdict:
+  classification: commonly-useful
+  problem: "Keyword matching can only find text you already know the words for. Meaning — that 'car' and 'automobile' are the same idea, that a paraphrase is the same question — is invisible to exact matching."
+  simplerBaseline: "Lexical search (BM25/TF-IDF): no model, exact, fast, interpretable, and often a strong baseline — sometimes better than embeddings for exact terms, names, and codes."
+  mainCost: "A new moving part and a data surface: an embedding model to run, vectors to store and index, chunking to decide, freshness to maintain — and rankings that are approximate and opaque, so 'similar' is never a guarantee of 'relevant' or 'true'."
+sources:
+  - mikolov-efficient-estimation-word-representations
+updated: 2026-07-19
 ---
 
-> **Stub** — planned territory on the atlas. This concept will cover: what an embedding
-> vector is, why cosine similarity approximates semantic similarity, how embedding
-> models differ from generative models, and the role of embeddings in retrieval (the
-> gateway to RAG). It anchors the L2 build project (mini retrieval engine).
+import RetrievalRanking from '../../../components/viz/RetrievalRanking.astro';
+
+A language model reasons over tokens, but tokens are just ids — `automobile` and `car`
+are as unrelated to a string comparison as `automobile` and `Tuesday`. **Embeddings**
+fix that by turning a piece of text into a vector of numbers — a point in a
+high-dimensional space — arranged by a trained model so that texts with similar *meaning*
+land in similar *directions*. Once meaning is a coordinate, "find the most similar text"
+becomes arithmetic you can compute and rank: this is the mechanism under semantic search,
+retrieval for RAG, clustering, deduplication, and recommendations.
+
+> **Mental model: a map of meaning.** An embedding model is a cartographer that has read
+> an enormous amount of text and placed every idea on a map, so that things used in
+> similar ways sit near each other — royalty in one region, animals in another. To find
+> what's related to a query, you drop it on the map and look at its neighbors.
+> **Where the analogy breaks:** the map is *learned from data*, so it inherits that
+> data's blind spots and biases; "near" means "similar in the training distribution's
+> sense," which is not the same as "true," "current," or "relevant to your exact need";
+> and the map is approximate — two things can be closer than they should be. The geometry
+> is real and computable; what the coordinates *mean* is only as good as the model that
+> drew them.
+
+## What problem existed before this?
+
+Before embeddings, finding text meant matching words. Lexical search (TF-IDF, BM25) is
+excellent at this and still is — but it can only match the *terms you typed*. Ask for
+"how do I cancel my subscription" and a document titled "ending your membership" is
+invisible, because they share almost no words. Synonyms, paraphrases, translations, and
+"same idea, different phrasing" are all outside what exact matching can see. You could
+search only for text whose words you already knew.
+
+## Why was this invented?
+
+The idea is the **distributional hypothesis**: words that appear in similar contexts tend
+to mean similar things. Train a model to predict words from their neighbors and it is
+forced to give words used in similar ways similar internal representations — vectors. Word
+embeddings ([word2vec](https://arxiv.org/abs/1301.3781), 2013) demonstrated that these
+learned vectors captured real structure, and the idea generalized from words to sentences,
+paragraphs, and whole documents. The payoff: meaning becomes a vector, and comparing
+meaning becomes comparing vectors — cheap, rankable arithmetic instead of an impossible
+string match.
+
+## How does it work?
+
+Three steps: **embed** the query and every candidate into vectors with the same model;
+**score** each candidate by how aligned its vector is with the query's, using cosine
+similarity (the cosine of the angle between them, `1` = same direction, `0` = unrelated,
+`-1` = opposite); **rank** by that score and keep the top few. Watch it run — each score
+below is computed by the real [`src/lib/retrieval`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/retrieval/embeddings.ts)
+engine over a tiny illustrative space (the *vectors* are hand-placed so the geometry is
+visible on a page; the *math* is exactly what a production retriever runs):
+
+<RetrievalRanking query="king" />
+
+Real embeddings live in hundreds or thousands of dimensions, not two, and are produced by
+a trained model rather than placed by hand — but the operation is identical: embed, score
+by cosine, rank. That last step, "rank a corpus by similarity to a query," *is* nearest-
+neighbor search, and it is the whole engine of retrieval.
+
+## Is it actually necessary?
+
+For matching by *meaning* over a large corpus — yes, there is no lexical trick that sees
+paraphrase and synonymy. For everything else, often no. If your users search with the
+exact terms that appear in your documents, if the corpus is small, or if you need exact
+matches on names, codes, or identifiers, keyword search is simpler, faster, and frequently
+*more* accurate. Embeddings earn their complexity when meaning, not wording, is what you
+need to match.
+
+## What are the trade-offs?
+
+Embeddings buy semantic reach — synonyms, paraphrase, cross-lingual matches — and charge
+approximation and opacity. A cosine score is a similarity, not a relevance judgment and
+certainly not a truth judgment: the nearest neighbor can still be wrong, off-topic, or
+outdated, and you cannot read *why* two vectors are close. You also inherit the embedding
+model's biases, its training cutoff, and its notion of "similar," none of which you can
+inspect. And retrieval quality is capped by upstream choices — the embedding model and how
+you split text into chunks — as much as by the math.
+
+## What complexity does it introduce?
+
+Real moving parts, each with a cost:
+
+- **An embedding model** — another dependency to run or call, with latency and (often)
+  per-token cost, and a version you must pin (re-embedding everything when it changes).
+- **A vector store / index** — somewhere to keep the vectors and search them quickly. At
+  scale that means an approximate-nearest-neighbor index (HNSW, IVF), which trades exact
+  ranking for speed and adds tuning.
+- **Chunking** — documents must be split before embedding; chunk size and boundaries
+  quietly determine what can be retrieved (this is where much RAG quality is won or lost).
+- **Freshness** — embeddings drift out of sync with content; changed documents must be
+  re-embedded, or retrieval silently returns stale meaning.
+
+## What simpler alternative exists?
+
+**Lexical search — BM25 or TF-IDF.** No model, no vector store, exact and interpretable,
+and a genuinely strong baseline: for queries built from the documents' own terms it can
+beat embeddings outright. In practice the strongest systems are often **hybrid** — run
+lexical and vector search together and combine the results — precisely because each covers
+the other's blind spot (lexical nails exact terms and rare tokens; vectors catch
+paraphrase). Reach for embeddings when you have measured that lexical search misses
+meaning your users need; not before.
+
+## When should I use it?
+
+Semantic search and RAG retrieval; clustering and deduplication ("are these two tickets the
+same issue?"); recommendation and "more like this"; any time the match is about *meaning*
+over a corpus too large to read, and wording varies. Almost always worth pairing with
+lexical search rather than replacing it.
+
+## When should I avoid it?
+
+When exact matching is the actual requirement — identifiers, product codes, legal citations,
+names — where a near-miss is a wrong answer. When the corpus is small enough to match or
+even read directly. When keyword search already satisfies users (measure before adding a
+model). When you cannot keep embeddings fresh, or cannot tolerate an unexplainable ranking
+in a setting that demands interpretability.
+
+## The engine, in a few readable functions
+
+The whole retrieval core is small and dependency-free:
+[`embeddings.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/retrieval/embeddings.ts)
+— `cosineSimilarity` (direction-only, scale-invariant, zero-guarded) and
+`nearestNeighbors` (rank a corpus, deterministic tie-breaking). That `nearestNeighbors`
+function is the literal operation a vector database performs, only approximately and over
+far more vectors. Read it, then note what it does *not* do: it returns *similar*, never
+*correct*. Everything vector search and RAG add is built on exactly this.
+
+## Governance
+
+Embeddings are a data-protection surface, not a neutral transform:
+
+- **Derived personal data is still personal data.** Embedding someone's message, review,
+  or record produces a vector *derived from* personal data — under **GDPR** that is still
+  processing, still needs a lawful basis, and a store of user-derived vectors is in scope
+  for access, deletion, and breach obligations. An embedding is not anonymization: it can
+  retain and leak information about its source.
+- **Provenance of the corpus.** What you embedded, and your right to use it, is part of the
+  data-governance story for any retrieval system — and it differs for a curated knowledge
+  base versus scraped or user-supplied text.
+- **Bias becomes retrieval behavior.** A model's learned associations decide what gets
+  retrieved; skew in the embedding space can surface as skewed or discriminatory results,
+  which is a fairness concern wherever the retrieval feeds a consequential decision.
+- **Applicability is conditional.** Whether GDPR, the EU AI Act, or sector rules bite
+  depends on the data, the use case, your role, and the jurisdiction — embeddings don't
+  trigger a framework by themselves. What they determine is the *surface* you must be able
+  to account for: what you embedded, where the vectors live, and how retrieval behaves.
+
+## Build it, then own it
+
+The practical example for this concept is the retrieval engine above —
+[`src/lib/retrieval/embeddings.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/retrieval/embeddings.ts)
+plus its tests. Read `cosineSimilarity` and convince yourself why length can't matter, only
+direction; then read `nearestNeighbors` and notice it is just "score everything, sort,
+take the top k." That is the entire mechanism the next two concepts — vector search and
+RAG — are built on. Then try the interview questions below.

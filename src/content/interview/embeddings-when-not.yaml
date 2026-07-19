@@ -1,0 +1,37 @@
+question: "A team reaches for a vector database for every search feature. When would you tell them NOT to use embeddings, and what would you use instead?"
+concepts:
+  - embeddings
+roles:
+  - engineer
+  - architect
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    When they need exact matches — product codes, names, IDs — embeddings are the wrong tool,
+    because "close in meaning" can return a near-miss that's simply wrong. Keyword search
+    (BM25) is exact, fast, needs no model, and is easy to explain. I'd also skip embeddings
+    when the corpus is tiny or when plain keyword search already works — measure first.
+  professional: >-
+    Embeddings earn their cost only when matching by *meaning* over a large corpus is the
+    actual need. I'd avoid them for exact-match requirements (identifiers, citations, codes),
+    small corpora you can match or read directly, and any case where BM25/TF-IDF already
+    satisfies users — adding an embedding model, a vector index, chunking decisions, and a
+    re-embedding/freshness burden is real complexity to justify. The honest default isn't
+    "embeddings vs keyword" but hybrid: run lexical and vector search together, since lexical
+    nails exact/rare terms and vectors catch paraphrase. I reach for embeddings after
+    measuring that lexical search misses meaning users need — not because vector search is
+    fashionable.
+  deep: >-
+    The failure mode is treating a similarity score as a relevance guarantee. Embeddings add
+    approximation and opacity and a data surface; if the problem is exact retrieval, that's
+    all cost and no benefit, and a near-neighbor is an incorrect result rather than a slightly
+    worse one. Even where meaning matters, embedding quality is capped by the model and by
+    chunking, so a naive vector setup can underperform tuned BM25. The strong-engineering
+    answer is to treat retrieval as measurable: build an eval set, compare lexical, vector,
+    and hybrid on it, and adopt the simplest configuration that hits the bar — often hybrid
+    with lexical carrying exact-term queries. Complexity you didn't measure a need for is
+    complexity you'll pay to maintain.
+followUps:
+  - "How would you build an eval set to decide between BM25, vectors, and hybrid?"
+  - "What exact-match queries silently break a pure-embedding search?"

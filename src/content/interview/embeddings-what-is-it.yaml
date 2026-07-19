@@ -1,0 +1,35 @@
+question: "What is an embedding, and why does cosine similarity approximate semantic similarity?"
+concepts:
+  - embeddings
+roles:
+  - engineer
+  - architect
+difficulty: screen
+answers:
+  beginner: >-
+    An embedding is a vector — a list of numbers — that a trained model assigns to a piece
+    of text so that texts with similar meaning get vectors pointing in similar directions.
+    Cosine similarity measures the angle between two vectors, so a high cosine means "these
+    point the same way," which the model has arranged to mean "these are about the same
+    thing." That turns "find similar text" into arithmetic you can rank.
+  professional: >-
+    A model maps text to a point in a high-dimensional space, trained (on the distributional
+    hypothesis — similar contexts, similar representations) so that semantic similarity shows
+    up as directional alignment. Cosine similarity is the dot product normalized by both
+    magnitudes: it's the cosine of the angle, in [-1, 1], and crucially it's scale-invariant —
+    only direction matters, not vector length — which is why it's the default over raw
+    Euclidean distance. "Rank a corpus by cosine to the query" is nearest-neighbor search,
+    the core of semantic retrieval.
+  deep: >-
+    The embedding space is a learned geometry where the training objective pushes items used
+    in similar ways together. Cosine works because that objective shapes *direction* more
+    meaningfully than *magnitude* (magnitude often correlates with frequency or norm
+    artifacts you don't want to rank on), so normalizing them out isolates the semantic
+    signal. It's still an approximation of a learned notion of "similar," not a ground-truth
+    relevance or correctness measure — the nearest neighbor can be confidently off-topic, and
+    you can't read *why* two vectors are close. At scale exact ranking is replaced by an
+    approximate-nearest-neighbor index (HNSW/IVF), trading a little recall for speed.
+followUps:
+  - "Why cosine similarity rather than Euclidean distance?"
+  - "How do embedding models differ from the generative models that produce text?"
+  - "What happens to retrieval quality if you change the embedding model but not the stored vectors?"
