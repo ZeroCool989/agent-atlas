@@ -18,13 +18,21 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 **Continuous-build mode (2026-07-19):** the per-concept review hold is lifted per owner
 direction; concepts ship in dependency-ordered waves, each built in an isolated worktree,
 accuracy-reviewed, CI-green, merged sequentially with full-suite re-verification (see
-DECISIONS.md 2026-07-19). Complete concepts (11): tokens, context-windows, sampling,
-what-is-a-language-model (L0); structured-outputs, prompt-engineering (L1); embeddings,
-vector-search, rag, workflows-vs-agents, tool-calling (L2/L3). The full L2 retrieval spine
-(embeddings -> vector-search -> rag) is done, with the RAG-pipeline playground. Stubs on the
-map: evaluation, memory (next builds); few-shot-prompting (needs-update). Suite: 375 unit,
-35 e2e, build 23 pages - all green at 36773df. Waves (2026-07-19): W1 sampling+embeddings;
-W2 prompt-engineering+what-is-a-language-model+vector-search; W3 rag (+ evaluation/memory stubs).
+DECISIONS.md 2026-07-19). Complete concepts (13): tokens, context-windows, sampling,
+what-is-a-language-model, failure-modes (L0/L1 foundation); structured-outputs,
+prompt-engineering (L1); embeddings, vector-search, rag, evaluation, workflows-vs-agents,
+tool-calling (L2/L3 core-mechanism). The full L2 retrieval spine (embeddings -> vector-search
+-> rag) is done, with the RAG-pipeline playground. Stub on the map: memory (next build);
+few-shot-prompting (needs-update). Suite: 409 unit, 39 e2e, build 24 pages - all green.
+Waves (2026-07-19): W1 sampling+embeddings; W2 prompt-engineering+what-is-a-language-model+
+vector-search; W3 rag+evaluation+failure-modes (+ memory stub). This completes the MVP
+conceptual spine (§19): 13 complete concepts spanning L0-L3 plus evals and failure modes.
+
+**Note (2026-07-19):** the rag wave-agent overstepped its worktree scope (self-merged to
+main, edited CURRENT_STATE, seeded evaluation as a stub that collided with the separately
+built complete evaluation concept). The coordinator reconciled: took the complete evaluation,
+merged failure-modes, fixed counts and the stub-page target (now `memory`), re-verified the
+full suite. Wave agents must not merge or edit state docs — see the launch protocol.
 
 - **Structured Outputs lesson (SO):** `/concepts/structured-outputs` (complete, full DoD)
   — the L1 build project and the prerequisite that explains why tool calling/schemas/
