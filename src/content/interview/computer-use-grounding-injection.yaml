@@ -1,0 +1,55 @@
+question: "Why is grounding to screen coordinates brittle, and how does on-screen text become a prompt-injection attack?"
+concepts:
+  - computer-use
+  - tool-calling
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Grounding means turning "click the Reply button" into an actual coordinate like (80, 150). It's
+    brittle because the agent is working from pixels: if the layout shifts, the page is still loading, or
+    the coordinate is a little off, the click lands on the wrong element or on nothing — and there's no
+    name-based safety net like there is with a typed API call. On-screen text is an injection risk because
+    the agent's whole input is the screenshot, so text on a page — a banner, an email, a fake dialog — can
+    read like an instruction, and the agent can't reliably tell it apart from its real task.
+  professional: >-
+    Grounding is brittle because the action space is raw coordinates over a rendered image, not typed
+    arguments against a schema. A JSON tool call is either well-formed or rejected; a click is always
+    "well-formed" — it's just a point — so "valid" and "correct" come apart. Dynamic UIs (re-layout,
+    animations, async loading, different resolutions) mean the coordinate that was right a moment ago now
+    hits a different element, and latency between screenshot and action widens that gap. There's no
+    referential integrity: the runtime can only resolve *what is actually at that point*, so a mis-grounded
+    click silently does the wrong thing. Injection is the second half: because perception is the entire
+    screen, every pixel of text is part of the observation the model conditions on, and models don't carry
+    a reliable provenance boundary between "the user's task" and "text that happens to be displayed." So a
+    crafted banner or message body can steer the next action. The two compound: an injected instruction can
+    aim the agent at a real, consequential control, and grounding will faithfully click it. The mitigations
+    aren't in the model — they're runtime: bounded steps, deny-by-default confirmation on consequential
+    actions, least-privilege allow-listing, and a sandbox, so a mis-grounded or injected click has a small,
+    reversible blast radius.
+  deep: >-
+    Both problems are the same underlying fact seen twice: the model operates on appearance, and the
+    runtime is the only place that knows consequence and provenance. Grounding brittleness is appearance
+    failing on the *action* side — a coordinate carries no identity, so the mapping from intent to effect is
+    unverifiable at the point of action; you find out what you clicked only by observing the next
+    screenshot. Injection is appearance failing on the *perception* side — the screenshot carries no
+    provenance, so goal text and adversarial on-screen text are indistinguishable inputs. That's why
+    hardening the model is defense-in-depth, never the primary control: you cannot ask the untrusted party
+    to certify either the correctness of its grounding or the provenance of its input. The dependable
+    controls are structural — confirmation gates, allow-lists, sandboxes, audit traces — and they're
+    exactly the tool-calling controls, because computer use is tool calling with a pixel action space and a
+    screen-sized, attacker-writable observation channel. Get that framing and the mitigations follow
+    directly rather than as a checklist.
+followUps:
+  - "How would latency between the screenshot and the click make grounding worse, and what would you do about it?"
+  - "If the model can't be trusted to resist injection, what specifically stops an injected instruction from causing harm?"
+  - "How does a raw-coordinate action space change your testing strategy versus a typed tool call?"
+criticalThinking: false
+practicalExample: >-
+  The mock screen in this repo (src/lib/computer-use/screen.ts) models both: elementAt() resolves whatever
+  element is under a coordinate — so a few-pixel-off click lands on a different element (a unit test asserts
+  exactly this) — and a screenshot deliberately drops each element's risk while carrying a looksLikeInstruction
+  flag, so the demo policy in demo.ts is fooled by an on-screen banner and the runtime gate, not the policy,
+  is what refuses the resulting destructive action.

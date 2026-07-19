@@ -63,3 +63,10 @@ export { buildMemoryScenes, MEMORY_WINDOW_TOKENS, MEMORY_QUERY } from './memory-
 export type { MemoryScene } from './memory-scene';
 export { createPlanningScene, PLANNING_DEMO_INPUT } from './planning-scene';
 export type { PlanningScene, PlanningSceneInput, PlanningSceneKind } from './planning-scene';
+export { createComputerUseScene, COMPUTER_USE_DEMO } from './computer-use-scene';
+export type {
+  ComputerUseScene,
+  ComputerUseSceneInput,
+  SceneElement,
+  SceneStatus,
+} from './computer-use-scene';
