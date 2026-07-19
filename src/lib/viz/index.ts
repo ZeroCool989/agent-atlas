@@ -112,3 +112,9 @@ export type {
   PromptInjectionOutcomeView,
   PromptInjectionStatus,
 } from './prompt-injection-scene';
+export { createObservabilityScene, OBSERVABILITY_DEMO_INPUT } from './observability-scene';
+export type {
+  ObservabilityScene,
+  ObservabilitySceneInput,
+  ObservabilitySpanRow,
+} from './observability-scene';

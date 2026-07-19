@@ -1,0 +1,49 @@
+question: "How do an agent's traces and logs serve AI governance, and what new risk do they create?"
+concepts:
+  - observability
+roles:
+  - governance
+  - consultant
+difficulty: standard
+answers:
+  beginner: >-
+    Traces and logs are a dated, step-by-step record of what the system actually did —
+    inputs, decisions, tool calls, outputs. That's exactly the record-keeping and monitoring
+    evidence a governance process or auditor wants: proof you can explain and account for your
+    AI's behavior. The new risk is the flip side: the moment you log inputs and outputs, your
+    logs may contain personal data and secrets, so retention, access and the right to erasure
+    become obligations you now have to meet.
+  professional: >-
+    Governance frameworks ask you to keep records, monitor systems in production, and be able
+    to reconstruct what happened. Observability operationalizes that: traces give you an audit
+    trail per run, logs give you the detail, and metrics give you the monitoring signal — a
+    concrete artifact behind record-keeping and post-market-monitoring expectations for
+    high-risk systems. Stated honestly, none of this applies merely because a system is
+    observable; applicability depends on the system, use case and jurisdiction. The risk it
+    introduces is data protection: logging inputs and outputs means your telemetry may hold
+    PII, special-category data, or secrets, which pulls in lawful basis, retention limits,
+    access control and erasure duties. "We keep full traces forever" is a finding waiting to
+    happen — so you redact or pseudonymize at capture, set retention deliberately, and be able
+    to delete a subject's data from the logs.
+  deep: >-
+    Treat the trace as auditable evidence whose value comes from process: consistent span
+    coverage, timestamps, retention you can defend, and access controls, so you can show what a
+    given run did and that you monitor the fleet over time. That maps onto record-keeping and
+    monitoring expectations in frameworks like the EU AI Act and the continual-monitoring
+    emphasis of the NIST AI RMF. The governance failure mode is treating telemetry as
+    free: the richest trace is the riskiest log, and unbounded retention of raw model I/O turns
+    a debugging asset into a breach and an erasure problem under GDPR. Credible practice
+    separates what you capture (redacted by default, PII minimized) from what you can
+    reconstruct (enough to audit a decision), sets retention per data category, and treats
+    "can we delete this subject from every trace" as a design requirement, not an afterthought.
+followUps:
+  - "What would you redact at capture time versus keep, to stay both auditable and compliant?"
+  - "How does trace retention interact with a data subject's right to erasure?"
+governanceAngle: >-
+  Traces and logs are the practical artifact behind record-keeping and post-market-monitoring
+  expectations in frameworks like the EU AI Act and the NIST AI RMF — an auditable trail of
+  what the system did. They also create a data-protection surface: inputs/outputs in logs can
+  hold personal data, bringing GDPR duties for lawful basis, retention limits, access control
+  and erasure. Which framework actually applies depends on the system, use case and
+  jurisdiction; observability makes the evidence possible without making any obligation
+  automatic.

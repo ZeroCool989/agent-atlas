@@ -1,0 +1,42 @@
+question: "What is observability for an agent, and why isn't a stack trace enough?"
+concepts:
+  - observability
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Observability is instrumenting an agent so you can answer "what happened and why" in
+    production. You record every step of a run — each model call, tool call, retry and
+    decision — as a span with its duration, tokens and cost, plus logs and rolled-up
+    metrics. A stack trace isn't enough because an agent's failure usually isn't in your
+    code: it's a bad tool result, a wrong tool choice, or a dropped hand-off, and the run
+    is nondeterministic so you often can't reproduce it. The trace is where you actually
+    see the step that went wrong.
+  professional: >-
+    An agent run is a nondeterministic, multi-step, tool-using process, so failures show up
+    in the seams — a stale tool result, a hand-off that dropped context, a retry masking a
+    flaky dependency — not at a line of your code, and re-running rarely reproduces them.
+    Observability adapts the three pillars to LLM systems: tracing (spans over each model
+    call, tool call, retry and decision, nested into the tree that is the run's shape),
+    logging (inputs, outputs, tokens, cost and latency per step, structured so it's
+    queryable), and metrics (total cost and latency, error and failure rates, slowest span,
+    tool usage — what you dashboard and alert on). A fourth piece makes it continuous: online
+    evaluation and drift detection, where offline evals move to scoring live traffic. The
+    payoff is that "sometimes wrong in production" becomes a specific span you open and fix.
+  deep: >-
+    The load-bearing pillar is tracing, because the tree is the thing flat logs can't show:
+    which span cost the time and which cost the correctness. In the repo's demo trace the
+    slow, timed-out web_search span is simultaneously the slowest by self-time and the one
+    errored span — a stack trace would surface neither. Design choices that matter: what to
+    make a span (every model/tool/retry, plus hand-offs in multi-agent systems); self
+    (exclusive) versus wall duration, so the root doesn't trivially win "slowest"; sampling,
+    because verbose model I/O makes full traces expensive; and how metrics roll up from spans
+    so a dashboard can't drift from the runs it summarizes. The honest ceiling: a trace shows
+    what happened and usually narrows the why to a span, but the model's reasoning is opaque —
+    it localizes a failure without always explaining the model's intent.
+followUps:
+  - "Which pillar — traces, logs, or metrics — would you add first to a system that only has print statements, and why?"
+  - "What's the difference between a span's wall-clock duration and its self time, and why does it matter for finding a bottleneck?"
+  - "How does online evaluation relate to the offline eval suite you run in CI?"

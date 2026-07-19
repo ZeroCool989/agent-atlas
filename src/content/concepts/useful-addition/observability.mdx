@@ -1,21 +1,221 @@
 ---
 title: "Observability"
 layer: useful-addition
-oneLiner: "You cannot operate what you cannot see: trace every model call, tool call, and decision so you can debug failures, watch cost and latency, and catch regressions in production — the operational half of a reliable agent."
+oneLiner: "You cannot operate or debug what you cannot see: instrument an agent with traces, logs and metrics so you can answer 'what happened and why' in production — the operational half of a reliable agent."
 prerequisites:
   - evaluation
   - verification
 related:
   - failure-modes
   - multi-agent-systems
+governance:
+  - eu-ai-act
+  - gdpr
+  - nist-ai-rmf
 interviewTags: ["observability", "tracing", "monitoring", "production", "reliability"]
-status: stub
+status: complete
+verdict:
+  classification: commonly-useful
+  problem: "Your agent is 'sometimes wrong' or 'sometimes slow' in production, and a stack trace can't tell you why — the failure lives in a hand-off, a bad tool result, or a retry that a single error message never shows."
+  simplerBaseline: "Structured logging on every step plus one cost-and-latency metric. That covers most needs; a full tracing platform is overhead you adopt when you are operating something that matters."
+  mainCost: "Instrumentation to write and carry, storage and a little latency for the telemetry, and a real governance surface — inputs and outputs in logs can capture PII and secrets."
 updated: 2026-07-19
 ---
 
-> **Stub** — planned territory on the atlas. This concept will cover: tracing an agent run
-> (spans over model calls, tool calls, retries, and decisions), logging inputs/outputs/tokens/
-> cost/latency, online evals and drift detection in production (link Evaluation), alerting on
-> failure signals, and the honest limits (traces show *what* happened, not always *why*; PII in
-> logs is a governance surface). It is the operational counterpart to Verification and the "O"
-> in the reliable-agent tier.
+import ObservabilityDemo from '../../../components/viz/ObservabilityDemo';
+
+An agent run is a nondeterministic, multi-step, tool-using process: the model decides,
+the runtime executes, a tool returns something, the model decides again. When that run
+misbehaves in production — a wrong answer, a slow response, a spike in the bill — the
+question you must answer is *what happened, and why?* **Observability** is instrumenting
+the run so you can. It is the operational counterpart to
+[verification](/concepts/verification): verification blocks a bad output *before* you act
+on it; observability lets you *see* the whole run afterward, so you can debug it, watch
+its cost and latency, and catch a regression the day it starts.
+
+> **Mental model: a flight recorder for the agent loop.** Instead of one final error
+> message, you record a nested trace of every span — each model call, tool call, retry and
+> decision — with its own duration, tokens and cost, so you can replay exactly where the
+> time and the mistake went. **Where the analogy breaks:** a flight recorder captures
+> physical facts; a trace captures *observable behavior only*. It shows what each step did,
+> not the model's private reasoning for doing it — the trace tells you *what*, and often
+> narrows the *why*, but the model's intent stays opaque.
+
+## What problem existed before this?
+
+For ordinary software, a stack trace is enough: deterministic code fails at a line, and
+the line explains it. An agent breaks that. The run is a *sequence of model decisions and
+tool results*, and the failure is usually not in your code at all — it's a model that
+picked the wrong tool, a tool that returned stale data, a hand-off between agents that
+dropped context, or a retry that quietly masked a flaky dependency. Re-running rarely
+reproduces it, because the model is nondeterministic. You are left with "it was wrong that
+one time" and no way to see the step where it went wrong — and separately, no idea why last
+month's bill doubled or why p95 latency crept up, because nothing recorded per-step cost or
+duration.
+
+## Why was this invented?
+
+Because you cannot operate or debug what you cannot see, and agents made the blindness
+acute. The fix is to borrow the discipline that already runs distributed systems — the
+**three pillars of observability**, traces, logs and metrics — and adapt them to LLM
+systems. Record every step as a span in a tree, log the inputs and outputs and token/cost
+figures, and aggregate the whole into metrics you can alert on. Do that and "sometimes
+wrong in production" stops being a shrug and becomes a specific span you can open, read,
+and fix.
+
+## How does it work?
+
+Three pillars, adapted to an agent run:
+
+- **Tracing** — the load-bearing one. You wrap each unit of work in a **span**:
+  `startSpan` when it begins, `endSpan` when it ends. Because spans nest, the agent loop
+  becomes a *tree* — a root run span with a model call, a tool call, a retry and a
+  response beneath it, each with a start, an end, and its own measurements. The tree is the
+  shape of the run.
+- **Logging** — the detail inside each span: the model's inputs and outputs, the tool
+  arguments and results, and the tokens, cost and latency of that step. Structured
+  (key–value), not `console.log`, so you can query it.
+- **Metrics** — the spans rolled up into aggregates you watch continuously: total cost and
+  latency, error and failure rates, the slowest span, tool-usage counts. Metrics are what
+  you put on a dashboard and alert on.
+
+Watch a trace assemble from exactly these parts — a root request, a model call, a tool call
+that runs slow and times out, a retry that recovers it, and a final response, with cost and
+latency accumulating and the metrics resolving at the end:
+
+<ObservabilityDemo client:visible />
+
+Every span, duration and metric in that visual is computed by the tracer in this repo
+([`src/lib/observability/tracer.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/observability/tracer.ts)):
+`buildTrace` nests the recorded spans, rolls up tokens and cost to the root, and derives the
+metrics. Notice the pivotal step: the `web_search` tool call is *both* the slowest span by
+self-time *and* the one that errored. A stack trace would show neither — the latency and the
+bug both live in a tool result, visible only in the trace.
+
+The fourth part is what makes this *ongoing* rather than a one-time debug: **online
+evaluation and drift detection**. [Evaluation](/concepts/evaluation) starts offline — a
+fixed suite you run before shipping. Observability is where it moves *online*: you sample
+real production traces, score them (thumbs, task success, an LLM judge), and watch that
+score over time. When it slides — because traffic drifted from your eval set, or a provider
+changed a model under you — the trend is the early warning. Offline evals catch regressions
+you cause; online signals catch the ones the world causes.
+
+## Is it actually necessary?
+
+For anything you *operate* — a running system with real users, cost, and a pager — yes, at
+some level: without instrumentation, a production failure is undiagnosable and a cost or
+latency regression is invisible until someone complains. But "necessary" is a spectrum, not
+a platform. The minimum that earns its keep is small: structured logging on each step and a
+single cost/latency metric. You genuinely do not need a distributed-tracing platform to run
+a modest feature — and standing one up before you have anything in production is premature.
+Necessity scales with how much the system matters and how many steps it takes to fail.
+
+## What are the trade-offs?
+
+You gain the ability to answer "what happened and why," and pay in three currencies.
+**Instrumentation**: spans and structured logs are code you write and maintain, and an
+un-instrumented step is a blind spot exactly where you'll need to see. **Overhead**:
+telemetry costs storage, a little latency, and money — traces of verbose model I/O add up
+fast, so you sample. **A governance surface**: logging inputs and outputs means your logs
+now contain whatever users typed and the model returned — PII, secrets, regulated data —
+which turns retention, access and erasure into obligations you didn't have before. The
+honest tension is that the richest trace is also the riskiest log.
+
+## What complexity does it introduce?
+
+Real machinery once you pass the minimum: a span model and the discipline to open and close
+spans around every step (including inside retries and hand-offs); a place to store traces
+and logs, with sampling so cost stays bounded; a metrics pipeline and the dashboards and
+alert thresholds on top of it; and, if you do online evaluation, a scorer running over live
+traffic — a *second* evaluation problem, since an LLM judge must itself be validated.
+Adopting a managed tracing platform trades writing that for configuring and paying for it,
+plus sending your prompt and output data to a third party — its own governance question.
+
+## What simpler alternative exists?
+
+Structured logging plus one metric. Log each step as key–value data — the step name,
+inputs, outputs, tokens, latency, and an error field — and emit a single cost-and-latency
+number you can chart. That is queryable, greppable telemetry that answers most "what
+happened" questions and catches most cost/latency regressions, for an afternoon of work and
+almost no new infrastructure. Reach for full nested tracing when the *structure* of the run
+is the thing you can't see from flat logs — deep tool chains, multi-agent hand-offs, retries
+you need to correlate — and for a managed platform only when operating the system justifies
+the overhead. A tracing stack nobody reads is worse than five good log lines and one alert.
+
+## When should I use it?
+
+When you *operate* an agent: real users, real cost, a failure that matters. Add the minimum
+— structured step logs and a cost/latency metric — the moment something ships, and add
+tracing when a run has enough steps or hand-offs that a flat log can't show you the shape of
+a failure. Reach for online evaluation when offline evals no longer reflect production, and
+for a full platform when the number of services, the incident rate, or a compliance
+requirement for audit trails justifies it.
+
+## When should I avoid it?
+
+Don't build a tracing platform before you have something in production to trace — that's
+infrastructure for a problem you don't have yet. For a deterministic workflow with no model
+in the loop, ordinary application logging already suffices; the agent-specific machinery
+earns its place only when nondeterminism and multi-step tool use are what make failures
+opaque. And never instrument blindly: piping raw inputs and outputs into logs "just in case"
+is how PII and secrets end up in a system with the wrong retention and access controls —
+decide what you capture, redact, and keep *before* you turn it on, not after an audit.
+
+## Observability vs evaluation vs verification
+
+These three are the reliability trio and interviews probe the boundaries, so keep them
+crisp:
+
+- **Verification** blocks a *single* bad output *inline, before you act* — deterministic
+  gates, synchronous, a yes/no on this one output (see
+  [verification](/concepts/verification)).
+- **Evaluation** measures *quality* over a *set* of cases — is the system good? — mostly
+  offline, producing a score (see [evaluation](/concepts/evaluation)).
+- **Observability** lets you *operate and debug the live system* — what happened and why,
+  across real runs — after the fact, producing traces and metrics.
+
+They interlock: observability's online signals feed evaluation; a verification failure is an
+event worth tracing; and the reliable-agent tier of the autonomy spectrum needs all three.
+Different jobs, different timing — don't let an interviewer collapse them.
+
+## Common misconceptions
+
+- **"Observability is just logging."** Logging is one pillar. The trace *tree* and the
+  rolled-up *metrics* are what turn scattered log lines into the shape of a run and a
+  dashboard you can alert on.
+- **"A green trace means it worked."** A trace shows *what happened*, not that the answer
+  was correct — that's evaluation's job. `completed` is an outcome, not a correctness proof.
+- **"The trace tells you why."** It tells you *what*, and often narrows the why to a
+  specific span — but the model's reasoning is opaque, so a trace localizes a failure
+  without always explaining the model's intent.
+- **"More telemetry is always better."** Verbose traces cost storage, latency and money, and
+  every logged input is a PII/secrets liability. You sample and redact on purpose.
+- **"Observability replaces verification."** It's after-the-fact; it never blocks a bad
+  output inline. You need both.
+
+## Security and governance
+
+- **Traces and logs are the audit trail.** A dated, per-step record of what the system did —
+  inputs, decisions, tool calls, outputs — is exactly the record-keeping and monitoring
+  evidence that governance processes ask for. It's the concrete artifact behind "we can
+  explain and account for what our AI did."
+- **Regulatory frame, carefully.** Record-keeping and post-market monitoring expectations for
+  high-risk systems in the EU AI Act, and the continual-monitoring emphasis in the NIST AI
+  RMF, are satisfied *in practice* by traces, logs and metrics and their retention — but none
+  of these apply *merely because* a system is observable; applicability depends on the system,
+  its use case, and jurisdiction.
+- **Logs are a data-protection liability, not just a debugging aid.** The moment you log
+  inputs and outputs, your logs may hold personal data — which brings GDPR obligations for
+  lawful basis, retention limits, access control, and the right to erasure. "We keep full
+  traces forever" is a finding waiting to happen. Redact or pseudonymize PII at capture, set
+  retention deliberately, and be able to delete a subject's data from your telemetry.
+
+## Build it, then own it
+
+The tracer is the L5-style build project and a few dozen readable lines:
+[`tracer.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/observability/tracer.ts)
+— a `Tracer` with `startSpan`/`endSpan` over an injected clock, and a pure `buildTrace` that
+nests the spans, computes each span's self (exclusive) duration, rolls tokens and cost up to
+the root, and derives the metrics (total cost, error rate, slowest span, retry count).
+`buildDemoTrace` is the exact run the visual above shows. Read it, notice how the slowest
+span and the errored span turn out to be the same one, then try the interview questions below.

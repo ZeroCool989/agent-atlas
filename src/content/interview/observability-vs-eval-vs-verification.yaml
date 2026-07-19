@@ -1,0 +1,44 @@
+question: "Distinguish observability, evaluation, and verification. How do they fit together in a reliable agent?"
+concepts:
+  - observability
+  - evaluation
+  - verification
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    They do three different jobs. Verification blocks a single bad output inline, before you
+    act on it — deterministic checks, a yes/no on this one output. Evaluation measures quality
+    over a set of cases — is the system good? — usually offline, producing a score.
+    Observability lets you operate and debug the live system — what happened and why, across
+    real runs — after the fact, producing traces and metrics. A reliable agent needs all
+    three: a gate on each output, a score on the system, and eyes on production.
+  professional: >-
+    The cleanest way to keep them apart is timing and scope. Verification is synchronous and
+    per-output: a pipeline of gates — schema, value, grounding, policy — that decides whether
+    this output may proceed, and it never certifies correctness, only that nothing it checks
+    tripped. Evaluation is per-set and mostly offline: a fixed suite with assertions run as a
+    CI gate, producing a comparable score so you can tell a change improved or regressed
+    quality. Observability is per-run and after-the-fact: traces, logs and metrics that let you
+    operate and debug the system in production. They interlock — observability's online signals
+    feed evaluation (offline evals move online to score live traffic); a verification failure is
+    an event worth tracing; and the reliable-agent tier of the autonomy spectrum assumes all
+    three are present. The interview mistake is collapsing them into "testing."
+  deep: >-
+    Each has a distinct honest ceiling, and naming them is what separates a senior answer.
+    Verification bounds and detects known failure classes inline but cannot verify open-ended
+    correctness — a green pipeline means the output tripped no check you wrote. Evaluation
+    measures quality on a sample of reality, so it catches regressions but can be gamed
+    (Goodhart) and its set drifts from production. Observability shows what happened and
+    usually localizes why to a span, but the model's reasoning stays opaque, so it explains
+    behavior without certifying intent. They compose precisely: verification produces events
+    and verdicts that observability records; observability's production traces and online
+    signals reveal where the eval set has drifted; evaluation turns those findings back into
+    offline cases that gate the next change. Reliability is the loop of all three, not any one
+    of them.
+followUps:
+  - "A verification suite is all green in production but users still report wrong answers — which of the three do you reach for, and why?"
+  - "Why can't observability replace verification, given it also records what the output was?"
+  - "How does an online signal from observability end up as a new offline eval case?"

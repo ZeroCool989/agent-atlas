@@ -1,0 +1,52 @@
+question: "Your agent is 'sometimes wrong' in production. How do you find out why, and what do you instrument first?"
+concepts:
+  - observability
+  - failure-modes
+roles:
+  - engineer
+  - architect
+difficulty: deep
+criticalThinking: true
+answers:
+  beginner: >-
+    First I'd get visibility, because "sometimes wrong" with no data is unfixable. The
+    cheapest first step is structured logging on every step — the inputs, outputs, tokens,
+    latency and any error — plus a way to capture the runs that went wrong (a thumbs-down, a
+    failed check, a complaint). Then I read the actual failing traces instead of guessing.
+    Usually the bug is in a seam — a bad tool result or a wrong tool choice — that only the
+    trace shows. I'd add full nested tracing once I know the failures span multiple steps.
+  professional: >-
+    I resist the urge to start with a tracing platform. Step one is structured logging on
+    each step and one cost/latency metric — that's an afternoon and answers most "what
+    happened" questions. Step two is a way to *find* the bad runs: capture negative signals
+    (user thumbs-down, verification failures, escalations) and sample them, because
+    "sometimes" means I need the offending traces, not all traffic. Step three, once I can
+    see a failing run end to end, I look at the seams — which tool returned what, which tool
+    the model chose, where a hand-off dropped context, whether a retry masked a flaky
+    dependency. Only when the structure of the failure is what I can't see from flat logs do
+    I add nested tracing. In parallel I'd move a slice of my offline eval online to score live
+    traffic, so I can tell a code regression I caused from drift the world caused.
+  deep: >-
+    The trap in this question is jumping to a platform; the discipline is matching instrument
+    to unknown. "Sometimes wrong" is a sampling and correlation problem first: I need to
+    reliably capture the minority of runs that fail (label them via online signals and
+    verification verdicts) and correlate each to its full trace, or I'll debug survivorship
+    bias. Then I read spans: a trace localizes the failure to a step — a stale retrieval, a
+    mis-chosen tool, a dropped hand-off — but it shows what happened, not the model's private
+    reasoning, so I pair it with offline evals that reproduce the failing input under
+    controlled conditions. The honest limit is that no amount of tracing certifies
+    correctness; it narrows and reproduces failures so evaluation and a human can judge them.
+    And I'd instrument with a redaction plan from the start, because the richest failing trace
+    is also the one most likely to contain the PII that made it fail.
+followUps:
+  - "How do you capture the minority of failing runs without logging everything at full fidelity?"
+  - "A trace shows the failing step but not why the model chose it — how do you close that gap?"
+  - "When does adding more instrumentation stop helping and start costing more than it's worth?"
+practicalExample: >-
+  The observability build project in this repo (src/lib/observability/tracer.ts) is a
+  dependency-free, unit-tested tracer: a Tracer with startSpan/endSpan over an injected clock,
+  and a pure buildTrace that nests the spans, computes each span's self (exclusive) duration,
+  rolls tokens and cost up to the root, and derives metrics (total cost, error rate, slowest
+  span, retry count). buildDemoTrace instruments a sample run whose web_search span both times
+  out and is the slowest by self-time — the same span carries the latency and the failure,
+  which is exactly what a stack trace can't show and what "instrument the seams first" buys you.
