@@ -1,0 +1,61 @@
+question: "Retries improved your success rate. When is that hiding a problem, and what could a naive retry break?"
+concepts:
+  - reliability-patterns
+  - observability
+roles:
+  - engineer
+  - architect
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    A higher success rate from retries is good only if the failures were genuinely transient. If
+    you're retrying a real bug — a malformed prompt, a schema mismatch, a deterministic error — the
+    retry just pays for the same failure two or three times and hides that something is broken; your
+    dashboard looks green while latency and cost quietly climb. And a naive retry can break things two
+    ways: it re-runs side effects, so retrying a "send payment" or "post message" call can duplicate
+    the action; and if a dependency is actually down, everyone retrying at once turns a partial outage
+    into a full one. So I'd watch the retry rate, only retry idempotent operations or use an
+    idempotency key, and treat a rising retry rate as a bug to investigate, not a number to celebrate.
+  professional: >-
+    Retries are a painkiller, and a painkiller can mask the disease. Three failure modes to name.
+    First, masking: a retry only fixes a *transient* failure; if the error is deterministic — the same
+    prompt hitting the same parsing bug, a 400, a bad tool schema — retrying pays 2–3× for the same
+    failure and buries the signal. The success rate hides an elevated error rate and inflated
+    p99 latency and token spend underneath. Second, duplication: a retry re-invokes the operation, so
+    a non-idempotent action (charge a card, send an email, insert a row, call a tool that acts on the
+    world) gets repeated. The fix is idempotency — an idempotency key the downstream honours, or a
+    dedupe on a request id — not a blind retry. Third, retry storms: when a dependency is genuinely
+    down, synchronised retries amplify load and turn a brownout into an outage, which is exactly why
+    jitter and a circuit breaker exist. Concretely I'd instrument the retry rate and the
+    retry-to-success ratio, alert when they spike, keep a bounded attempt count with a retry predicate
+    so non-transient errors fail fast, and for LLM calls prefer a repair-prompt retry over an
+    identical one — if the same prompt failed, repeating it verbatim usually fails again.
+  deep: >-
+    The mature stance is that a retry's value is entirely conditional on the failure being transient
+    and the operation being idempotent, and both are assumptions you must verify, not assume. On
+    masking: I distinguish "retries recovered a blip" from "retries are amortising a persistent
+    failure" by looking at the distribution — a healthy retry profile is mostly first-attempt
+    successes with occasional single retries; a pathological one has a heavy tail of max-attempt
+    exhaustion or a steady fraction always needing retry N. That tail is a bug report. Retries also
+    interact badly with timeouts and cost: each retry multiplies latency and spend, so a per-request
+    budget across attempts matters as much as the per-attempt timeout. On breaking things: the
+    non-idempotent-retry hazard is the sharp one for tool-using agents, because a retried tool call
+    can take an action twice; the discipline is that anything with a side effect is retried only
+    behind an idempotency key or an at-most-once guard. And naive fixed-interval retries without
+    jitter cause thundering-herd synchronisation; full jitter plus a circuit breaker is the standard
+    answer. The one-liner I'd leave with: retries buy you resilience against noise and, used
+    carelessly, buy you a hidden bug, a duplicated side effect, and an amplified outage — so they
+    complement fixing the failure, they never replace it, and they're only trustworthy when you can
+    observe them.
+followUps:
+  - "How would you make a side-effecting tool call safe to retry?"
+  - "What signal in your metrics distinguishes a healthy retry profile from a masked persistent failure?"
+  - "Why can retries without jitter make an outage worse, and how does a circuit breaker help?"
+governanceAngle: >-
+  Silently masking a rising failure rate behind retries, or duplicating a real-world action through a
+  non-idempotent retry, are operational-risk and accountability concerns — the kind of resilience and
+  logging expectations that frameworks like the EU AI Act's robustness requirements (for high-risk
+  systems) and operational-resilience regimes such as DORA care about. Observing and recording retry
+  and fallback behaviour is part of demonstrating the system is controlled, though which framework
+  applies depends on the system, use case, and jurisdiction.

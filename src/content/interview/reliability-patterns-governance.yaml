@@ -1,0 +1,57 @@
+question: "How do reliability patterns connect to AI governance — and where does graceful degradation cross from a feature into a risk?"
+concepts:
+  - reliability-patterns
+roles:
+  - governance
+  - consultant
+answers:
+  beginner: >-
+    Reliability patterns are how you keep an AI system available and predictable when parts of it
+    fail — retries, timeouts, fallbacks, circuit breakers. That maps directly to the robustness and
+    operational-resilience expectations governance frameworks have for higher-risk systems: the system
+    should behave in a controlled way under failure, and you should be able to show it does. The risk
+    line is graceful degradation: falling back to a cheaper model is fine, but if the fallback quietly
+    serves worse or wrong answers and nobody notices, "degraded but up" has become "confidently wrong
+    at scale." So the governance-friendly version degrades *visibly* — it logs when it falls back and
+    prefers to fail safe over serving a wrong answer for anything high-stakes.
+  professional: >-
+    Framed as controls: timeouts, bounded retries, fallbacks, and circuit breakers are concrete,
+    documentable resilience measures, and their logs — what timed out, what was retried, when a
+    fallback fired, when a breaker opened — are auditable evidence that the system is controlled under
+    failure. That's the kind of thing robustness and operational-resilience expectations ask for: the
+    EU AI Act's accuracy-and-robustness requirements for high-risk systems, ISO 42001-style management
+    processes, and operational-resilience regimes such as DORA for regulated financial firms. The
+    honest boundary is where degradation stops being safe: a fallback that serves a lower-quality
+    answer is acceptable only if it's observable and the residual risk is understood; silently serving
+    a wrong answer to meet an availability target is the anti-pattern, because availability is not
+    correctness. For consequential decisions the governance-aligned choice is often to fail safe —
+    return an error or route to a human — rather than degrade into a confidently wrong output. And as
+    always, none of these frameworks applies merely because a system has retries; applicability depends
+    on the system, role, use case, data, and jurisdiction.
+  deep: >-
+    The governance value is that reliability patterns turn a claim ("the system is robust") into
+    evidence (a documented resilience design plus logs of its behaviour under failure). I'd treat them
+    as controls with documented scope: state which failure classes the timeouts/retries/fallbacks/
+    breaker cover, what they deliberately don't, and how the residual is handled. The two failure-of-
+    evidence traps mirror the engineering ones. First, masking: retries that quietly amortise a
+    persistent failure make an availability metric look healthy while the real error rate and the risk
+    it represents are hidden — in a compliance context that's over-attestation, so the retry and
+    fallback rates belong in monitoring, not just the happy-path SLA. Second, silent degradation:
+    optimising for "always return something" can convert a hard failure into a soft, unlogged wrong
+    answer, which is worse for a high-stakes use case than an honest error. So the defensible package
+    is: resilience patterns as the control, their traces as the audit record, an explicit fail-safe
+    posture (error or human handoff) for consequential decisions instead of blind degradation, and
+    documentation that is candid about the line between "degraded but correct enough" and "degraded
+    into wrong." Reliability engineering here is proportional to stakes — the same reason you wouldn't
+    put any of this on a run-once script is why a high-risk system needs the evidence and a low-risk
+    one doesn't.
+difficulty: standard
+followUps:
+  - "What would you log so a fallback or breaker is useful as audit evidence rather than just an SLA number?"
+  - "When should a system fail safe (error / human handoff) instead of degrading to a fallback answer?"
+governanceAngle: >-
+  Reliability patterns are the concrete controls and audit trail behind robustness and
+  operational-resilience expectations (e.g. EU AI Act robustness for high-risk systems, DORA for
+  regulated firms, ISO 42001 processes); the risk is silent degradation — serving a wrong answer to
+  hit an availability target — so the governed version degrades visibly, logs it, and fails safe for
+  high-stakes decisions. Which framework applies depends on the system, use case, and jurisdiction.
