@@ -18,10 +18,12 @@ task list: `NEXT_TASKS.md`; deviations: `DECISIONS.md`._
 **Continuous-build mode (2026-07-19):** the per-concept review hold is lifted per owner
 direction; concepts ship in dependency-ordered waves, each built in an isolated worktree,
 accuracy-reviewed, CI-green, merged sequentially with full-suite re-verification (see
-DECISIONS.md 2026-07-19). Complete concepts: tokens, context-windows, sampling (L0);
-structured-outputs (L1); embeddings, workflows-vs-agents, tool-calling (L2/L3). Stubs on
-the map: vector-search, rag (next builds), plus few-shot-prompting (needs-update). Suite:
-303 unit, 27 e2e, build 19 pages — all green at eae17a5.
+DECISIONS.md 2026-07-19). Complete concepts (10): tokens, context-windows, sampling,
+what-is-a-language-model (L0); structured-outputs, prompt-engineering (L1); embeddings,
+vector-search, workflows-vs-agents, tool-calling (L2/L3). Stub: rag (all prereqs now met —
+next build), plus few-shot-prompting (needs-update). Suite: 358 unit, 33 e2e, build 21
+pages — all green at ccce4f5. Wave 2 (2026-07-19): prompt-engineering, what-is-a-language-model,
+vector-search.
 
 - **Structured Outputs lesson (SO):** `/concepts/structured-outputs` (complete, full DoD)
   — the L1 build project and the prerequisite that explains why tool calling/schemas/
