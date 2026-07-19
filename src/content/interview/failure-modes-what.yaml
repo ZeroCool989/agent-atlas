@@ -1,0 +1,39 @@
+question: "Why do language models hallucinate, and why can't you just fix it with a better prompt?"
+concepts:
+  - failure-modes
+roles:
+  - engineer
+  - product
+difficulty: standard
+answers:
+  beginner: >-
+    Because a language model predicts *plausible* next tokens, not *true* ones — there's no
+    "is this correct" signal in how it was trained. So a confident wrong answer isn't a bug,
+    it's the model doing exactly what it learned. A better prompt can lower the rate and
+    steer it, but it can't add a truthfulness the model never had; you bound the problem with
+    retrieval and verification, you don't prompt it away.
+  professional: >-
+    Hallucination is structural: the training objective rewards text that fits the corpus,
+    not text that matches reality, so where plausible and true diverge the model produces
+    fluent, well-formed falsehoods. Alignment can even amplify one failure — sycophancy —
+    because agreeable answers were preferred. Prompting operates on the same fluent generator;
+    it changes behaviour and cuts the rate but offers no guarantee of truth. The real controls
+    are architectural: ground the model in retrieved sources, validate its output with
+    deterministic checks (schemas, citation resolution, range checks), use self-consistency
+    or a second check for high-stakes claims, and keep a human in the loop where a wrong answer
+    is costly. You reduce, bound, and detect — you don't eliminate.
+  deep: >-
+    The mechanism matters for the fix. There is no world-model term in the loss; the model
+    minimises next-token surprise over training text, so "truth" is only ever a byproduct of
+    "plausibility usually correlating with truth in the data." That's why the failure is silent
+    and uniform — the fluency is identical whether the content is right or invented, which
+    defeats detection-by-reading. It's also why mitigations are layered rather than singular:
+    grounding shifts the model from recalling to reading (lowering fabrication but introducing
+    mis-attribution), structured output makes claims checkable, evals make regressions visible.
+    Each addresses a slice; the residual never reaches zero, so the engineering question is
+    never "is it fixed" but "is the residual risk acceptable for this use, and what catches the
+    misses."
+followUps:
+  - "Name three distinct failure modes and how you'd detect each."
+  - "How does RLHF/alignment relate to sycophancy?"
+  - "Why does reading the output fail as a detection strategy?"

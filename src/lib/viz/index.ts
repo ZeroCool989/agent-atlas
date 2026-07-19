@@ -25,6 +25,15 @@ export type {
   GenerationSceneInput,
   GenerationCandidate,
 } from './generation-scene';
+export {
+  createCitationCheckScene,
+  CITATION_CHECK_DEMO_INPUT,
+} from './citation-check-scene';
+export type {
+  CitationCheckScene,
+  CitationCheckSceneInput,
+  CitationCheckRow,
+} from './citation-check-scene';
 export type {
   ContextWindowSegment,
   ContextWindowStatus,

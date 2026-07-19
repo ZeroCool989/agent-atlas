@@ -1,0 +1,42 @@
+question: "A stakeholder says 'make the model stop hallucinating' before launch. What do you actually tell them, and what do you do?"
+concepts:
+  - failure-modes
+roles:
+  - engineer
+  - product
+  - architect
+difficulty: deep
+criticalThinking: true
+practicalExample: "src/lib/reliability/citation-check.ts — a deterministic fabricated-citation and uncited-claim detector; it shows both a control you CAN ship and the limit (a resolving citation is not a supporting one)."
+answers:
+  beginner: >-
+    I'd reset the goal honestly: we can't make it never wrong, because plausible-not-true is
+    how the model works — but we can make wrong answers rare and, more importantly, catch them
+    before they reach a user. Then I'd propose concrete controls sized to the risk: ground the
+    answers in retrieved sources, verify the output automatically, and put a human in the loop
+    for anything high-stakes. "Eliminate" is the promise that gets us in trouble; "bound and
+    detect, with a measured error rate" is the one we can keep.
+  professional: >-
+    I reframe "eliminate" to "reduce to an acceptable, measured rate with a safety net,"
+    because promising elimination is itself the failure mode. Concretely: (1) define what a
+    harmful error is for this feature and where it would land; (2) ground the model with
+    retrieval so it answers from sources, not memory; (3) add deterministic verification —
+    schema validation, and citation resolution like the checker in this repo — so fabricated
+    or uncited claims are caught mechanically; (4) build a small eval set and measure the
+    error rate rather than eyeballing a demo; (5) gate the residual with human review or a
+    refusal path proportional to stakes. I'd show the stakeholder the measured rate and the
+    catch-net, and we decide launch against that number — not against a hope.
+  deep: >-
+    The critical-thinking move is separating what's solvable from what isn't and pricing it.
+    Fabricated citations and out-of-schema output are cheaply and fully catchable with
+    deterministic checks — that's the easy win I'd ship first. Semantic support ("does this
+    real source actually back this claim?") is the hard residual: verifying it generally needs
+    another fallible model or a human, so I treat it as risk to be bounded and monitored, not
+    removed. I'd also flag the interaction traps: raising refusals cuts confident errors but
+    adds unhelpful "I don't know"s; grounding cuts fabrication but adds mis-attribution. So the
+    deliverable to the stakeholder isn't "fixed," it's a risk statement: here is the measured
+    error rate, here is what the automated checks catch versus what only review catches, here
+    is the residual and who owns it. That is also what an auditor will ask for.
+followUps:
+  - "Which failure classes are fully catchable with deterministic checks, and which aren't?"
+  - "How would you set the acceptable error rate, and who signs off on it?"
