@@ -1,0 +1,46 @@
+question: "When would you turn sampling off, and when is raising the temperature actively the wrong move?"
+concepts:
+  - sampling
+roles:
+  - engineer
+  - architect
+  - governance
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    Turn sampling off (temperature 0 / greedy) whenever there's a single correct answer:
+    extraction, classification, JSON output, tool arguments, math, or answers grounded in
+    retrieved data. Raising temperature is the wrong move when someone does it to "fix" a
+    weak or wrong answer — it adds randomness, not correctness, and usually makes grounding
+    worse.
+  professional: >-
+    Use greedy decoding for any task where variety is a liability: structured output,
+    extraction, classification, code, tool-call construction, and retrieval-grounded
+    answers all want determinism, not diversity. High temperature is actively harmful when
+    the goal is factuality — widening the tail makes low-probability (often wrong) tokens
+    more likely, so it increases hallucination rather than reducing it. It's also the wrong
+    lever for quality problems generally: if an answer is bad at T=0, the fix is better
+    prompting, grounding, or a stronger model, not more randomness. Reserve higher
+    temperature for genuinely open-ended generation where several good answers exist.
+  deep: >-
+    The judgment is separating variance from quality. Temperature is a variance control; it
+    has no term for correctness. So the anti-pattern is treating it as a quality dial —
+    e.g. cranking temperature because outputs feel repetitive, when the real issue is a
+    thin prompt or missing context. There's also a systems cost: sampling breaks
+    referential transparency, which defeats response caching, complicates regression
+    testing (your eval harness now sees a distribution, not a value), and undermines
+    reproducibility for audit. In regulated or high-stakes settings the defensible default
+    is greedy plus logged parameters; opt into sampling deliberately, per use case, with
+    the seed and settings recorded.
+followUps:
+  - "Your outputs feel repetitive so a teammate raises temperature to 1.4 — what do you check first?"
+  - "How does sampling complicate an automated evaluation suite?"
+governanceAngle: >-
+  Nondeterministic decoding is a reproducibility and auditability problem. The EU AI Act's
+  logging, traceability, and accuracy/robustness expectations for high-risk systems are
+  easier to meet when generation is greedy and its parameters are recorded: you want to be
+  able to reconstruct why a given output was produced. Sampling isn't forbidden, but it
+  raises the evidentiary bar — log the model version, seed, temperature, and truncation
+  settings alongside the output so a decision can be explained and re-derived.
+practicalExample: "src/lib/sim/sampling/sampling.ts — softmax(logits, 0) returns a one-hot (greedy) distribution and sample() with a fixed mulberry32 seed is reproducible, illustrating the determinism you trade away the moment temperature rises above 0."

@@ -68,6 +68,33 @@ export interface TokenScene {
   window?: ContextWindowView;
 }
 
+/** One token's bar in the sampling distribution visual. */
+export interface DistributionBar {
+  token: string;
+  /** Probability at the current step — after this step's reshape or truncation. */
+  prob: number;
+  /** The model's raw (T=1) probability, shown as the reference the step transforms. */
+  basisProb: number;
+  /** False when a truncation step (top-k / top-p) has cut this token from the candidate set. */
+  kept: boolean;
+}
+
+/** One step of the sampling demo — the complete distribution truth at that step. */
+export interface SamplingScene {
+  step: number;
+  totalSteps: number;
+  title: string;
+  /** Teaching text for the step; doubles as the accessible scene description. */
+  description: string;
+  /** Which decoding operation this step demonstrates. */
+  method: 'raw' | 'temperature' | 'top-k' | 'top-p';
+  /** The parameter in play, e.g. "T = 0.5", "k = 3", "p = 0.9", or "" for the raw step. */
+  parameterLabel: string;
+  bars: DistributionBar[];
+  /** How many tokens survive as drawable candidates at this step. */
+  keptCount: number;
+}
+
 /** Timeline metadata for a stepped visual. Durations are presentation metadata and
  * deliberately absent — animation timing is never part of the educational truth. */
 export interface TimelineStep {

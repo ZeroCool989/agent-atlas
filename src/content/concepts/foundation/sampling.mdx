@@ -1,0 +1,187 @@
+---
+title: "Sampling & Temperature"
+layer: foundation
+oneLiner: "How a model turns its raw scores into an actual next token — and the dials (temperature, top-k, top-p) that trade coherence for diversity."
+prerequisites:
+  - tokens
+related:
+  - context-windows
+  - structured-outputs
+governance:
+  - eu-ai-act
+interviewTags: ["sampling", "temperature", "top-k", "top-p", "nucleus", "decoding"]
+status: complete
+verdict:
+  classification: essential
+  problem: "A model's forward pass ends with a score for every token, not a choice. Something must turn that distribution into one token per step — and that decoding step, not the model weights, controls how deterministic, creative, or repetitive the output is."
+  simplerBaseline: "Greedy decoding — always take the highest-scoring token. It is the honest simplest option and the right default for extraction and structured output; temperature and truncation exist only because greedy is too rigid for open-ended generation."
+  mainCost: "Nondeterminism you must now manage: identical inputs can yield different outputs, which complicates testing, reproducibility, caching, and audit — and a set of dials that are easy to misread (higher temperature does not make the model smarter)."
+sources:
+  - holtzman-curious-case-neural-text-degeneration
+updated: 2026-07-19
+---
+
+import SamplingDemo from '../../../components/viz/SamplingDemo';
+
+A language model does not "decide" its next word. Its forward pass ends with a vector of
+**logits** — one raw score per token in the vocabulary — and that is all. Turning those
+scores into a single next token is a separate, mechanical step called **decoding**, and
+it is where temperature, top-k, and top-p live. The same model, with the same weights,
+sounds precise or unhinged depending entirely on this step. Understanding it is how you
+stop treating "temperature" as a mystery knob.
+
+> **Mental model: a weighted raffle.** The model hands you a bag of tickets — more tickets
+> for tokens it likes. **Temperature** decides whether you pack the bag with the favorites
+> (cold) or even things out so long shots get tickets too (hot). **Top-k / top-p** decide
+> which tickets are allowed in the bag *at all* before you reach in. Then you draw one.
+> **Where the analogy breaks:** the model doesn't know it's a raffle — it never "intended"
+> a word; the draw is imposed on its probabilities from outside, by you.
+
+## What problem existed before this?
+
+A trained model gives you a probability distribution over the whole vocabulary for the
+next position (see [tokens](/concepts/tokens) for what those vocabulary entries are). But
+you need *one* token to append and continue. The obvious rule — **always pick the single
+most likely token** (greedy decoding) — is deterministic and often fine, but for
+open-ended generation it fails in a specific, well-documented way: it produces bland,
+repetitive text that collapses into loops ("I think that I think that I think…"). The
+most-probable path is not the most human one. So the question became: how do you draw from
+the distribution in a way that stays coherent without being robotic?
+
+## Why was this invented?
+
+Because the distribution already contains the answer — it just has to be *sampled* rather
+than maximized. **Temperature** was the first dial: reshape how peaked the distribution is
+before drawing, so you can tune between "always the favorite" and "anything goes."
+Pure temperature sampling, though, has a dangerous tail: even at moderate settings it will
+occasionally draw a genuinely absurd, very-low-probability token and derail. **Truncation**
+methods fixed that by cutting the tail off first — **top-k** (Fan et al., 2018) keeps a
+fixed number of candidates; **top-p / nucleus sampling** (Holtzman et al., 2020) keeps a
+dynamic set sized to the model's confidence. Together they let you sample for variety
+while forbidding the nonsense.
+
+## How does it work?
+
+Two operations, kept separate on purpose — the first *reshapes* the whole distribution,
+the second *truncates* it to a candidate set:
+
+1. **Softmax with temperature** turns logits `z` into probabilities:
+   `p_i = exp(z_i / T) / Σ exp(z_j / T)`. Dividing by temperature `T` before
+   exponentiating rescales the gaps. `T < 1` widens the gaps → a sharper, more confident
+   distribution (at `T → 0` it becomes greedy). `T > 1` shrinks the gaps → flatter, more
+   random. `T = 1` is the model's raw distribution. Temperature adds no information; it
+   only changes the *shape* of what's already there.
+2. **Top-k / top-p** then cut the distribution to a candidate set and renormalize it, so
+   the draw can only land on a survivor. Top-k keeps the `k` most likely tokens — a
+   fixed-size cut. Top-p keeps the smallest set whose probabilities sum to `p` — a
+   *dynamic* cut that shrinks when the model is confident and grows when it isn't.
+
+Then a token is drawn from the surviving, renormalized distribution.
+
+Watch one real distribution move through all of it — reshape, then truncate:
+
+<SamplingDemo client:visible />
+
+Scrub the steps: lowering the temperature piles mass onto ` sunny`; raising it gives
+` cold` and even ` purple` a real chance; top-k bluntly keeps three tokens no matter what;
+top-p keeps just the set that covers 90% of the mass. Every percentage is computed by
+[the sampling module you can read in this repo](https://github.com/ZeroCool989/agent-atlas/tree/main/src/lib/sim/sampling)
+— the same code drives the picture and the tests.
+
+## Is it actually necessary?
+
+Understanding it: yes, unconditionally — decoding parameters are the difference between a
+reliable extractor and a creative-writing partner using the *identical* model, and every
+API exposes them. *Choosing* to sample (rather than decode greedily): only for open-ended
+generation. For extraction, classification, code, and anything with a single correct
+answer, greedy (`temperature: 0`) is usually the right call — sampling would only inject
+avoidable variance.
+
+## What are the trade-offs?
+
+The whole system is one trade: **coherence versus diversity**. Colder / smaller candidate
+sets → safe, repeatable, sometimes dull, prone to loops. Hotter / larger sets → varied,
+surprising, more prone to incoherence and factual drift. Two subtler trades sit underneath:
+
+- **Top-k vs top-p.** Top-k is simple but blind to confidence: `k = 40` keeps forty
+  candidates whether the model is certain or lost, so it either over-truncates a flat
+  distribution or lets junk into a peaked one. Top-p adapts to the distribution's shape,
+  which is why nucleus sampling generally reads better. They are often combined.
+- **Determinism vs quality.** `temperature: 0` buys reproducibility but forfeits the
+  variety that makes generation feel natural; sampling buys that variety at the cost of a
+  different answer every run.
+
+## What complexity does it introduce?
+
+Nondeterminism, and a set of dials that are easy to misread:
+
+- **Same input, different output.** Sampling breaks the assumption that a function returns
+  the same thing twice — it complicates testing, response caching, reproducible research,
+  and audit trails (the governance angle below).
+- **"`temperature: 0` is fully deterministic" is only mostly true.** It selects the argmax,
+  but real deployments can still vary run to run: floating-point non-associativity in
+  parallel GPU reductions, batching effects, tie-breaking, and mixture-of-experts routing
+  mean bit-identical output is *not* guaranteed across hardware or even requests. Treat
+  `T = 0` as "greedy," not "a pure function."
+- **Interacting knobs.** Temperature, top-k, and top-p apply together; a provider's
+  defaults are not neutral. Setting temperature high *and* top-p low can partly cancel out,
+  which surprises people who tune one dial in isolation.
+- **The seductive misreading.** Higher temperature does not make a model more creative in
+  any useful sense or more correct — it makes it less predictable. Randomness is not
+  insight.
+
+## What simpler alternative exists?
+
+**Greedy decoding** — always take the top token — is the genuine simpler option, and for a
+large class of tasks it is also the *better* one: extraction, structured output (pair this
+with [structured outputs](/concepts/structured-outputs)), classification, and code
+benefit from determinism far more than from variety. There is nothing simpler than "pick
+the max," and the honest advice is to start there and reach for temperature/top-p only
+when the task is genuinely open-ended. Beam search sits on the other side — more complex
+than sampling, searching several high-probability sequences at once — and is largely
+out of fashion for chat because it worsens exactly the blandness sampling was invented to
+cure.
+
+## When should I use it?
+
+Sample (raise temperature, use top-p ≈ 0.9–0.95) for open-ended generation: brainstorming,
+drafting, dialogue, anything where several good answers exist and repetition is the enemy.
+Use a **moderate** temperature and a **nucleus cut** rather than cranking temperature alone
+— the truncation is what keeps the tail's nonsense out while the temperature supplies the
+variety. When you need both variety *and* a record of what happened, log the seed and
+parameters alongside the output.
+
+## When should I avoid it?
+
+Avoid sampling for anything with a correct answer: extraction, JSON generation,
+classification, tool-argument construction, math, retrieval-grounded answers — use
+`temperature: 0` (greedy) so the output is as reproducible as the platform allows. Avoid
+"just raise the temperature" as a fix for a weak answer; it changes variance, not quality,
+and usually makes grounding worse. And avoid assuming `temperature: 0` gives you a pure,
+cacheable function across machines — for true reproducibility you need pinned model
+versions and provider guarantees, not just a zero.
+
+## Common misconceptions
+
+- **"Temperature controls how smart / creative the model is."** It controls the *shape of
+  the draw*, nothing about the weights. A hotter setting is more random, not more
+  insightful — often it is simply more wrong.
+- **"`temperature: 0` is a pure function."** It's greedy, but not bit-identical across
+  hardware or batches (see complexity). Reproducibility needs more than a zero.
+- **"Top-k and top-p do the same thing."** Top-k is a fixed count; top-p is a dynamic mass
+  threshold that adapts to the model's confidence. The demo above shows them keeping
+  different candidate sets from the same distribution.
+- **"Higher temperature fixes hallucination."** The opposite — widening the tail makes
+  low-probability (often wrong) tokens more likely. Grounding and verification fix
+  hallucination; temperature does not.
+- **"Sampling happens inside the model."** No — the model outputs logits; sampling is a
+  decoding step *outside* the network that you control per request.
+
+## Build it, then own it
+
+The L0 sampling build project is the code behind this page:
+[`src/lib/sim/sampling/sampling.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/sim/sampling/sampling.ts)
+— `softmax` with temperature, `applyTopK`, `applyTopP`, and a seeded `sample`, each under
+a dozen readable lines and fully unit-tested. Read it top to bottom, then explain out loud
+why top-p adapts where top-k can't — that's the interview-ready version of this concept,
+and the questions below test exactly that.

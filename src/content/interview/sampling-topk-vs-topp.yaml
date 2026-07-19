@@ -1,0 +1,36 @@
+question: "What's the difference between top-k and top-p (nucleus) sampling, and why is top-p usually preferred?"
+concepts:
+  - sampling
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Both cut the tail of unlikely tokens off before sampling so the model can't draw
+    nonsense. Top-k keeps a fixed number of the most likely tokens (say the top 40). Top-p
+    keeps the smallest group of tokens whose probabilities add up to p (say 0.9). Top-p
+    adapts to how confident the model is; top-k doesn't.
+  professional: >-
+    Top-k is a fixed-size truncation: keep the k highest-probability tokens, renormalize,
+    drop the rest. Top-p (nucleus) is a dynamic truncation: sort by probability, keep the
+    smallest prefix whose cumulative mass reaches p, renormalize. The difference matters
+    because k is blind to the distribution's shape — the same k over-truncates a flat
+    distribution and under-truncates a peaked one — whereas p keeps few candidates when the
+    model is confident and many when it's unsure. That adaptivity is why nucleus sampling
+    generally produces better open-ended text. They're often combined (k as a hard ceiling,
+    p as the adaptive cut).
+  deep: >-
+    The failure top-p fixes is the unreliable tail of pure temperature sampling: a long
+    tail of thousands of tiny-probability tokens whose mass sums to something non-trivial,
+    so occasionally you draw a genuinely broken token. Top-k's fixed cut can't track how
+    much tail there is; nucleus sampling truncates by *mass*, so it removes exactly the
+    unreliable tail regardless of vocabulary size or peak sharpness. Holtzman et al. (2020)
+    showed this reduces degeneration/repetition versus both greedy and top-k. Edge case:
+    at very low p you still keep at least the single top token, so p→0 degrades to greedy
+    rather than an empty candidate set.
+followUps:
+  - "How would you combine top-k and top-p, and why might you?"
+  - "What does top-p do when the distribution is extremely flat versus extremely peaked?"
+criticalThinking: false
+practicalExample: "src/lib/sim/sampling/sampling.ts — applyTopK (fixed-size cut) and applyTopP (cumulative-mass nucleus cut), each renormalizing the survivors; the accompanying tests assert top-p keeps 1 token on a confident distribution and 3 on a flat one from the same p."

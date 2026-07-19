@@ -1,0 +1,34 @@
+question: "What does temperature do in sampling, and what happens at 0 versus a high value?"
+concepts:
+  - sampling
+roles:
+  - engineer
+  - architect
+difficulty: screen
+answers:
+  beginner: >-
+    Temperature reshapes the model's next-token probabilities before one is drawn. Low
+    temperature makes the distribution peakier, so the model almost always picks its top
+    choice (at 0 it's greedy — always the most likely token). High temperature flattens
+    the distribution, giving less-likely tokens a real chance, so output is more varied and
+    more random.
+  professional: >-
+    After the model produces logits, softmax with temperature turns them into
+    probabilities: exp(z/T) over the sum. T below 1 widens the gaps between scores
+    (sharper, more deterministic); T above 1 shrinks them (flatter, more diverse); T=1 is
+    the raw distribution. It trades coherence for diversity and adds no information — it
+    only changes the shape of the draw. Use low T for extraction and code, higher T for
+    open-ended generation, and pair it with a nucleus cut rather than cranking temperature
+    alone.
+  deep: >-
+    Temperature is a scalar divisor on the logits inside softmax, so it's a smooth
+    interpolation between argmax (T→0, one-hot) and uniform (T→∞). A common trap is
+    treating T=0 as a pure function: it selects the argmax, but bit-identical output isn't
+    guaranteed across hardware or batches because of floating-point non-associativity in
+    parallel reductions, tie-breaking, and MoE routing. So "deterministic" means greedy,
+    not reproducible-by-construction; real reproducibility needs pinned model versions and
+    provider guarantees on top of T=0.
+followUps:
+  - "Why doesn't higher temperature make the model more accurate?"
+  - "If temperature 0 is greedy, why can two runs still differ?"
+  - "How do temperature and top-p interact if you set both?"
