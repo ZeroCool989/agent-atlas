@@ -1,0 +1,51 @@
+question: "How do verification and guardrails serve AI governance, and where do they fall short as evidence?"
+concepts:
+  - verification
+roles:
+  - governance
+  - consultant
+difficulty: standard
+answers:
+  beginner: >-
+    Guardrails and verification are concrete, documentable controls. They filter disallowed
+    content in and out, and check that outputs are well-formed, grounded, and within policy
+    before the system acts — and every verdict can be logged. That log is exactly the kind of
+    evidence a governance process wants for robustness and human-oversight expectations. The
+    limit is that a passing check only proves the output cleared your checks, not that it was
+    correct, so it's evidence of a control, not a safety guarantee.
+  professional: >-
+    Framed as controls: output guardrails are the defence against a model emitting disallowed
+    content; input guardrails and strict argument validation are part of the prompt-injection
+    answer; and the schema, value, and grounding gates are the robustness and data-quality
+    controls at the boundary where output becomes action. The auditable artifacts are the
+    checks themselves, their failure handling, the escalation-to-human points, and the logged
+    record of what was accepted or rejected — which map onto robustness, accuracy, and
+    human-oversight expectations in frameworks like the EU AI Act, and onto the output-handling
+    and injection risks in the OWASP LLM Top 10. Stated honestly, the limits are real: a
+    passing check trail proves conformance to the checks, not correctness; guardrails enforce
+    policy, not accuracy; and a check can be too strict (false positives) or encode a wrong
+    rule. So credible documentation records what the checks do not cover and keeps humans in
+    the loop for high-stakes decisions. And none of these frameworks applies merely because a
+    system verifies its output — applicability depends on the system, role, use case, data,
+    and jurisdiction.
+  deep: >-
+    The governance value of verification is that it turns a claim ("the system is robust and
+    controlled") into evidence (a versioned set of checks, their outcomes, and the oversight
+    points where failures escalate). Treat it as a control with documented scope, not proof:
+    say which failure classes the gates cover, which they deliberately don't, and how the
+    residual is handled — human review for high-stakes correctness, offline evals and
+    monitoring for the failure classes no inline check settles. The failure of evidence is
+    the same false-confidence trap engineers hit: mistaking a green pipeline for correctness,
+    which in a compliance context becomes over-attestation. So the honest package is:
+    verification and guardrails as the inline control and audit trail, evals as the offline
+    measurement, human oversight for open-ended correctness, and documentation that is explicit
+    about the boundary between what was verified and what was merely not caught.
+followUps:
+  - "What exactly would you log to make a passing-check trail useful as audit evidence?"
+  - "How do you document the boundary between 'verified' and 'not caught'?"
+governanceAngle: >-
+  Verification and guardrails are the concrete controls and audit trail behind robustness,
+  data-quality, human-oversight, and injection-handling expectations (e.g. EU AI Act, OWASP
+  LLM Top 10); their evidentiary value is bounded because a passing check proves conformance
+  to the check, not correctness, so documented scope and retained human oversight are part of
+  the control. Which framework applies depends on the system, use case, and jurisdiction.

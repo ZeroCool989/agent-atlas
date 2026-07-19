@@ -1,0 +1,54 @@
+question: "Your verification suite is all green, but the output is still wrong. How is that possible, and what do you do?"
+concepts:
+  - verification
+  - failure-modes
+roles:
+  - engineer
+  - architect
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    It's possible because a check only catches the specific failure it was written to catch —
+    a green suite means the output tripped none of your checks, not that it's correct. The
+    output can be the right shape, obey every value rule, cite a real source, and break no
+    policy, and still be wrong on something no check looks at. What I do: don't treat green as
+    correct. Add a check for the failure that got through if it's checkable, put a human in
+    the loop for the correctness that isn't, and use offline evals and monitoring to catch the
+    pattern.
+  professional: >-
+    A passing pipeline is the absence of the failures you thought to test for, nothing more.
+    The classic case is a schema-valid, policy-clean, correctly-cited answer whose substance
+    is still wrong — for example a refund decision that cites the right policy but doesn't
+    actually follow from it, or a citation that resolves to a retrieved source that doesn't
+    support the claim. Resolution isn't support; shape isn't value; policy-clean isn't
+    correct. My response is layered. First, don't over-claim: "verified" never means
+    "correct", and I'd fix any docs or UI that imply it. Second, if the specific failure is
+    checkable, encode it as a new gate — that's how a suite improves. Third, for the
+    open-ended correctness that isn't deterministically checkable, the honest controls are a
+    human reviewer for high-stakes cases and offline evals plus production monitoring to catch
+    the failure class over time. And I'd add the missed case to the eval set so a regression
+    would show up.
+  deep: >-
+    This is the defining property of verification, so I'd name it directly: you cannot verify
+    open-ended correctness deterministically, so there will always be wrong outputs that pass
+    every gate. The danger isn't the wrong output itself — it's the false confidence a green
+    suite creates exactly where it's most costly. Concretely: I triage whether the failure is
+    checkable (add a gate — a value constraint, a cross-field invariant, a tighter grounding
+    rule) or genuinely open-ended (no gate will settle "is this faithful/appropriate/right",
+    so route it to human oversight and to evals/monitoring). I resist two bad reflexes:
+    bolting on an LLM-as-judge and calling it verification (it's not independent and needs its
+    own validation), and tightening gates until false positives block good output. And I treat
+    the incident as information about my checks' coverage — the point of reading failures, not
+    just the green light. The mature stance is that verification bounds and detects known
+    failure classes; correctness beyond that is a human-and-evaluation problem, and honest
+    documentation says so.
+followUps:
+  - "How do you decide whether a missed failure is checkable or belongs to a human reviewer?"
+  - "Would adding an LLM-as-judge gate fix this? What are the caveats?"
+  - "How do you keep tightening checks from producing false positives that block good output?"
+governanceAngle: >-
+  Presenting a passing check trail as proof of correctness is the governance risk here; honest
+  practice documents what the checks do not cover and keeps human oversight for high-stakes
+  decisions, which is what robustness and oversight expectations actually ask for — though
+  applicability depends on the system, use case, and jurisdiction.

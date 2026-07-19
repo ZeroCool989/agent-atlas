@@ -1,0 +1,50 @@
+question: "What is verification in an LLM system, and why can't you just trust the model's output?"
+concepts:
+  - verification
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Verification is the independent checks you run over a model's output before you act on
+    it — is it the right shape, does it obey the rules, does it cite real sources, does it
+    break any policy. You can't just trust the model because it produces plausible text, not
+    guaranteed-correct text, and it has no internal signal for when it's wrong. So you put a
+    check between the output and the action — code the model can't talk its way past.
+  professional: >-
+    A model is a plausibility engine: its output looks right whether or not it is right, and
+    the moment that output feeds code or an action, "usually right" isn't good enough.
+    Verification is the deterministic, independent check you place at that boundary. In
+    practice it's a small pipeline of gates: schema (right shape and types), value or
+    semantic (a rule you can state — an enum, a range, a total that must equal a sum),
+    grounding (every claim cites a source that was actually retrieved), and policy guardrails
+    (blocked content, in and out). Each gate is ordinary code, so the model can't influence
+    it the way it can rationalise its own answer. The output proceeds only if every gate
+    passes, and you fail fast on the first failure and log the verdict. The key discipline is
+    remembering what a pass means: the output tripped none of the checks you wrote — not that
+    it's correct.
+  deep: >-
+    Verification generalises the guards you already build ad hoc — structured-output
+    validation, tool-argument gates, citation checks — into one idea: an independent,
+    deterministic, inline check that decides whether a single output may be trusted. It's the
+    load-bearing step in the "reliable agent" tier of the autonomy spectrum. Design choices
+    that matter: gate order (cheap, high-signal checks first, fail fast); the failure policy
+    (reject, retry with the error fed back to the model, or escalate to a human); and keeping
+    each check's contract narrow and honest, because a value check encodes a rule you
+    asserted — a wrong rule blocks good output or waves bad output through. The thing to be
+    loud about in an interview is the ceiling: no set of deterministic checks verifies
+    open-ended correctness. Verification bounds and detects known failure classes; it never
+    certifies truth, and treating a green pipeline as proof of correctness is itself a failure
+    mode.
+followUps:
+  - "In what order would you run your gates, and why?"
+  - "What do you do when a check fails — reject, retry, or escalate?"
+  - "How is a schema check different from a value check?"
+practicalExample: >-
+  The verification build project in this repo (src/lib/verification/) is a dependency-free,
+  unit-tested gate pipeline: runChecks in pipeline.ts stops at the first failing gate and
+  returns a pass/fail report with which check failed and whether the output may proceed;
+  checks.ts builds the schema/value/grounding/policy gates by reusing structured-outputs'
+  Zod validation, the eval assertion kinds, and the reliability citation checker rather than
+  duplicating them.

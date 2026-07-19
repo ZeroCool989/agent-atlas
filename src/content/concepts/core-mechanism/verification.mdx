@@ -1,0 +1,250 @@
+---
+title: "Verification (guardrails & checks)"
+layer: core-mechanism
+oneLiner: "The independent, deterministic checks you wrap around a model's output before you trust or act on it — schema, value, grounding, and policy gates the model cannot talk its way past."
+prerequisites:
+  - structured-outputs
+  - tool-calling
+  - evaluation
+related:
+  - failure-modes
+  - reflection
+governance:
+  - eu-ai-act
+  - owasp-llm-top-10
+interviewTags: ["verification", "guardrails", "validation", "grounding", "reliable-agent"]
+status: complete
+verdict:
+  classification: essential
+  problem: "A model produces plausible output, not guaranteed-correct output. The moment that output feeds code or an action, you need something other than the model to decide whether to trust it — and the model cannot be that something, because it shares its own blind spots."
+  simplerBaseline: "The minimum is one schema check at the boundary plus a human reviewer for anything high-stakes. That covers most of the risk; you rarely need an elaborate guardrail framework, and you never need one before you have a working system to guard."
+  mainCost: "Every check is code to write and maintain, latency and friction on the happy path, and false positives that block good output — and the honest ceiling that no set of deterministic checks can verify open-ended correctness."
+updated: 2026-07-19
+---
+
+import VerificationDemo from '../../../components/viz/VerificationDemo';
+
+A language model produces *plausible* output, not *guaranteed-correct* output — that is
+its nature as a [next-token predictor](/concepts/failure-modes), and no prompt changes it.
+So the instant that output crosses into code — a database write, a tool call, an action, a
+number shown to a user — you need something other than the model to decide whether to trust
+it. **Verification** is that something: a set of *independent, deterministic checks* you run
+over a candidate output *before* you act on it. Schema and shape checks, value and semantic
+checks, grounding checks, and policy guardrails, each one ordinary code the model cannot
+argue with. It is the load-bearing "V" in a [reliable
+agent](/concepts/workflows-vs-agents) — the step that turns "the model usually gets it
+right" into "we don't act until it clears the checks."
+
+> **Mental model: an independent inspector with a fixed checklist.** The model is a fast,
+> fluent worker who hands you finished work; the inspector doesn't take the worker's word
+> for anything, cannot be talked out of a rule, and runs the *same* checks every single
+> time. That independence is the whole point — the model can't reason its way past a check
+> the way it can rationalise its own output.
+> **Where the analogy breaks:** a real inspector has intuition — they can notice something
+> is *off* even when it isn't on the checklist. A deterministic check has none. It catches
+> exactly the failures it was written for and waves through everything else, *including a
+> confident, well-formed, wrong answer.* A passing checklist is not a certificate of
+> correctness; it is only the absence of the specific failures you thought to test for.
+
+## What problem existed before this?
+
+Two earlier lessons each solved a slice of this problem and, together, revealed the shape
+of the whole. [Structured outputs](/concepts/structured-outputs) showed that a model asked
+for JSON will sometimes fence it, wrap it in prose, or invent a field — so you must
+*validate the shape* in your code, never trust it. [Tool calling](/concepts/tool-calling)
+showed the runtime, not the model, must gate every tool request through validation before
+executing it. And [failure modes](/concepts/failure-modes) showed *why*: the model has no
+internal signal for truth, so a fluent wrong answer looks exactly like a right one. The gap
+that remained: these were treated as separate, ad-hoc guards bolted onto separate features.
+There was no single idea naming *the check you place between model output and trust* — and
+no honest account of what such a check can and cannot promise.
+
+## Why was this invented?
+
+Because reliability is not a property of the model; it is a property you *build around* the
+model. The autonomy spectrum makes this explicit — a [reliable
+agent](/concepts/workflows-vs-agents) is a stateful agent hardened with verification,
+retries, guardrails, evals, and observability. Verification is the generalisation that ties
+the earlier guards together: an *independent* check the model cannot influence, run
+*inline* on each output, that decides whether that output may proceed. "Independent" is the
+key word. Asking the model to check its own work ([reflection](/concepts/reflection)) can
+help, but it shares the model's blind spots — if the model was confidently wrong, it will
+often be confidently wrong about its own answer too. Verification is deliberately *not* the
+model.
+
+## How does it work?
+
+A verification pipeline is a list of checks run as *gates*: each one inspects the candidate
+output; the output may proceed only if every gate passes; the pipeline stops at the first
+failure. Step a series of real outputs through a four-gate pipeline and watch which gate
+catches each:
+
+<VerificationDemo client:visible />
+
+Every verdict is computed live by the [verification module in this
+repo](https://github.com/ZeroCool989/agent-atlas/tree/main/src/lib/verification); the
+candidate outputs are illustrative, the checking is the real thing. The four gates are the
+four kinds of check worth knowing, and each *reuses* a mechanism you have already met:
+
+- **Schema gate** — is the output the right *shape*? (reuses
+  [structured outputs](/concepts/structured-outputs)' isolate-then-validate.) It proves the
+  keys and types are right, and *nothing* about whether the values are correct.
+- **Value / semantic gate** — does a value obey a rule you can state deterministically? (an
+  enum the field must be in, a currency the policy requires, a total that must equal the
+  sum of line items — this reuses the [eval](/concepts/evaluation) assertion kinds inline).
+  This is where a *schema-valid-but-wrong* output is caught — the same "shape ≠ value"
+  lesson evaluation makes, now applied per request. This gate is the natural home for
+  **tool-argument checks** too: before the runtime executes a tool, the arguments pass a
+  value gate.
+- **Grounding gate** — does every claim cite a source that was actually retrieved? (reuses
+  the [citation checker](/concepts/failure-modes) from the reliability build project.)
+- **Policy gate (guardrail)** — does the text violate a content policy? Guardrails filter
+  *input* (a user's prompt) and *output* (the model's response) against rules about what may
+  be said or passed through — blocked terms, leaked internal notes, PII, injection markers.
+  Guardrails are about *policy, not correctness*: they keep disallowed content out, and say
+  nothing about whether the allowed content is right.
+
+Watch the final candidate. It is schema-valid, in the right currency, cites a real
+retrieved policy, and leaks nothing — so **all four gates pass and it may proceed** — and it
+is still *wrong*. That is not a bug in the pipeline; it is the honest ceiling of the whole
+idea, and the reason the next three sections exist.
+
+## Verification vs reflection vs evaluation
+
+These three get conflated in interviews; keeping them crisp is worth a minute.
+
+- **Verification** is an *independent, deterministic, inline* check. It runs on *this*
+  output, *this* request, in code the model cannot influence, and returns pass/fail before
+  you act. It catches exactly what it is written to catch.
+- **[Reflection](/concepts/reflection)** is the *model critiquing its own output* and
+  revising. It is not independent — it shares the model's blind spots, so it can "improve" a
+  good answer into a worse one and can be confidently wrong about its own mistakes. Useful
+  for quality on open-ended tasks; *not* a substitute for a check the model can't game.
+- **[Evaluation](/concepts/evaluation)** is *offline, aggregate* measurement over a *fixed
+  set* of cases — it tells you the *rate* at which the system meets your bar, before you
+  ship. Verification is *online and per-request* — it decides whether *one* output proceeds,
+  right now. Evals measure the population; verification guards the individual. You want both:
+  evals to know the system is good enough to deploy, verification to catch the individual
+  bad output evals can only tell you the frequency of.
+
+## Is it actually necessary?
+
+Whenever a model's output crosses into code or action, yes — a schema check at that
+boundary is not optional, for the same reason [structured
+outputs](/concepts/structured-outputs) aren't: the alternative is a program that acts on
+malformed or wrong data and fails silently. What *scales with stakes* is how many gates you
+add beyond the minimum. A brainstorming toy needs almost nothing; a system that issues
+refunds, answers medical questions, or triggers real actions needs value, grounding, and
+policy gates proportional to the cost of a wrong action. The one honest exception is output
+a human simply reads and judges themselves — there, the human *is* the check.
+
+## What are the trade-offs?
+
+- **Coverage vs friction.** Every gate is latency on the happy path and code to maintain.
+  More gates catch more, and slow every good output down and add more places to break.
+- **False positives.** A check that is too strict blocks good output — a legitimate answer
+  rejected because it phrased a citation unusually, or used a synonym your value check
+  didn't list. Tuning a gate is trading missed failures against blocked successes; there is
+  no setting that is pure upside.
+- **The honest ceiling.** This is the one that matters most: *you cannot verify open-ended
+  correctness deterministically.* A check catches the specific failure it encodes. "Does
+  this refund decision actually follow from the policy?" or "is this summary faithful?" has
+  no deterministic checker — the trap candidate in the visual passes every gate and is still
+  wrong. Verification bounds and detects known failure classes; it never certifies truth.
+
+## What complexity does it introduce?
+
+A pipeline with real responsibilities: a set of checks, each with a clear pass/fail contract
+and a diagnostic reason; a decision about *order* (cheap, high-signal gates first, so you
+fail fast); a policy for what happens on failure (reject, retry with the error fed back,
+escalate to a human); and the discipline to keep the checks honest — a value check encodes a
+rule *you* asserted, and a wrong rule blocks good output or waves bad output through. The
+subtle new cost is *false confidence*: a green pipeline is easy to read as "correct", and a
+team that forgets a passing check only means "tripped no check we wrote" will over-trust the
+output exactly where it is most dangerous.
+
+## What simpler alternative exists?
+
+The 80/20 is small: **one schema check at the boundary, plus a human reviewer for anything
+high-stakes.** The schema check removes the whole class of malformed-output failures for
+almost no cost; the human handles the open-ended correctness no check can. Add a value,
+grounding, or policy gate only when you have the specific failure it prevents and the value
+clears its cost. You almost never need a guardrail *framework* — a few readable check
+functions beat a dependency, and an elaborate pipeline nobody understands is worse than one
+schema check and a reviewer who knows what they're signing off.
+
+## When should I use it?
+
+Whenever model output feeds a program or an action and a wrong output would cost something:
+before a tool executes (validate the arguments), before a structured result is written
+(validate the shape and key values), before a grounded answer is shown (check the
+citations), before any text reaches a user (apply the output guardrail). Put the cheapest,
+highest-signal gate first, fail fast, and log every verdict — the log is your audit trail
+and your debugging surface.
+
+## When should I avoid it?
+
+Avoid two opposite mistakes. First, do **not** present a passing pipeline as proof of
+correctness — the trap candidate is the standing counter-example, and claiming "verified,
+therefore correct" is the failure mode that gets teams into trouble. Second, do **not**
+over-engineer: don't build a six-gate pipeline for a low-stakes feature, don't add a gate
+you can't tune (a false-positive machine that blocks good output erodes trust in the whole
+system), and don't reach for verification where the honest control is a human reviewer or a
+better [eval](/concepts/evaluation). Match the checks to the stakes.
+
+## Common misconceptions
+
+- **"A passing verification suite means the output is correct."** No — it means the output
+  tripped none of the checks you wrote. A check only catches its specific failure; the trap
+  candidate passes all four gates and is wrong.
+- **"Guardrails make the model accurate."** Guardrails enforce a *policy* on text (what may
+  be said, in or out). They keep disallowed content out; they say nothing about whether the
+  allowed content is true.
+- **"Reflection is a kind of verification."** Reflection is the model checking *itself*, so
+  it shares the model's blind spots — it is not an independent check the model can't game.
+- **"Verification and evaluation are the same thing."** Verification is inline and
+  per-request; evaluation is offline and aggregate. One guards an individual output; the
+  other measures the population before you ship.
+- **"If a claim cites a source, it's verified."** A grounding check proves the citation
+  *resolves* to a retrieved source, not that the source *supports* the claim — resolution is
+  necessary, not sufficient.
+
+## Security and governance
+
+Verification is where a lot of an LLM system's safety and its *evidence* live — and where
+over-claiming is its own risk.
+
+- **Input and output guardrails are a security control.** Output guardrails are the
+  concrete defence against a model emitting disallowed content; input guardrails and
+  strict argument validation are part of the answer to **prompt injection** (see
+  [OWASP LLM Top 10](/governance/owasp-llm-top-10)) — a tool result or user input is
+  untrusted, and the narrower your checks and allow-lists, the less an injection can
+  achieve. The controls belong in your code, never delegated to the prompt.
+- **A passing-check trail is audit evidence — with a stated limit.** A logged record of
+  what was checked, what passed, and what was rejected is exactly the kind of documented
+  control a governance process wants behind *robustness* and *accuracy* expectations, and
+  the *human-oversight* points (where a failed check escalates to a person) are auditable
+  evidence of bounded agency. This connects to the [EU AI Act](/governance/eu-ai-act)'s
+  expectations around robustness and human oversight for high-risk systems. The limit,
+  stated honestly, is the same as the trap candidate: a passing check trail proves the
+  output cleared your checks, never that it was correct, so credible documentation records
+  what the checks *do not* cover and keeps a human in the loop for high-stakes decisions.
+- **Regulatory frame, carefully.** None of the EU AI Act, OWASP guidance, GDPR, ISO 42001,
+  or NIST AI RMF applies *merely because* a system verifies its output. Where they do apply,
+  your checks, their failure handling, and the record of what was accepted or rejected are
+  the concrete evidence behind robustness, data-quality, and oversight expectations —
+  applicability always depends on the system, role, use case, data, and jurisdiction.
+
+## Build it, then own it
+
+The verification module is a small, dependency-free, unit-tested pipeline and about a
+hundred readable lines:
+[`pipeline.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/verification/pipeline.ts)
+(the `runChecks` gate loop and its pass/fail report) and
+[`checks.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/verification/checks.ts)
+(the schema / value / grounding / policy checks, each *reusing* the mechanism its own lesson
+teaches rather than duplicating it). Read `checks.ts` and notice what each gate proves is
+deliberately narrow — that narrowness *is* the concept. Then read the trap candidate in
+[`verification-scene.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/viz/verification-scene.ts):
+an output that clears every gate and is still wrong. If you can explain why that isn't a
+bug, you understand verification. The interview questions below test exactly that.

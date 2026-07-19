@@ -63,3 +63,16 @@ export { buildMemoryScenes, MEMORY_WINDOW_TOKENS, MEMORY_QUERY } from './memory-
 export type { MemoryScene } from './memory-scene';
 export { createPlanningScene, PLANNING_DEMO_INPUT } from './planning-scene';
 export type { PlanningScene, PlanningSceneInput, PlanningSceneKind } from './planning-scene';
+export {
+  createVerificationScene,
+  VERIFICATION_DEMO_INPUT,
+  VERIFICATION_DEMO_CHECKS,
+} from './verification-scene';
+export type {
+  VerificationScene,
+  VerificationSceneInput,
+  VerificationCandidateInput,
+  VerificationCandidateView,
+  VerificationGateView,
+  GateStatus,
+} from './verification-scene';

@@ -1,0 +1,52 @@
+question: "Distinguish verification, reflection, and evaluation. When would you use each?"
+concepts:
+  - verification
+  - reflection
+  - evaluation
+roles:
+  - engineer
+  - architect
+difficulty: deep
+answers:
+  beginner: >-
+    Verification is an independent check on one output before you act on it — code the model
+    can't influence. Reflection is the model critiquing its own answer and revising, so it
+    shares the model's blind spots. Evaluation is offline measurement over a fixed set of
+    cases, telling you the rate at which the system is good enough before you ship. Rough
+    rule: evals to decide it's good enough to deploy, verification to guard each live output,
+    reflection to improve quality on open-ended tasks — never as a substitute for a real
+    check.
+  professional: >-
+    They differ on two axes: independence and timing. Verification is independent (the check
+    isn't the model) and inline (runs per request, right now) — it decides whether this
+    single output proceeds and catches exactly what it's written to catch. Reflection is
+    inline but not independent: the model grades its own work, which can lift quality on
+    open-ended tasks but shares its blind spots, so it can be confidently wrong about its own
+    mistakes and can even make a good answer worse. Evaluation is independent but offline and
+    aggregate: a fixed case set with assertions that tells you the rate at which the system
+    meets your bar, so you catch regressions before shipping. In a real system you use all
+    three: evals to know the system is deployable, verification to guard the individual bad
+    output evals only give you the frequency of, and reflection where a first draft is rarely
+    right and the extra model calls are worth it.
+  deep: >-
+    The sharpest way to hold them apart is what each can and cannot promise. Evaluation
+    measures a population and is fallible ground truth — a green eval is evidence, not proof,
+    and a metric you optimise hard stops measuring the goal (Goodhart). Verification guards an
+    individual and is bounded by what you encoded — a green pipeline means "tripped no check",
+    never "correct", and open-ended correctness has no deterministic checker. Reflection is
+    the weakest guarantee because it isn't independent: it can help, but you can't count on a
+    system to reliably catch a failure it couldn't avoid in the first place. The common
+    interview trap is treating reflection as verification ("the agent double-checks itself, so
+    it's reliable") — self-critique is not an independent check. The composition that actually
+    yields a reliable agent is offline evals plus inline verification plus human oversight for
+    the correctness no check covers, with reflection as an optional quality lever on top.
+followUps:
+  - "Why isn't 'the model reviews its own answer' a real safeguard against a confident error?"
+  - "Your eval scores 95% — what does verification still add at request time?"
+  - "Where does human review fit relative to all three?"
+governanceAngle: >-
+  The three map onto different governance evidence: evals are documented measurement behind
+  accuracy/robustness claims, verification and its logs are the inline control-and-audit trail
+  behind robustness and human-oversight expectations, and reflection is not a control you can
+  evidence (it isn't independent). Which framework applies depends on the system, use case,
+  and jurisdiction.
