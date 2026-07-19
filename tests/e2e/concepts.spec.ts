@@ -16,14 +16,14 @@ test.describe('concept index', () => {
 
   test('layer filter narrows via shareable URL params', async ({ page }) => {
     await page.goto('/concepts?layer=core-mechanism');
-    await expect(page.locator('li[data-layer="core-mechanism"]:visible')).toHaveCount(6); // embeddings, workflows-vs-agents, tool-calling, structured-outputs, vector-search, rag
+    await expect(page.locator('li[data-layer="core-mechanism"]:visible')).toHaveCount(7); // embeddings, workflows-vs-agents, tool-calling, structured-outputs, vector-search, rag, prompt-engineering
     await expect(page.locator('li[data-layer="foundation"]:visible')).toHaveCount(0);
     await expect(page.getByRole('heading', { level: 2, name: 'foundation' })).toBeHidden();
   });
 
   test('status filter and combined filters work; form reflects the URL', async ({ page }) => {
     await page.goto('/concepts?status=complete');
-    await expect(page.locator('li[data-status="complete"]:visible')).toHaveCount(7); // tokens, context-windows, workflows-vs-agents, tool-calling, structured-outputs, sampling, embeddings
+    await expect(page.locator('li[data-status="complete"]:visible')).toHaveCount(10); // + prompt-engineering, what-is-a-language-model, vector-search
     await expect(page.getByLabel('Status')).toHaveValue('complete');
 
     await page.goto('/concepts?layer=foundation&status=needs-update');
@@ -43,7 +43,7 @@ test.describe('concept index', () => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     await page.goto('/concepts?layer=core-mechanism'); // params inert without JS
-    await expect(page.locator('li[data-layer]')).toHaveCount(10);
+    await expect(page.locator('li[data-layer]')).toHaveCount(12);
     await context.close();
   });
 });
@@ -97,9 +97,9 @@ test.describe('concept pages', () => {
   });
 
   test('stub page looks intentionally incomplete, not broken', async ({ page }) => {
-    await page.goto('/concepts/vector-search');
+    await page.goto('/concepts/rag');
     await expect(page.getByText(/This is a stub — planned territory/)).toBeVisible();
-    await expect(page.getByRole('heading', { level: 1, name: 'Vector search' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Retrieval-augmented generation (RAG)' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Embeddings' })).toBeVisible(); // still connected
   });
 
