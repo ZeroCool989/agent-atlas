@@ -70,3 +70,16 @@ export type {
   ReflectionSceneKind,
   ReflectionCaveat,
 } from './reflection-scene';
+export {
+  createVerificationScene,
+  VERIFICATION_DEMO_INPUT,
+  VERIFICATION_DEMO_CHECKS,
+} from './verification-scene';
+export type {
+  VerificationScene,
+  VerificationSceneInput,
+  VerificationCandidateInput,
+  VerificationCandidateView,
+  VerificationGateView,
+  GateStatus,
+} from './verification-scene';
