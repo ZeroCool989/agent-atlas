@@ -1,0 +1,46 @@
+question: "What do people mean by 'memory' in an LLM application, and how does it actually work?"
+concepts:
+  - memory
+  - context-windows
+  - rag
+roles:
+  - engineer
+  - architect
+  - product
+difficulty: standard
+answers:
+  beginner: >-
+    The model itself doesn't remember anything — its weights are frozen and it forgets after
+    each call. "Memory" is engineering around that: you store the conversation and important
+    facts yourself and put the relevant parts back into the prompt each turn. Short-term
+    memory is just the recent messages you resend; long-term memory is retrieving relevant
+    past items from a store when they're needed.
+  professional: >-
+    Two layers, both context management. Working (short-term) memory lives in the context
+    window: you resend recent turns, and once they get long you compact the oldest into a
+    rolling summary so you stay within the budget. Long-term (episodic/semantic) memory lives
+    outside the window: you store past turns or facts, embed them, and on a new query retrieve
+    the most relevant ones back into the prompt — mechanically this is RAG pointed at your own
+    transcript, so relevance can beat recency. The model never learns from any of this; the
+    weights don't change. Memory gives a stateless model the appearance of continuity by
+    controlling what goes into each call.
+  deep: >-
+    Treat the model as a pure function of its input and design memory as an external state
+    system feeding a bounded window. Working memory is a token-budgeted buffer with a
+    compaction policy (summarise oldest-first; newest turns are last to go), which is lossy by
+    construction — the summary can drop the exact fact you later need. Long-term memory is a
+    retrieval problem: embed and index stored items, rank by similarity at query time, inject
+    the top-k. That inherits RAG's properties — the retrieval quality caps usefulness, stale or
+    contradictory records recall the wrong version, and the store is an untrusted channel back
+    into the prompt (injection) plus a personal-data surface. Crucially, memory carries state,
+    not learning: it never updates weights, so it can't fix a capability gap, only supply
+    context. Most systems need only the working-memory half; a full episodic store is a real
+    subsystem you add when state must cross sessions or exceed any window.
+followUps:
+  - "Why isn't in-context 'memory' the same as the model learning from the conversation?"
+  - "How does episodic memory differ from RAG — or is it the same mechanism?"
+  - "What happens to old turns when the conversation exceeds the context window?"
+governanceAngle: >-
+  Long-term memory stores user history, which is personal-data processing (GDPR) — retention,
+  access scoping, and deletion become design requirements; applicability depends on data, use,
+  and jurisdiction.

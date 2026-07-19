@@ -1,0 +1,55 @@
+question: "A team wants to add a 'memory system' with a vector database to their chatbot. When is that over-engineering, and what would you do instead?"
+concepts:
+  - memory
+  - context-windows
+  - rag
+roles:
+  - architect
+  - engineer
+  - consultant
+difficulty: deep
+criticalThinking: true
+answers:
+  beginner: >-
+    Often it's over-engineering. For most chatbots the context window already is the memory:
+    resend the recent messages, and when the conversation gets long, add a rolling summary of
+    the older part. You only need a real store with retrieval when the assistant must remember
+    things across separate sessions or across far more history than fits in a window. Start
+    with the simplest thing that works and add the store when a concrete need forces it.
+  professional: >-
+    I'd push back and ask what state actually has to persist. If everything the bot needs is in
+    the current conversation and that fits the window, no store is justified — a rolling
+    window-plus-summary handles it with no embeddings, no index, no retrieval failures to debug.
+    A vector-database memory earns its complexity only when at least one is true: state must
+    survive new sessions, the relevant history dwarfs the window, or a long-running agent must
+    recall its own earlier steps. Even then I'd start with a single retrieval store over the
+    transcript (RAG over conversation) before any bespoke 'cognitive architecture.' The hidden
+    cost people underweight is that the store is now a pile of user history: retention, access
+    control, deletion, and staleness/contradiction handling — that governance burden is usually
+    larger than the engineering.
+  deep: >-
+    The judgment is about matching mechanism to a real requirement, and resisting resume-driven
+    architecture. Default position: the window is short-term memory; window + rolling summary is
+    the baseline and covers a large share of products at near-zero complexity. Escalate only on
+    a concrete trigger — cross-session persistence, history far exceeding any window, or a
+    multi-step/multi-session agent needing its own past. Then the minimal escalation is
+    retrieval over the transcript, inheriting RAG's known failure modes (retrieval quality is
+    the ceiling; stale/contradictory records; injection via stored untrusted content) which you
+    now own. And a memory store is a data-protection surface the moment it exists: GDPR
+    retention/erasure, per-user access scoping at retrieval time, audit. So 'add a vector DB for
+    memory' is over-engineering unless a persistence or scale requirement forces it — and the
+    honest recommendation is usually 'store less, summarise more, and add retrieval only where a
+    real need appears,' backed by a tiny working-memory + episodic-store implementation you can
+    reason about rather than a framework you can't.
+practicalExample: >-
+  The `src/lib/memory/` module in this repo makes the two mechanisms concrete and separable:
+  `packContext` is the token-budgeted working buffer with lossy summarisation (reusing the
+  prompt token-estimate), and `EpisodicMemory` is long-term retrieval (reusing the embeddings
+  cosine ranking) — showing episodic memory IS RAG over the transcript, and that the working
+  half alone suffices until a persistence/scale need appears.
+followUps:
+  - "What concrete signal would tell you the rolling-summary approach has stopped being enough?"
+  - "If you do add a store, why retrieval over the transcript before a bespoke memory architecture?"
+governanceAngle: >-
+  Choosing to persist history is choosing to process personal data — the retention, access, and
+  erasure obligations (GDPR) are part of the build-vs-skip decision, not an afterthought.

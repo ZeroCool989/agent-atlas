@@ -1,0 +1,49 @@
+question: "What changes, from a privacy and risk standpoint, the moment you add long-term memory to an assistant?"
+concepts:
+  - memory
+  - failure-modes
+  - rag
+roles:
+  - governance
+  - architect
+  - consultant
+difficulty: standard
+answers:
+  beginner: >-
+    You start storing users' conversation history, which is personal data. That brings
+    obligations: you need a reason to keep it, limits on how long you keep it, a way to delete
+    it when someone asks, and controls so one user's memory never leaks into another's answers.
+    A memory store is also a new security target — it can hold sensitive data and can be a way
+    for planted text to get back into the model later.
+  professional: >-
+    Adding memory converts a stateless feature into a data controller problem. Under GDPR you
+    now have purpose limitation (only store what the feature needs), storage/retention limits
+    (not 'forever by default'), and the right to erasure — your store must actually support
+    deleting a user's data, including from any index and backups. Access must be scoped at
+    retrieval time so memory is per-user, never cross-tenant. The store can accumulate
+    special-category data you didn't intend to keep, and because retrieved memory is re-injected
+    into the prompt, it's an indirect-injection and data-exposure surface (OWASP LLM concerns).
+    Practically: minimise what you persist, set retention/TTL, support deletion end-to-end,
+    enforce authorization on retrieval, and audit access. The honest framing to a stakeholder is
+    'we added memory' equals 'we now hold personal data' — design it that way from day one.
+  deep: >-
+    Model the memory store as regulated, adversarially-reachable state. Data-protection: it is
+    processing of personal (possibly special-category) data, so you need a lawful basis, data
+    minimisation (store summaries or derived facts, not raw everything), retention limits with
+    real TTL/expiry, and erasure that propagates to the vector index, caches, logs, and backups
+    — 'right to be forgotten' fails if the embedding survives. Multi-tenant isolation must be
+    enforced at query time (authorization filters on retrieval, not post-hoc on the answer,
+    which leaks through generation). Security: stored content is untrusted and later re-enters
+    the context, so it's an indirect-prompt-injection vector and an exfiltration target; treat
+    retrieved memory as data, apply least privilege to any tools, and monitor. Governance-wise
+    this maps to GDPR (minimisation, retention, erasure, access) and security guidance like the
+    OWASP LLM Top 10; the exact obligations depend on data, use case, role, and jurisdiction,
+    but the risk register should treat the memory store as one of the system's highest-value
+    assets.
+followUps:
+  - "Why must erasure reach the vector index and backups, not just the primary transcript store?"
+  - "Why enforce per-user access at retrieval time rather than filtering the model's output?"
+governanceAngle: >-
+  Long-term memory is personal-data processing: GDPR minimisation, retention, erasure, and
+  access-scoping apply, and the store is a security/injection surface (OWASP LLM) — obligations
+  scale with what is stored and for whom.

@@ -8,15 +8,165 @@ prerequisites:
 related:
   - rag
   - context-windows
+  - embeddings
+  - what-is-a-language-model
+governance:
+  - gdpr
 interviewTags: ["memory", "state", "agents", "context"]
-status: stub
+status: complete
+verdict:
+  classification: situational
+  problem: "A base model keeps nothing between calls — frozen weights, a finite window — so a stateful assistant has to store and re-supply anything it should 'remember'."
+  simplerBaseline: "Resend the recent conversation, and once it gets long, a rolling summary. Most assistants need nothing more — the context window IS short-term memory."
+  mainCost: "A whole subsystem to store, retrieve, compact, and forget — plus a growing store of user history that is now a data-protection surface."
+sources:
+  - lewis-rag-2020
 updated: 2026-07-19
 ---
 
-> **Stub** — planned territory on the atlas. This concept will cover: why "memory" is not a
-> model feature but an engineering pattern (the weights don't learn from your chat), the
-> kinds (working/scratchpad, episodic history, semantic/long-term via retrieval), how memory
-> is really just RAG over your own past plus context management, the cost and staleness
-> trade-offs, and when a stateful agent actually needs it versus when it's complexity. It
-> builds on Tool calling and Workflows vs agents and moves along the autonomy spectrum toward
-> stateful agents.
+import MemoryTimeline from '../../../components/viz/MemoryTimeline.astro';
+
+A language model is a pure function of its input: given the same tokens it computes the same
+next-token distribution, and it keeps **nothing** from one call to the next. Its weights are
+frozen at inference (it does not learn from your chat — see [What a language model
+is](/concepts/what-is-a-language-model)), and its [context window](/concepts/context-windows)
+is finite. So "the assistant remembers my name" is never the model remembering — it is
+*engineering*: you stored the name somewhere and put it back into the prompt. **Memory** is
+that engineering — the machinery that carries information across turns and sessions and feeds
+the relevant parts back into a bounded window.
+
+> **Mental model: a desk with a notebook.** The model's context window is the desk — only so
+> much fits, and it is wiped after each task. Working memory is what is on the desk right now;
+> a notebook (long-term store) holds everything, and you copy the relevant page back onto the
+> desk when you need it. **Where the analogy breaks:** the notebook doesn't organise itself —
+> *you* decide what to write down, when to summarise, what to forget, and how to find the
+> right page again; and "remembering" is never the desk getting smarter, only better supplied.
+
+<MemoryTimeline />
+
+*Illustrative session; the token budgeting and the cosine ranking are computed by the real
+`src/lib/memory` module, the turn vectors are hand-placed.*
+
+## What problem existed before this?
+
+Before you add memory, every call starts from nothing. A chatbot that only sees the current
+message can't refer to what you said thirty seconds ago; an agent can't build on its own
+previous step. The obvious fix — **resend the whole conversation each turn** — works right up
+until the transcript outgrows the context window, at which point you either truncate (and the
+assistant abruptly "forgets" the start) or pay for an ever-larger window. And none of that
+survives a new session: close the tab and the model is a blank slate again, because the
+weights never recorded anything. There was no built-in place for state, because a base model
+is deliberately stateless.
+
+## Why was this invented?
+
+Because useful assistants and agents are *stateful*: they should remember your preferences,
+carry facts across a long conversation, and let an agent accumulate results over many steps
+(the [autonomy spectrum](/concepts/workflows-vs-agents) calls this a **stateful agent**).
+Memory is the layer that gives a stateless model the *appearance* of continuity without
+retraining it — you keep the state yourself and re-inject the relevant slice each call. It
+turns "one-shot function" into "ongoing collaborator" while the model underneath stays frozen
+and stateless.
+
+## How does it work?
+
+Memory splits into a **short-term** and a **long-term** part, and both are just context
+management:
+
+- **Working (short-term) memory** is the conversation you resend — it lives *in* the context
+  window. Because the window is finite, you keep the newest turns verbatim and, as it fills,
+  **compact** the oldest into a summary rather than dropping them outright. The visual above
+  shows this: five turns overflow a small window, so the oldest are summarised, cutting the
+  token cost — while losing detail (the specific "peanut allergy" fact vanishes from working
+  memory).
+- **Long-term (episodic / semantic) memory** stores past turns or facts outside the window and
+  **retrieves** the relevant ones on demand. Mechanically this is [RAG](/concepts/rag) pointed
+  at your own transcript: embed each stored item ([embeddings](/concepts/embeddings)), and when
+  a new query arrives, rank the store by similarity and pull the top matches back into the
+  prompt. In the visual, a later "what snack should I pack?" question re-surfaces the early
+  allergy turn by cosine similarity — even though the *most recent* turns were about a trip.
+  **Relevance beats recency**, which is the whole point of a long-term store.
+
+The pieces — token-budgeted buffer, summariser, embedder, retriever — are the ones earlier
+concepts already built. Memory is their composition, not new math.
+
+## Is it actually necessary?
+
+Usually not, and that honesty matters. For most assistants the context window *is* the memory:
+resend the recent turns, and once they get long, add a rolling summary. That covers a huge
+fraction of real products with no store, no retriever, no schema. You need a genuine memory
+**system** only when state must persist across sessions, when the history is far larger than
+any window, or when an agent runs long enough that it must recall its own earlier work. Reach
+for it when those are true — not by default.
+
+## What are the trade-offs?
+
+- **Space vs. detail.** Summarising older turns buys window space by spending detail; the
+  summary can drop exactly the fact you later need (which is why long-term retrieval exists as
+  a backstop). Lossy by construction.
+- **Relevance vs. recall.** Retrieval surfaces what's *similar* to the query, which can miss a
+  relevant memory phrased differently, or surface a stale one — the [retrieval-quality
+  ceiling](/concepts/rag) applies here too.
+- **Staleness and contradiction.** A store accumulates outdated or conflicting facts ("I live
+  in Berlin" / "I moved to Lisbon"); without forgetting or updating, memory confidently recalls
+  the wrong version.
+- **Cost and latency.** Every turn now embeds, retrieves, and re-packs — real work added to
+  each call.
+
+## What complexity does it introduce?
+
+A whole subsystem: a store (often a vector index), an embedding step, a retriever, a
+summariser/compactor, and policies for **what to store, when to summarise, and what to
+forget or expire** — plus their failure modes (bad retrieval, runaway summaries, contradictory
+records). And a standing pile of **user history** that must be secured, retained-or-deleted on
+policy, and reasoned about under privacy law. That last point is not incidental complexity —
+it is often the biggest cost of adding memory at all.
+
+## What simpler alternative exists?
+
+The rolling **context window + summary**. Keep the last N turns verbatim; when they approach
+the budget, replace the oldest with a short running summary — no store, no retriever, no
+embeddings. It's the same working-memory half of the picture above, minus the long-term store.
+For anything that must survive a new session, the next step up is a single retrieval store
+(RAG over the transcript) before any bespoke "cognitive architecture."
+
+## When should I use it?
+
+- State must **persist across sessions** (a personal assistant that recalls preferences next
+  week).
+- The relevant history is **far larger than the window** (months of conversation; a large
+  base of past interactions).
+- A **long-running or multi-session agent** must recall its own earlier steps, decisions, or
+  results to make progress.
+
+## When should I avoid it?
+
+- Single-turn or short conversations where the window already holds everything — adding a store
+  is pure complexity.
+- When a **rolling summary** would do: don't build episodic retrieval for a chat that never
+  exceeds a few thousand tokens.
+- When you'd store **sensitive personal data** without a retention, access, and deletion story —
+  then the right move is often to store *less*, not to build a bigger memory.
+- When you're reaching for memory to fix a problem it can't solve: memory carries **state**, it
+  does not make the model **learn** — the weights never change, so it won't close a capability
+  gap.
+
+## Built from what you already have
+
+The demo's engine lives in a few readable functions in `src/lib/memory/`: `packContext`
+(token-budgeted working memory with lossy compaction, reusing the prompt token estimate) and
+`EpisodicMemory` (long-term retrieval, reusing the embeddings cosine ranking). No new
+dependency, no framework — memory is the composition of the summariser, the embedder, and the
+retriever the earlier lessons already built.
+
+## Governance
+
+Long-term memory means **storing user conversation history**, which is personal-data
+processing under [GDPR](/governance/gdpr): it triggers purpose limitation, storage and
+retention limits, and the right to erasure (a user can ask you to forget them — your store must
+actually support deletion). The memory store is also a **data-protection and security surface**:
+it can accumulate special-category data, leak across users if access isn't scoped at retrieval
+time, and become an injection vector if untrusted content is stored and later retrieved into
+the prompt. Applicability depends on what you store, for whom, and in which jurisdiction — but
+"we added memory" almost always means "we now hold personal data," and should be designed that
+way from the start.

@@ -1,0 +1,13 @@
+---
+/**
+ * Composition root for the agent-memory viz: builds the scenes through the real `src/lib/memory`
+ * module at build time and hands them to the island. Real token and cosine maths over an
+ * illustrative session — labelled as such in the lesson.
+ */
+import { buildMemoryScenes } from '../../lib/viz/memory-scene';
+import MemoryTimelineIsland from './MemoryTimelineIsland';
+
+const scenes = buildMemoryScenes();
+---
+
+<MemoryTimelineIsland client:visible scenes={scenes} />
