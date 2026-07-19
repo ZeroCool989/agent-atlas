@@ -1,0 +1,178 @@
+---
+title: "What a Language Model Is"
+layer: foundation
+oneLiner: "A model that, given a sequence of tokens, predicts a probability distribution over the next one — trained by doing exactly that over a huge corpus, and run by doing it over and over."
+prerequisites:
+  - tokens
+related:
+  - sampling
+  - context-windows
+governance:
+  - eu-ai-act
+interviewTags: ["language-model", "llm", "next-token-prediction", "training", "inference", "autoregressive", "pretraining"]
+status: complete
+verdict:
+  classification: essential
+  problem: "Every other concept — prompting, embeddings, RAG, tool calling, agents — assumes you know what the thing in the middle actually does. Without a correct mechanical model of 'it predicts the next token,' the rest is cargo-culting: you can't reason about hallucination, cost, context limits, or why it can't 'remember' your last chat."
+  simplerBaseline: "For a narrow, well-defined task, a smaller purpose-built model or classical NLP (a classifier, a regex, a lookup table) is simpler, cheaper, and more predictable. A general LLM is worth its cost only when you genuinely need open-ended language over many tasks."
+  mainCost: "A statistical text model is not a database of facts and does not know what is true — it produces fluent, plausible text, which means confident wrong answers (hallucination) are a built-in property, not a bug to be fully patched. It is also expensive, non-deterministic, and opaque about why it produced any given token."
+sources:
+  - bengio-neural-probabilistic-language-model
+updated: 2026-07-19
+---
+
+import GenerationDemo from '../../../components/viz/GenerationDemo';
+
+Strip away the chat interface and a large language model does exactly one thing: given a
+sequence of [tokens](/concepts/tokens), it outputs a **probability distribution over which
+token comes next**. That's it. Producing a paragraph is that single operation run in a
+loop — predict a distribution, append one token, feed the longer sequence back in, predict
+again. "Writing," "answering," and "reasoning" are all names we give to that loop from the
+outside. Getting this one mechanical fact right is what lets every later concept make sense.
+
+> **Mental model: an autocomplete that read almost everything.** Your phone's keyboard
+> suggests the next word from your recent typing; a language model does the same thing,
+> trained on a colossal slice of human text, over long context, with a far richer sense of
+> what fits. **Where the analogy breaks:** the phone stores a small lookup table; the model
+> stores *learned structure*, so it can continue text it has never seen — and, for the same
+> reason, it will happily continue into confident nonsense, because "fits the pattern" is
+> not "is true."
+
+## What problem existed before this?
+
+For decades, "understanding language" meant hand-built rules and narrow, task-specific
+models: one system to classify sentiment, another to translate, another to answer
+questions — each engineered, brittle, and unable to transfer. The dream of one model that
+could handle open-ended language across tasks kept running into the same wall: language is
+too varied to enumerate with rules, and labelling enough examples for every task by hand
+is impossible. The unlock had to come from a task with effectively infinite free labels.
+
+## Why was this invented?
+
+Because next-token prediction *is* that task. Any piece of text is its own training data:
+hide the next token, ask the model to predict it, and the correct answer is simply the
+token that was actually there. This is **self-supervised** learning — no human labels
+needed — so it scales to essentially all the text you can gather. A model forced to predict
+the next token well enough, over enough text, has to internalise grammar, facts,
+associations, and patterns of argument, because those are what make the next token
+predictable. The surprise of the last decade is how much apparent capability falls out of
+that one objective at scale (Bengio et al. framed the neural version of this in 2003; the
+Transformer architecture and scale turned it into today's models).
+
+## How does it work?
+
+Two phases, and keeping them separate is the whole concept:
+
+1. **Training** — read a huge corpus and adjust the model's **weights** (billions of
+   numbers) by gradient descent so that its predicted next-token distribution matches the
+   text more and more often. This is expensive, done once, and produces a frozen set of
+   weights. A second, smaller phase — **alignment** (instruction tuning, then often RLHF) —
+   further shapes the model to follow instructions and behave helpfully, but it is the same
+   machinery fine-tuning the same weights.
+2. **Inference** — run the frozen weights forward. Feed in the tokens so far, get a
+   next-token distribution, pick one token (the separate [sampling](/concepts/sampling)
+   decision), append it, and repeat. This is **autoregression**. Crucially, the weights do
+   **not** change during inference: the model does not learn from your conversation.
+
+Watch inference happen — a tiny model, generating one token at a time:
+
+<GenerationDemo client:visible />
+
+The demo trains a two-token-memory (bigram) model on a few sentences, then generates from a
+prompt. Each step shows the real next-token distribution and appends the top token. It's a
+real language model, just a minuscule one — and its failure is instructive: with only
+two-token memory it quickly forgets the start of the sentence. Everything the Transformer
+and scale bought is, in a sense, a far better version of this loop with far longer memory.
+
+## Is it actually necessary?
+
+Understanding this: yes, unconditionally — it is the foundation the rest of the atlas
+builds on. *Using* a large general model: only when the task genuinely needs open-ended
+language across many situations. A great deal of production "AI" is a narrow classification
+or extraction problem where a small model or even classical code is more accurate, cheaper,
+and more predictable. "Do I need a general language model here, or have I reached for the
+biggest hammer available?" is a question worth asking on every project.
+
+## What are the trade-offs?
+
+- **Generality vs. reliability.** One model that does many language tasks is extraordinary
+  — but a general next-token predictor optimises for *plausible*, not *correct*, so it is
+  less reliable on any single task than a system built and tested for just that task.
+- **Capability vs. cost and latency.** Larger models are more capable and more expensive
+  per token and slower; more parameters is not free.
+- **Open vs. closed weights.** Open-weight models can be inspected, run locally, and
+  audited; closed models are often more capable but are a black box you rent.
+- **Fluency vs. honesty.** The very training that makes output fluent also makes wrong
+  answers fluent — the model has no separate signal for "I don't know."
+
+## What complexity does it introduce?
+
+- **Hallucination is structural.** Because the model fits the *statistics of text*, not a
+  database of facts, it will generate confident, well-formed statements that are false
+  whenever plausible-sounding text diverges from the truth. You manage this (grounding,
+  retrieval, verification); you do not fully eliminate it.
+- **No memory between calls.** Frozen weights mean the model learns nothing from your chat.
+  Anything it appears to "remember" was put back into its input as tokens — that's what
+  [context windows](/concepts/context-windows) and, later, memory systems are for.
+- **Non-determinism and opacity.** The same prompt can yield different text
+  ([sampling](/concepts/sampling)), and you cannot read *why* a given token was produced —
+  which complicates testing, debugging, and audit.
+- **Cost and scale are real engineering.** Training is a major undertaking; even inference
+  at scale is a serious systems problem. "Just call the model" hides a lot.
+
+## What simpler alternative exists?
+
+For a specific, bounded task, almost anything is simpler and often better: a **regular
+expression** or lookup table for structured extraction; a small **fine-tuned classifier**
+for sentiment or routing; classical **information retrieval** for finding facts (a language
+model is a poor place to *store* facts — retrieval is where facts should live). The honest
+rule is to reach for a general language model when the task is genuinely open-ended
+language, and to prefer the smallest, most testable component that meets the bar otherwise.
+There is no simpler *general* model — but most problems are not general.
+
+## When should I use it?
+
+Use a large language model when the task requires open-ended language understanding or
+generation that you can't practically enumerate: drafting and rewriting, summarising,
+answering questions over provided context, translating intent into structure, or acting as
+the reasoning core of an agent. It shines when *flexibility across many phrasings and tasks*
+is the requirement — exactly what narrow models can't give you.
+
+## When should I avoid it?
+
+Avoid it when a simpler component wins: exact, rule-expressible tasks; high-volume
+classification a small model handles more cheaply and predictably; anything requiring
+guaranteed correctness or full auditability of *why*; and — critically — as a **store of
+facts**. If you need the model to be right about specific, current, or private information,
+don't rely on what it absorbed in training; retrieve the facts and put them in the context.
+Also avoid treating it as a person that remembers you: between calls, it doesn't.
+
+## Common misconceptions
+
+- **"It looks things up / it has a database."** No — it has learned weights, not records.
+  It reconstructs plausible text; when the plausible text happens to be true, that's the
+  training paying off, not a lookup succeeding.
+- **"It learns from our conversation."** Not during inference — the weights are frozen.
+  In-context "learning" is just the model conditioning on tokens you supplied this call;
+  close the session and it's gone unless you store it yourself.
+- **"If it's just next-token prediction, it can't really reason."** "Just" is doing a lot
+  of work. To predict the next token well across code, math, and argument, the model has to
+  learn genuinely useful structure — enough to *appear* to reason and often act on it.
+  Whether that is "real" reasoning is a live debate; mechanically, it is still next-token
+  prediction, and it still fails in ways a reasoner wouldn't. Hold both facts at once.
+- **"Bigger is always better."** More parameters buys capability at rising cost and latency,
+  with diminishing returns; the right model is the smallest one that clears your bar.
+- **"Temperature / creativity is part of the model."** No — the model outputs a
+  distribution; how you pick from it is the separate [sampling](/concepts/sampling) step.
+
+## Build it, then own it
+
+The L0 build project behind this page is a real, tiny language model:
+[`src/lib/sim/language-model/next-token.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/sim/language-model/next-token.ts)
+— `trainNgram` counts next-token frequencies (its "weights"), `nextTokenDistribution`
+returns a genuine distribution, and `generate` runs the autoregressive loop, delegating the
+*pick* to a decoding function exactly as a real decoder hands off to
+[sampling](/concepts/sampling). Read it end to end, then say out loud why "training is
+counting/fitting, inference is running the frozen model forward, and generation is that loop
+repeated" — that three-part sentence is the interview-ready version of this concept, and the
+questions below test exactly it.

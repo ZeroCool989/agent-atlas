@@ -1,0 +1,17 @@
+type: paper
+title: "A Neural Probabilistic Language Model (Bengio et al., 2003)"
+url: "https://www.jmlr.org/papers/v3/bengio03a.html"
+ingestedAt: 2026-07-19
+routedTo:
+  - what-is-a-language-model
+decisions: >-
+  The foundational statement of the modern framing: a language model is a function that
+  predicts the probability distribution of the next token given the preceding ones, learned
+  from data rather than hand-built rules, with words represented as learned continuous
+  vectors so the model can generalize to unseen sequences. Routed to:
+  what-is-a-language-model — grounds the "next-token prediction, learned by fitting a
+  distribution over a corpus" spine and the "training fits weights / inference runs them
+  forward" distinction, and supplies the historical "why was this invented" (self-supervised
+  next-token prediction as the task with effectively infinite free labels). Predates and
+  motivates the Transformer; creates no new concept and contradicts nothing. Also seeds the
+  embeddings concept's distributional-representation lineage (noted, not re-filed).

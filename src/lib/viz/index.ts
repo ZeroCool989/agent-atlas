@@ -13,6 +13,12 @@ export {
   SAMPLING_DEMO_INPUT,
 } from './sampling-scene';
 export type { SamplingSceneInput } from './sampling-scene';
+export { createGenerationScene, GENERATION_DEMO_INPUT } from './generation-scene';
+export type {
+  GenerationScene,
+  GenerationSceneInput,
+  GenerationCandidate,
+} from './generation-scene';
 export type {
   ContextWindowSegment,
   ContextWindowStatus,

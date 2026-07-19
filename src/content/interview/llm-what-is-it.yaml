@@ -1,0 +1,39 @@
+question: "Mechanically, what is a large language model, and what does it actually compute?"
+concepts:
+  - what-is-a-language-model
+roles:
+  - engineer
+  - architect
+  - product
+difficulty: screen
+answers:
+  beginner: >-
+    A large language model is a program that predicts the next token. You give it a sequence
+    of tokens, and it outputs a probability for every possible next token. To write a
+    sentence it does this in a loop: predict a token, add it to the sequence, predict again.
+    It learned those probabilities by training on a huge amount of text — trying to guess the
+    next token and adjusting itself when it was wrong.
+  professional: >-
+    It's a function from a token sequence to a probability distribution over the vocabulary
+    for the next token. Text generation is autoregression: sample or greedily pick a token
+    from that distribution, append it, and re-run on the longer sequence. It's trained
+    self-supervised — next-token prediction over a large corpus, so every piece of text is
+    its own label — then usually aligned (instruction tuning, RLHF) to follow instructions.
+    The weights are frozen at inference; it doesn't learn from the conversation. That single
+    "predict the next token" framing explains most of its behavior, including why it
+    hallucinates: it's modeling the statistics of text, not looking facts up in a database.
+  deep: >-
+    Formally it estimates P(token | context) and factorizes sequence probability
+    autoregressively. Pretraining minimizes cross-entropy against the true next token over a
+    corpus; the capability that emerges is a side effect of having to compress the structure
+    of language and the world well enough to predict text. Alignment then reshapes the same
+    weights toward instruction-following and preferred behavior. Key consequences to reason
+    from: it optimizes plausibility, not truth (so confident errors are intrinsic); inference
+    is a fixed forward pass with frozen weights (no cross-call learning — "memory" is
+    re-supplied context); and decoding (how you pick from the distribution) is a separate
+    knob from the model itself. Almost every downstream design question — context management,
+    retrieval, verification, agent loops — is a response to one of those three facts.
+followUps:
+  - "Why does 'it predicts the next token' explain hallucination?"
+  - "What's the difference between pretraining and alignment (instruction tuning / RLHF)?"
+  - "If the weights are frozen at inference, how does it seem to 'remember' earlier in a chat?"
