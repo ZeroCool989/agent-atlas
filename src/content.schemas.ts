@@ -108,10 +108,33 @@ export const interviewSchema = z
   .strict();
 
 /** `governance` — framework pages (MDX) mapping regulation onto technical concepts. */
+export const GOVERNANCE_KINDS = [
+  'regulation',
+  'directive',
+  'standard',
+  'framework',
+  'guidance',
+] as const;
+
 export const governanceSchema = z
   .object({
     title: nonEmpty,
+    /** How this instrument binds: a law/regulation, a directive, a certifiable
+     * standard, a voluntary framework, or security guidance. Drives honest wording. */
+    kind: z.enum(GOVERNANCE_KINDS).optional(),
+    /** One-sentence description for the index and matrix. */
+    oneLiner: nonEmpty.optional(),
+    /** Who it actually binds (e.g. "providers and deployers of AI systems in the EU"). */
+    bindsWho: nonEmpty.optional(),
+    /** true = legally binding; false = voluntary/guidance. Omit if genuinely mixed. */
+    binding: z.boolean().optional(),
+    /** Concepts this framework touches (one direction of the matrix; the other is each
+     * concept's `governance:` ref — the matrix derivation unions both). */
     appliesTo: z.array(slugRef).default([]),
+    /** What the instrument actually requires, mapped to a technical control. */
+    obligations: z
+      .array(z.object({ requirement: nonEmpty, control: nonEmpty }).strict())
+      .default([]),
   })
   .strict();
 

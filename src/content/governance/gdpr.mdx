@@ -1,13 +1,39 @@
 ---
 title: "GDPR"
+kind: regulation
+binding: true
+oneLiner: "The EU data-protection law: governs any processing of personal data, including personal data placed in prompts, retrieved corpora, embeddings, and logs."
+bindsWho: "Controllers and processors handling the personal data of people in the EU/EEA, regardless of where the processing happens."
 appliesTo:
   - context-windows
+  - embeddings
+  - rag
+  - vector-search
+obligations:
+  - requirement: "A lawful basis for processing (Art. 6)."
+    control: "Establish and record a lawful basis for any personal data in prompts, corpora, or fine-tuning data."
+  - requirement: "Data minimization and purpose limitation (Art. 5)."
+    control: "Minimize personal data placed into context and retrieved sets; scope the corpus to the purpose."
+  - requirement: "Data-protection impact assessment for high-risk processing (Art. 35)."
+    control: "Run a DPIA where processing is likely high-risk to individuals."
+  - requirement: "Rights of access, rectification and erasure (Art. 15–17)."
+    control: "Be able to locate and remove an individual's personal data across stores, indexes, and logs."
+  - requirement: "Restrictions on international transfers (Ch. V)."
+    control: "Check data residency of vector stores and model APIs; use a valid transfer mechanism."
 ---
 
-The EU General Data Protection Regulation governs the processing of personal data.
+The **GDPR** (Regulation (EU) 2016/679) governs the **processing of personal data** —
+and an LLM system processes personal data in more places than teams expect: the prompt
+and conversation history, retrieved documents, the **embeddings** derived from them
+(derived personal data is still personal data), the **vector store** that indexes them,
+and the request/response logs.
 
-> **P0.6 fixture stub.** Relevance sketch to be developed in Phase 2: content placed
-> into a model's context window (conversation history, retrieved documents) constitutes
-> processing of any personal data it contains — retention, minimization, and
-> lawful-basis questions follow. Applicability always depends on use case, data, role,
-> and jurisdiction.
+The mappings here are **potential relevance**, not determinations — applicability depends
+on whether personal data is actually present, the purpose, the role (controller vs
+processor), and the jurisdiction. The atlas shows *where* the duty lands: minimization
+and lawful basis reach **context windows** and **RAG** (what you retrieve and inject),
+while access and erasure rights reach **embeddings** and **vector search** (you must be
+able to find and delete an individual's data in an index, not just in the source file).
+
+> Not legal advice. Confirm applicability and current guidance for any real processing
+> activity.

@@ -147,9 +147,11 @@ const statusNote: Record<string, string | undefined> = {
             <ul class="mt-1 space-y-1 text-sm">
               {data.governance.map((id) => (
                 <li>
-                  <span class="font-medium">{governanceById.get(id)?.data.title ?? id}</span>
+                  <a href={`/governance/${id}`} class="font-medium underline">
+                    {governanceById.get(id)?.data.title ?? id}
+                  </a>
                   {' — '}
-                  <span class="text-slate-600">linked framework; see its page for what it actually requires.</span>
+                  <span class="text-slate-600">see its page for what it actually requires.</span>
                 </li>
               ))}
             </ul>

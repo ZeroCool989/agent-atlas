@@ -1,0 +1,92 @@
+---
+/**
+ * The concept × regulation mapping matrix — the full grid of which frameworks touch which
+ * concepts, derived from frontmatter in both directions (never hand-maintained). Rows are
+ * the concepts that have at least one governance connection; columns are the frameworks.
+ * A filled cell links to that framework. Zero client JS.
+ */
+import { getCollection } from 'astro:content';
+
+import Base from '../../layouts/Base.astro';
+import { governanceLinks, linkKey } from '../../lib/governance/links';
+
+const [concepts, frameworks] = await Promise.all([
+  getCollection('concepts'),
+  getCollection('governance'),
+]);
+
+const govConcepts = concepts.map((c) => ({ id: c.id, governance: c.data.governance }));
+const govFrameworks = frameworks.map((f) => ({ id: f.id, appliesTo: f.data.appliesTo }));
+const links = governanceLinks(govConcepts, govFrameworks);
+
+const frameworkCols = frameworks
+  .map((f) => ({ id: f.id, title: f.data.title }))
+  .sort((a, b) => (a.title < b.title ? -1 : 1));
+
+// Only rows with at least one connection — an all-concepts grid would be mostly empty.
+const rows = concepts
+  .map((c) => ({ id: c.id, title: c.data.title, layer: c.data.layer }))
+  .filter((c) => frameworkCols.some((f) => links.has(linkKey(c.id, f.id))))
+  .sort((a, b) => (a.title < b.title ? -1 : 1));
+---
+
+<Base title="Governance matrix" description="Which regulations and standards touch which technical concepts — the full concept × framework grid, derived from frontmatter.">
+  <main id="main" class="mx-auto max-w-4xl space-y-6 px-6 py-12">
+    <header class="space-y-2">
+      <h1 class="text-3xl font-bold tracking-tight">Concept × regulation matrix</h1>
+      <p class="text-slate-600">
+        Every mapping between a technical concept and a governance framework, derived from
+        both directions of the content and unioned. A dot means potential relevance — click
+        it to see what the framework actually requires.
+      </p>
+      <p class="text-sm"><a href="/governance" class="underline">← Back to governance</a></p>
+    </header>
+
+    <div class="overflow-x-auto">
+      <table class="w-full border-collapse text-sm">
+        <caption class="sr-only">Concepts as rows, governance frameworks as columns; a link marks a connection.</caption>
+        <thead>
+          <tr class="border-b border-slate-300">
+            <th scope="col" class="py-2 pr-4 text-left font-semibold">Concept</th>
+            {
+              frameworkCols.map((f) => (
+                <th scope="col" class="px-2 py-2 text-left font-semibold">
+                  <a href={`/governance/${f.id}`} class="underline">{f.title}</a>
+                </th>
+              ))
+            }
+          </tr>
+        </thead>
+        <tbody>
+          {
+            rows.map((c) => (
+              <tr class="border-b border-slate-100">
+                <th scope="row" class="py-2 pr-4 text-left font-medium">
+                  <a href={`/concepts/${c.id}`} class="underline">{c.title}</a>
+                </th>
+                {frameworkCols.map((f) => {
+                  const connected = links.has(linkKey(c.id, f.id));
+                  return (
+                    <td class="px-2 py-2 text-center">
+                      {connected ? (
+                        <a
+                          href={`/governance/${f.id}`}
+                          class="font-semibold text-slate-800 underline"
+                          aria-label={`${c.title} connects to ${f.title}`}
+                        >
+                          ●
+                        </a>
+                      ) : (
+                        <span class="text-slate-200" aria-hidden="true">·</span>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </main>
+</Base>

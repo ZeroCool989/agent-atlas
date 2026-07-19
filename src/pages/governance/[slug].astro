@@ -1,0 +1,114 @@
+---
+/**
+ * A governance framework page: what it is, who it binds, its actual obligations mapped to
+ * technical controls, and every concept it connects to (unioned from both directions —
+ * this framework's `appliesTo` and any concept's `governance` ref). Zero client JS.
+ */
+import { getCollection, render } from 'astro:content';
+
+import Base from '../../layouts/Base.astro';
+import { conceptsForFramework } from '../../lib/governance/links';
+
+export async function getStaticPaths() {
+  const frameworks = await getCollection('governance');
+  return frameworks.map((framework) => ({
+    params: { slug: framework.id },
+    props: { framework },
+  }));
+}
+
+const { framework } = Astro.props;
+const { Content } = await render(framework);
+
+const [concepts, frameworks] = await Promise.all([
+  getCollection('concepts'),
+  getCollection('governance'),
+]);
+const conceptTitle = new Map(concepts.map((c) => [c.id, c.data.title]));
+const linkedConceptIds = conceptsForFramework(
+  framework.id,
+  concepts.map((c) => ({ id: c.id, governance: c.data.governance })),
+  frameworks.map((f) => ({ id: f.id, appliesTo: f.data.appliesTo })),
+);
+
+const { title, kind, binding, oneLiner, bindsWho, obligations } = framework.data;
+const bindingLabel =
+  binding === true ? 'Legally binding' : binding === false ? 'Voluntary / guidance' : null;
+---
+
+<Base title={title} description={oneLiner ?? `${title} — governance framework and its concept mappings.`}>
+  <main id="main" class="mx-auto max-w-3xl space-y-8 px-6 py-12">
+    <nav class="text-sm text-slate-500">
+      <a href="/governance" class="underline">Governance</a> · framework
+    </nav>
+
+    <header class="space-y-2">
+      <h1 class="text-3xl font-bold tracking-tight">{title}</h1>
+      <div class="flex flex-wrap gap-2 text-xs">
+        {kind && <span class="rounded bg-slate-100 px-2 py-0.5 font-medium text-slate-700">{kind}</span>}
+        {bindingLabel && <span class="rounded bg-slate-100 px-2 py-0.5 font-medium text-slate-700">{bindingLabel}</span>}
+      </div>
+      {oneLiner && <p class="text-lg text-slate-600">{oneLiner}</p>}
+      {bindsWho && (
+        <p class="text-sm text-slate-500">
+          <span class="font-medium text-slate-600">Who it binds:</span> {bindsWho}
+        </p>
+      )}
+    </header>
+
+    <section class="prose prose-slate max-w-none">
+      <Content />
+    </section>
+
+    {
+      obligations.length > 0 && (
+        <section aria-label="Obligations" class="space-y-3">
+          <h2 class="text-lg font-semibold">What it requires, mapped to a control</h2>
+          <table class="w-full border-collapse text-sm">
+            <thead>
+              <tr class="border-b border-slate-300 text-left">
+                <th class="py-2 pr-4 font-semibold">Requirement</th>
+                <th class="py-2 font-semibold">Technical control</th>
+              </tr>
+            </thead>
+            <tbody>
+              {obligations.map((o) => (
+                <tr class="border-b border-slate-100 align-top">
+                  <td class="py-2 pr-4">{o.requirement}</td>
+                  <td class="py-2 text-slate-600">{o.control}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )
+    }
+
+    <section aria-label="Connected concepts" class="space-y-2">
+      <h2 class="text-lg font-semibold">Concepts this touches</h2>
+      {
+        linkedConceptIds.length > 0 ? (
+          <ul class="flex flex-wrap gap-2">
+            {linkedConceptIds.map((id) => (
+              <li>
+                <a href={`/concepts/${id}`} class="rounded border border-slate-200 px-2 py-1 text-sm underline">
+                  {conceptTitle.get(id) ?? id}
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="text-sm text-slate-500">No concept connections declared yet.</p>
+        )
+      }
+      <p class="text-xs text-slate-500">
+        A connection means potential relevance, not that the framework necessarily applies —
+        applicability depends on role, use case, jurisdiction, and risk classification.
+      </p>
+    </section>
+
+    <p class="text-sm">
+      <a href="/governance/matrix" class="underline">See the full concept × regulation matrix →</a>
+    </p>
+  </main>
+</Base>

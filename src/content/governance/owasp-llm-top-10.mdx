@@ -1,0 +1,34 @@
+---
+title: "OWASP LLM Top 10"
+kind: guidance
+binding: false
+oneLiner: "A community-maintained security list of the most critical risks in LLM applications — prompt injection, insecure output handling, excessive agency, and more."
+bindsWho: "Voluntary security guidance for anyone building LLM applications; not a legal instrument, but a common baseline for security reviews."
+appliesTo:
+  - prompt-engineering
+  - tool-calling
+  - rag
+  - failure-modes
+obligations:
+  - requirement: "LLM01 Prompt injection — untrusted text steering the model."
+    control: "Isolate untrusted input, apply least privilege, and never trust model output as a command."
+  - requirement: "LLM02 Insecure output handling — trusting model output downstream."
+    control: "Validate, escape, and sandbox anything the model produces before it acts (tool args, HTML, SQL)."
+  - requirement: "LLM06 Excessive agency — too much tool power."
+    control: "Constrain tool permissions and scope; require confirmation for high-impact actions."
+  - requirement: "LLM08 Data / embedding poisoning — corrupting the corpus or index."
+    control: "Vet and provenance-track ingested content; treat the retrieval corpus as an attack surface."
+  - requirement: "LLM09 Overreliance — acting on plausible-but-wrong output."
+    control: "Human review for consequential decisions; disclose limitations; verify citations."
+---
+
+The **OWASP Top 10 for LLM Applications** is **security guidance** — a community-maintained
+list of the most critical risks specific to LLM systems. It is **not a law or standard**;
+it is a widely used checklist for security reviews.
+
+It touches the parts of the atlas where untrusted text meets action: **prompt engineering**
+(the injection surface grows with the untrusted content you assemble), **tool calling**
+(insecure output handling and excessive agency — the model's output becomes an action),
+**RAG** (the retrieval corpus is an attack surface — poisoned documents become "grounding"),
+and **failure modes** (overreliance on confident-but-wrong output). This is a **stub**; a
+fuller risk-by-risk treatment is planned, and the connections shown are accurate today.

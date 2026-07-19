@@ -1,14 +1,46 @@
 ---
 title: "EU AI Act"
+kind: regulation
+binding: true
+oneLiner: "The first comprehensive AI law: risk-based obligations on providers and deployers of AI systems, with a dedicated regime for general-purpose AI models."
+bindsWho: "Providers and deployers of AI systems, and providers of general-purpose AI (GPAI) models, that place systems on the EU market or whose output affects people in the EU."
 appliesTo:
+  - what-is-a-language-model
   - tokens
+  - failure-modes
+  - evaluation
+obligations:
+  - requirement: "Risk classification of the system (Art. 6, Annex III) before obligations attach."
+    control: "Document the intended purpose and determine the risk tier per deployment."
+  - requirement: "Risk-management system for high-risk AI (Art. 9)."
+    control: "A documented, iterated risk assessment with identified mitigations."
+  - requirement: "Technical documentation and record-keeping (Art. 11, Annex IV)."
+    control: "A model/system documentation pack kept current across versions."
+  - requirement: "Accuracy, robustness and cybersecurity (Art. 15)."
+    control: "Evaluation, testing and security controls with recorded results."
+  - requirement: "Human oversight for high-risk systems (Art. 14)."
+    control: "A human-in-the-loop or review step with authority to intervene."
+  - requirement: "Transparency to deployers and affected people (Art. 13, 50)."
+    control: "Disclose AI use and communicate the system's limitations."
+  - requirement: "GPAI model documentation and training-content summary (Art. 53, Annex XI/XII)."
+    control: "Training-data provenance and a published summary; scale is conventionally reported in tokens."
 ---
 
-The EU AI Act (Regulation (EU) 2024/1689) is the first comprehensive AI regulation:
-risk-based obligations on providers and deployers of AI systems, with a dedicated regime
-for general-purpose AI models.
+The **EU AI Act** (Regulation (EU) 2024/1689) is the first comprehensive AI regulation.
+It is **risk-based**: obligations attach according to how a system is classified —
+prohibited practices, high-risk systems, limited-risk (transparency) systems, and
+minimal-risk — plus a separate regime for **general-purpose AI (GPAI) models**. It binds
+**providers** (who develop or place systems on the market) and **deployers** (who use them
+professionally), and it reaches any system whose output is used in the EU.
 
-> **P0.2 fixture note:** framework stub proving the governance collection. The full page
-> (obligations table, concept mappings) is Phase 2. The `appliesTo: tokens` mapping is
-> real, if narrow: GPAI documentation obligations (Annex XI) reference training scale,
-> conventionally reported in tokens.
+The mappings on this page are **potential relevance**, not determinations: whether a
+specific obligation applies depends on the concrete system, its risk classification, the
+actor's role, and the jurisdiction. The atlas shows *which technical mechanism a rule
+reaches* — the accuracy and robustness duty (Art. 15) is where **evaluation** and
+**failure modes** become compliance evidence, and the GPAI training-documentation duty is
+where **tokens** (training scale) and **what a language model is** (training vs inference)
+surface.
+
+> Not legal advice. Article references are to the 2024 consolidated text and are given for
+> orientation; confirm the current numbering, timelines, and delegated acts for any real
+> assessment.
