@@ -1,0 +1,55 @@
+question: "When is multi-agent the wrong call versus a single agent or a workflow — and how do you evaluate a multi-agent system?"
+concepts:
+  - multi-agent-systems
+  - workflows-vs-agents
+roles:
+  - architect
+  - consultant
+  - engineer
+difficulty: deep
+answers:
+  beginner: >-
+    Multi-agent is the wrong call most of the time. If you can write the steps down in advance, use a
+    workflow; if one agent with good tools can do it, use one agent. Reach for multiple agents only
+    when the task genuinely exceeds one agent — too much context, truly different skills, or a need for
+    independent checking. And you evaluate it as a whole system, end to end, not one model at a time —
+    because the bug is usually in the hand-off between agents, not inside any one of them.
+  professional: >-
+    I start from the assumption that multi-agent is over-used and make it justify itself. The ladder is:
+    can a single well-structured prompt answer it? then a deterministic workflow where I did the
+    decomposition once in code? then one tool-using agent with a tight step limit? Only if the task
+    truly exceeds one agent — a context too large for one window, genuinely conflicting skills like
+    writing versus adversarial fact-checking, or a real need for INDEPENDENT verification a
+    self-reviewing agent can't give — does a system earn its place. It's the wrong call when the
+    "subtasks" are really one coherent task split for aesthetics, when I can't afford the multiplied
+    cost and latency, or when I can't evaluate system-level behavior. On evaluation: I can no longer
+    just score a model. I need end-to-end tests on the whole system's output, per-hand-off checks
+    (did each agent get what it needed, did composition merge correctly), traces across agents to
+    localize failures, and adversarial cases for the coordination failure modes — cascading errors,
+    talking past each other, looping. If I can't state what each agent gives me that one agent couldn't,
+    I don't have a multi-agent problem.
+  deep: >-
+    The decision hinges on whether the task's structure genuinely decomposes into parts that are
+    different KINDS of work, or whether I'm just splitting one coherent job. A good split buys context
+    isolation, specialization, and — the strongest reason — independence: a critic with its own context
+    can catch what a self-reviewing agent structurally cannot, because self-review shares the writer's
+    blind spots. A bad split buys only coordination cost and new failure modes. Evaluation is where
+    multi-agent quietly breaks: system behavior is emergent, so a change to one agent's prompt can shift
+    the whole system's output in ways no single-agent eval would catch. That means you evaluate the
+    system as the unit — golden end-to-end cases, plus instrumentation at every hand-off so you can
+    attribute a failure to a specific message rather than guessing. The honest reframing of most
+    "let's use multiple agents" requests is "let's write the workflow" — and the tell is that nobody can
+    say what independent value the second agent adds.
+followUps:
+  - "How would you instrument the hand-offs so you can localize a failure to a specific message?"
+  - "What would make you split a single critic step into its own agent rather than an in-loop reflection pass?"
+  - "How do you keep a re-delegation loop from running unbounded?"
+criticalThinking: true
+practicalExample: >-
+  The deterministic orchestrator in this repo (src/lib/multi-agent/orchestrate.ts) makes the trade-off
+  concrete: a supervisor delegates research → draft → verify to three specialized workers, an
+  independent critic rejects a claim the writer invented, and the supervisor re-delegates a fix — all
+  under step and re-delegation caps so it ends honestly rather than looping. Its demo (demo.ts) pairs
+  the run with a single-agent baseline both ways: multi-agent wins the vetted-brief task (the
+  independent critic catches a mistake self-review misses) at ~9× the model calls, and a single agent
+  wins a trivial lookup where the three-agent version is pure overhead.
