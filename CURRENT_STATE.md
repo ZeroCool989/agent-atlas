@@ -36,6 +36,15 @@ index, per-framework pages, and the concept×regulation **mapping matrix**, with
 GDPR enriched and NIST AI RMF + OWASP LLM Top 10 stubs (accurate appliesTo mappings).
 Suite: 426 unit, 45 e2e, build 30 pages — green at 52b6440.
 
+**Phase 2/3 — L4 + security + SRS (2026-07-19, a1376d5).** **multi-agent-systems** (L4 capstone
++ the org-chart visualizer, agents-as-tools reusing planning/model types), **prompt-injection**
+(core-mechanism security — honestly "not solved", defenses architectural), and **spaced repetition
+(SM-2)** with a due-today review queue. **21 complete concepts, 2 stubs** (voice-agents, observability).
+Interview 89. Suite: 645 unit, ~68 e2e, build 54 pages — green. Curriculum now spans L0-L4 + the
+reliable-agent tier (evaluation/verification/reflection/security). Remaining: L5 (observability,
+reliability-patterns, cost), L6 governance (DORA/ISO-42001/FINMA), voice-agents, framework comparisons,
+interview→~150.
+
 **Phase 2 deep (2026-07-19, 45168b7).** Reliable-agent tier done: **reflection** (self-critique
 loop reusing the eval harness), **verification** (independent-check pipeline reusing schema/value/
 grounding/policy checks), **computer-use** (L4 GUI agent; safety enforced by the runtime, not the
