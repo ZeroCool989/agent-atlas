@@ -34,7 +34,7 @@ test('reflection lesson: mental model, steppable critique viz hydrates, governan
   await expect(page.getByText('100%').first()).toBeVisible();
 
   // Governance section makes the independence point.
-  await expect(page.getByText(/not independent assurance/)).toBeVisible();
+  await expect(page.getByText(/not independent assurance/).first()).toBeVisible();
 
   // Interview package renders the critical-thinking question.
   await expect(
