@@ -1,0 +1,59 @@
+question: "What is the safety and governance surface of a computer-use agent, and what controls are mandatory?"
+concepts:
+  - computer-use
+roles:
+  - governance
+  - architect
+  - engineer
+difficulty: deep
+answers:
+  beginner: >-
+    A computer-use agent can take real, irreversible actions on a real machine — delete files, send
+    messages, make purchases — so its safety surface is large. Two risks stand out: irreversible actions
+    taken by mistake, and prompt injection through on-screen content, where text on a page or in an email
+    tells the agent to do something and it can't tell that from its real task. The mandatory controls are
+    sandboxing (limit what the machine can reach), human confirmation before consequential actions, and
+    least-privilege allow-listing so the agent can only do a narrow set of things.
+  professional: >-
+    Computer use combines high autonomy with real-world actuation, which is exactly the profile
+    governance frameworks scrutinize. The concrete risks: (1) irreversible actions — a mis-grounded or
+    wrong decision isn't a bad string, it's a sent email or a deleted record; (2) prompt injection via
+    the screen — the agent's entire observation is pixels, so any adversarial text rendered on screen is
+    an injection channel, and it's live, not hypothetical; (3) over-broad capability — an agent that can
+    drive the whole desktop can do far more than its task needs. The required controls map onto those:
+    sandbox the environment (a constrained VM/profile, limited network and filesystem), require human
+    confirmation for consequential and irreversible actions, and allow-list capabilities to least
+    privilege so an injection or a misclick has a bounded blast radius. On the regulatory side, the EU AI
+    Act's human-oversight expectations for higher-risk systems push toward exactly this — a person able to
+    review or interrupt consequential actions rather than fire-and-forget autonomy — and its logging and
+    record-keeping expectations mean the action trace (what was proposed, what was gated, what ran) is a
+    governance asset. OWASP's LLM Top 10 names prompt injection and excessive agency directly, which is
+    what the confirmation gate and least-privilege allow-list mitigate. None of these frameworks applies
+    merely because a system uses computer use — applicability depends on the use case, sector, data, and
+    jurisdiction — but the controls are the evidence you'll need when one does apply, and they make the
+    system safer regardless.
+  deep: >-
+    The subtlety is that the confirmation gate and the sandbox are not the model's job and can't be — the
+    policy is the untrusted party. A vision model has no reliable way to distinguish the user's goal from
+    text that merely appears on the screen, so "make the model resist injection" is not a control you can
+    depend on; it's defense-in-depth at best. The dependable controls live in the runtime: deny-by-default
+    confirmation on consequential actions, an allow-list of permitted capabilities, a sandbox that bounds
+    what any action can reach, and a complete audit trace. That's why a fooled policy proposing a
+    destructive action should still be harmless — the gate refuses it. Governance-wise this is the human-in-
+    the-loop and least-privilege story made mechanical: the EU AI Act's oversight and logging expectations,
+    ISO 42001-style management-system controls, and OWASP's excessive-agency guidance all point at
+    reviewable, interruptible, bounded autonomy with an audit trail. The honest position: computer use can
+    be operated responsibly, but only with the runtime controls in place; without them, its combination of
+    autonomy and real actuation is precisely the risk profile these frameworks exist to constrain.
+followUps:
+  - "Why can't 'train the model to resist injection' be the primary control, and what carries the load instead?"
+  - "Which actions would you put behind a mandatory human confirmation, and how would you draw that line?"
+  - "What would you log so a computer-use run is auditable after an incident?"
+criticalThinking: false
+governanceAngle: >-
+  A computer-use agent takes real, irreversible actions on a real machine and reads an injectable screen,
+  so the EU AI Act's human-oversight and record-keeping expectations for higher-risk systems favor
+  confirmation gates and audit traces over fire-and-forget autonomy, and OWASP's prompt-injection and
+  excessive-agency guidance maps onto sandboxing, least-privilege allow-listing, and human confirmation as
+  the required controls — applicability depends on use case, sector, and jurisdiction, but the controls are
+  both the risk mitigation and the audit evidence.

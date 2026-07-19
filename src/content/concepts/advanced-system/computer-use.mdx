@@ -1,0 +1,194 @@
+---
+title: "Computer use (GUI agents)"
+layer: advanced-system
+oneLiner: "An agent that operates a graphical computer the way a person does: it sees a screenshot, decides a click or keystroke at a coordinate, the action runs, a new screenshot returns, loop — the fallback for software with no API, at the cost of real actions on a real machine."
+prerequisites:
+  - tool-calling
+  - workflows-vs-agents
+related:
+  - planning
+  - multi-agent-systems
+governance:
+  - eu-ai-act
+  - owasp-llm-top-10
+interviewTags: ["computer-use", "gui-agent", "grounding", "prompt-injection", "autonomy", "sandboxing"]
+status: complete
+verdict:
+  classification: situational
+  problem: "Some software has no API. A legacy desktop app, a third-party website, a locked-down internal tool — the only way in is the graphical interface a human would use. Nothing below the pixels is reachable."
+  simplerBaseline: "Prefer the most direct integration that exists: a real API or SDK first; then a deterministic script against a stable surface (Playwright against the DOM, an RPA connector). Computer use is the last resort for when there is genuinely no programmatic access — not a default."
+  mainCost: "The agent takes real, often irreversible actions on a real machine, grounding decisions to fragile screen coordinates, while its entire input — the screen — is an attacker-writable prompt-injection channel. Safety has to come from the runtime (sandbox, confirmation, least privilege), never from the model."
+updated: 2026-07-19
+---
+
+import ComputerUseDemo from '../../../components/viz/ComputerUseDemo';
+
+Some software has no API. A twenty-year-old desktop app, a third-party website you can't
+integrate with, an internal tool locked behind a UI — the only door is the graphical
+interface a person would use. **Computer use** (a *GUI agent*) is the answer of last resort:
+an agent that operates that interface the way a human does. It receives a **screenshot**,
+decides an **action** — click at `(x, y)`, type text, scroll, press a key — the action is
+executed, a **new screenshot** comes back, and it loops until the task is done. It is a
+[tool-using agent](/concepts/tool-calling) whose two tools are *perceive the screen* and
+*act on the screen*.
+
+> **Mental model: a remote worker who can only see screenshots and only move the mouse and
+> type.** You hand them a goal. They can look at a picture of the screen and send clicks and
+> keystrokes — nothing else. To act, they must point at a spot in the picture and hope the
+> right thing is there.
+> **Where the analogy breaks:** a real remote worker *knows* the red "Delete account" button
+> is dangerous and is suspicious of a pop-up that tells them to wipe the disk. This agent
+> reads pixels: it cannot tell its actual task from text that merely appears on the screen,
+> and a coordinate carries no identity, so a click that lands a few pixels off silently does
+> the wrong thing. The worker's judgment is exactly what's missing — which is why the safety
+> has to live in the runtime around the loop, not in the agent.
+
+## What problem existed before this?
+
+You can automate software that exposes a programmatic surface — an API, an SDK, a scriptable
+DOM. But a large amount of real software exposes none of that: legacy line-of-business apps,
+vendor portals with no API, sites that actively resist scripting, environments where you
+simply aren't allowed to install an integration. For those, the only interface is the one a
+human uses: windows, buttons, text fields, rendered on a screen. Before GUI agents, the
+options were "a person does it by hand" or "a brittle screen-scraping macro pinned to exact
+pixel positions." Neither adapts when the task or the layout changes.
+
+## Why was this invented?
+
+To let a model drive that human interface directly — to perceive a screen and act on it — so
+software with no API can still be automated by describing a *goal* rather than hard-coding
+coordinates. Vision-capable models made the perceive half possible: give the model a
+screenshot and it can, often, locate the thing you asked for and propose where to click. Wrap
+that in the ordinary agent loop and you get a system that can, in principle, operate any
+software a person can, without an integration built for it. That reach is the whole appeal —
+and, as the rest of this page argues, the source of its cost.
+
+## How does it work?
+
+The loop is the [tool-calling](/concepts/tool-calling) loop with two specific tools. Watch it
+run over a mock screen — the agent is asked to reply to a message. Notice three things: an
+on-screen banner tries to steer it into deleting the account and the runtime *refuses* that;
+the genuinely consequential "Send" pauses for confirmation; and every action grounds to a
+crosshair coordinate that could have missed:
+
+<ComputerUseDemo client:visible />
+
+Each turn: **perceive** — take a screenshot (pixels, not a DOM). **Decide** — the model, seeing
+that screenshot and nothing else, proposes one action and *grounds* it to a coordinate ("click
+Reply" becomes "click at `(80, 150)`"). **Act** — the runtime executes the coordinate action and
+captures a fresh screenshot, which becomes the next observation. Repeat until the model signals
+done or a step bound stops it. The mechanism is the deterministic loop in this repo
+(`src/lib/computer-use/`): a `Policy` (goal + screenshot → action), a `World` (apply an action,
+return the next screen), and a runtime that classifies each action's consequence and gates it.
+The policy is a fixed function here; swap it for a vision-model call and the loop is unchanged —
+that substitution is the point of ADR-0005.
+
+Two details carry the whole lesson. First, the screenshot exposes *appearance* — a label, a
+shape, a position — but never *consequence*: the agent cannot read off the pixels that a button
+deletes an account. Second, an action is a raw coordinate, so it is always "well-formed" and only
+sometimes *correct*.
+
+## Is it actually necessary?
+
+Only when there is no better door. If an API exists, use the API. If the steps are fixed and the
+surface is scriptable, write a deterministic script. Computer use is necessary precisely and only
+when a task must touch software that offers no programmatic access at all — and even then it is a
+choice to justify, because you are trading reliability for reach. Treat "we used a GUI agent" as a
+documented last resort with a stated reason, never as the default way to automate.
+
+## What are the trade-offs?
+
+You buy the ability to operate *any* interface a human can, and you pay in reliability and risk.
+Grounding to coordinates is fragile: dynamic layouts, async loading, animations, and differing
+resolutions all move the target between the screenshot and the click, so a valid action lands on
+the wrong element or on nothing — and there is no name-based safety net. The loop is slow and
+token-heavy (a full screenshot per turn). And the agent takes *real* actions on a *real* machine:
+a mistake here is not a bad string, it is a sent message, a deleted file, a submitted payment.
+Where a JSON [tool call](/concepts/tool-calling) is either well-formed or rejected, a click is
+always well-formed — which is exactly why "it did something" and "it did the right thing" come
+apart constantly.
+
+## What complexity does it introduce?
+
+A runtime with serious responsibilities, because the model's proposal is untrusted and its effects
+are real. You need: a **sandbox** so any action's blast radius is bounded (a constrained VM or
+profile, limited network and filesystem); a **confirmation gate** that pauses consequential and
+irreversible actions for a human — deny-by-default; **least-privilege allow-listing** so the agent
+can only reach the narrow set of things the task needs; **step and time bounds** so a confused loop
+stops; and a complete **audit trace** of what was proposed, what was gated, and what ran. In the
+demo, a policy *fooled* by the on-screen banner still causes no harm, because the gate refuses the
+destructive action — the safety came from the runtime, not from the model being clever. That is the
+design rule: the untrusted party never owns the safety decision.
+
+## What simpler alternative exists?
+
+A ladder, cheapest and safest first: (1) a **real API or SDK** — deterministic, testable, no
+screen; (2) a **deterministic script** against a stable surface — [Playwright](https://playwright.dev)
+against the DOM, an official RPA connector — the developer writes the steps once, and they fail the
+same way every time so you can test them; (3) a plain [tool-using agent](/concepts/tool-calling)
+against whatever API *does* exist. Computer use sits below all of these and is reached for only when
+none of them can touch the software at all. An API call you can unit-test beats a click you have to
+hope lands.
+
+## When should I use it?
+
+When a task genuinely requires operating software that exposes no API and no scriptable surface — a
+legacy desktop app, a third-party portal, a locked-down environment — *and* you can constrain the
+blast radius: sandbox the environment, allow-list the capabilities, and put human confirmation on
+every consequential or irreversible step. Good fits are low-stakes, well-bounded, human-supervised
+automations where the reach computer use provides is the thing you can't otherwise get.
+
+## When should I avoid it?
+
+Whenever an earlier rung of the ladder is available — almost always. Avoid it when the task is
+high-stakes or irreversible and you can't wrap it in confirmation and sandboxing; when the UI changes
+often enough that coordinate grounding will keep breaking; when latency or cost matter; and any time
+"use a GUI agent" is reaching for an impressive capability to avoid the harder work of getting API
+access. If you can't afford the runtime controls — sandbox, confirmation, least privilege, audit —
+the honest answer is to not automate that task with a GUI agent at all.
+
+## Where it sits on the autonomy spectrum
+
+Computer use is an [advanced system](/concepts/workflows-vs-agents): a tool-using, stateful agent
+with **perception** (it reads the screen) and **actuation** (it drives a real mouse and keyboard).
+It is high on the autonomy spectrum and therefore high on risk — more of the world is reachable per
+model decision, and the decisions act on a real machine. It is *not* a new rung of the ladder; it is
+the tool-using agent pointed at a uniquely hostile action space and a uniquely dangerous observation
+channel. Everything the [tool-calling](/concepts/tool-calling) lesson says about the runtime owning
+validation, bounds, and allow-lists applies here with the stakes turned up.
+
+## Security and governance
+
+This is where a computer-use system is won or lost, and every control lives in the runtime:
+
+- **Prompt injection via the screen.** The agent's entire input is the screenshot, so *any* text
+  rendered on it — a banner, an email body, a fake dialog — is an injection vector, and the model has
+  no reliable way to tell the user's goal from text that merely appears. This is a live attack, not a
+  hypothetical. "Train the model to resist it" is defense-in-depth at best; the untrusted party cannot
+  certify its own input. [OWASP's LLM Top 10](/governance/owasp-llm-top-10) names both prompt injection
+  and *excessive agency* directly.
+- **Irreversible real-world actions.** Delete, send, pay, submit — a mis-grounded or injected action
+  here is a real consequence. The **confirmation gate** (deny-by-default on consequential actions) and
+  **sandboxing** (bounding what any action can reach) are what keep a wrong action small and reversible.
+- **Least privilege.** An agent that can drive the whole desktop can do far more than its task needs.
+  Allow-list capabilities to the narrow set required, so an injection or a misclick has a bounded blast
+  radius.
+- **Human oversight and audit.** The [EU AI Act](/governance/eu-ai-act)'s human-oversight expectations
+  for higher-risk systems favor exactly this shape — a person able to review or interrupt consequential
+  actions rather than fire-and-forget autonomy — and its logging expectations make the action trace
+  (proposed → gated → ran) a governance asset. None of these frameworks applies *merely because* a
+  system uses computer use; applicability depends on the use case, sector, data, and jurisdiction. What
+  the controls determine is the *evidence you will have*, and the safety you will have, when a framework
+  does apply.
+
+## Build it, then own it
+
+The whole loop is a few readable files in this repo:
+[`loop.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/computer-use/loop.ts) (perceive
+→ decide → gate → act, with the confirmation gate and step bound),
+[`screen.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/computer-use/screen.ts) (the
+mock screen, and the `elementAt` grounding step where misclicks live), and
+[`demo.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/computer-use/demo.ts) (a
+provenance-blind policy that is fooled by an on-screen instruction, and the allow-list that refuses it).
+Read `loop.ts` and find where the runtime — never the model — decides whether an action may run; then try
+the interview questions below.

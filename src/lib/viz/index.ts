@@ -83,3 +83,10 @@ export type {
   VerificationGateView,
   GateStatus,
 } from './verification-scene';
+export { createComputerUseScene, COMPUTER_USE_DEMO } from './computer-use-scene';
+export type {
+  ComputerUseScene,
+  ComputerUseSceneInput,
+  SceneElement,
+  SceneStatus,
+} from './computer-use-scene';

@@ -1,0 +1,54 @@
+question: "When should you NOT use computer use, and what is the safer alternative?"
+concepts:
+  - computer-use
+  - workflows-vs-agents
+  - tool-calling
+roles:
+  - architect
+  - consultant
+  - product
+difficulty: deep
+answers:
+  beginner: >-
+    Don't use computer use whenever a more direct path exists. If there's an API, call the API. If
+    the steps are fixed, write a deterministic script (Playwright, RPA). Computer use — driving pixels
+    and coordinates — is the least reliable option and carries the biggest safety risk, because it
+    takes real actions on a real machine. It's the fallback for when there is genuinely no API and the
+    UI is the only way in, not a default. The rule: prefer the most direct, most deterministic
+    integration the system offers, and drop to computer use only when nothing better is reachable.
+  professional: >-
+    The decision is a ladder, cheapest and safest first: (1) a real API or SDK — deterministic,
+    testable, no screen; (2) a structured automation against a stable surface — Playwright against the
+    DOM, an official RPA connector; (3) only if there is no programmatic access at all — a legacy
+    desktop app, a third-party site you can't integrate with, a locked-down environment — does computer
+    use earn consideration. You avoid it when any earlier rung is available, when the task is
+    high-stakes or irreversible (payments, sending communications, deleting data) and you can't wrap it
+    in confirmation and sandboxing, when the UI changes often enough that coordinate grounding will
+    break, or when latency and cost matter (a screenshot-decide loop is slow and token-heavy). The
+    safer alternative is almost always "integrate at a lower level": an API call you can unit-test beats
+    a click you have to hope lands. Computer use trades reliability for reach — you take that trade only
+    when reach is the thing you can't otherwise get.
+  deep: >-
+    The trap is treating computer use as a general automation tool because it's impressive in a demo. It
+    is a last resort, and the reasoning is risk-adjusted, not just capability. A deterministic script
+    fails the same way every time and you can test it; a computer-use agent fails stochastically —
+    mis-grounded clicks, dynamic UIs, injected on-screen text — and each failure can take a real,
+    irreversible action. So the comparison isn't "can it do the task" (often yes) but "what does a
+    wrong action cost and can I bound it." That reframes the answer: use computer use only when there is
+    no API and no scriptable surface AND you can constrain the blast radius — sandbox the environment,
+    allow-list the capabilities, and require human confirmation on every consequential step. If you
+    can't afford those controls, the honest recommendation is to not automate that task with an agent at
+    all, or to invest in getting API access. "We used computer use" should be a documented last resort
+    with a stated reason, the same discipline the whole autonomy spectrum demands: add capability only
+    when the task genuinely needs it, and here the capability is unusually expensive and unusually risky.
+followUps:
+  - "You have an internal tool with no API. Walk me from 'automate it' to whether computer use is the right call."
+  - "How would a frequently-changing UI change your build-vs-avoid decision, and what would you monitor?"
+  - "What would make you refuse to ship a computer-use automation even though it technically works?"
+criticalThinking: true
+practicalExample: >-
+  The confirmation gate in this repo (src/lib/computer-use/loop.ts, with the scenario in demo.ts) makes
+  the trade-off concrete: destructive and consequential actions can't run without passing an injected
+  confirm gate (a human/allow-list stand-in), and the demo shows a fooled policy's irreversible
+  "Delete account" click refused before it executes — the bounded blast radius a deterministic Playwright
+  script gets for free.

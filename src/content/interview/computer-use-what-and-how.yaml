@@ -1,0 +1,51 @@
+question: "What is computer use (a GUI agent), and how does the perceive–decide–act loop actually work?"
+concepts:
+  - computer-use
+  - tool-calling
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Computer use is an agent that operates a graphical computer the way a person does. It gets a
+    screenshot, decides an action — click at these coordinates, type this, scroll, press a key —
+    the action is executed, a new screenshot comes back, and it loops until the task is done. It's
+    a tool-using agent whose tools are "see the screen" and "act on the screen." You use it to
+    automate software that has no API — legacy desktop apps, arbitrary websites.
+  professional: >-
+    Mechanically it's the ordinary tool-using agent loop with two specific tools: perceive
+    (take a screenshot) and act (click/type/scroll/key). Each turn the model sees a screenshot —
+    pixels, not a DOM — and must ground its intent to a concrete screen coordinate: "click Reply"
+    becomes "click at (80, 150)." The runtime executes that coordinate action, captures a fresh
+    screenshot, appends it as the next observation, and the loop repeats until the model signals
+    done or a step bound is hit. The hard parts are all in that grounding-and-observing cycle:
+    perception is by appearance so the agent can't read a button's *consequence* off its pixels;
+    grounding to coordinates is brittle because a shifted layout or a few-pixel error clicks the
+    wrong thing; and the screen the agent reads may contain adversarial text. So the design that
+    matters isn't the loop — it's the runtime around it: step bounds, a confirmation gate on
+    consequential actions, and least-privilege sandboxing.
+  deep: >-
+    The right frame is: computer use is the *same* loop as tool calling (context → decide → execute
+    → observe → repeat), specialized to a screen. That equivalence is load-bearing because every
+    tool-calling lesson transfers: the model only ever *proposes*; the runtime owns execution,
+    validation, and bounds. What computer use adds is a uniquely hostile version of two known
+    problems. First, grounding: unlike a JSON tool call with typed arguments, the action space is
+    raw coordinates over pixels, so "well-formed" and "correct" diverge constantly — the model can
+    emit a perfectly valid click that lands on the wrong element. Second, the observation channel is
+    the whole screen, so any text rendered on it — a banner, an email body, a fake dialog — is a
+    prompt-injection vector, and the agent can act with real, irreversible effect on the actual
+    machine. The honest whiteboard answer is that the loop is trivial and the reliability and safety
+    scaffolding is the entire engineering problem: bounded steps, human confirmation for consequential
+    actions, allow-listed capabilities, and a sandbox — because a mis-grounded or injected action here
+    isn't a bad string, it's a deleted file or a sent message.
+followUps:
+  - "Why is grounding an intent to a screen coordinate harder and more brittle than a typed tool call?"
+  - "The agent sees a screenshot — what can it NOT read off the pixels, and why does that matter for safety?"
+  - "Where does the runtime, not the model, have to own the safety decision, and what does it do there?"
+criticalThinking: false
+practicalExample: >-
+  The perceive → decide → act loop in this repo (src/lib/computer-use/loop.ts) runs the exact shape
+  over a mock screen: screenshot → the policy proposes a coordinate action → the runtime classifies
+  consequence and gates it → the world applies it → next screenshot. The policy is a plain injected
+  function, so swapping it for a vision-model call leaves the loop unchanged (ADR-0005).
