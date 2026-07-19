@@ -34,3 +34,6 @@ coverage/
 
 # jetbrains setting folder
 .idea/
+
+# agent worktrees (never track)
+.claude/worktrees/
