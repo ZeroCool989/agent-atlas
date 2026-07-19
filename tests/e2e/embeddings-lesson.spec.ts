@@ -15,6 +15,10 @@ test('embeddings lesson: mental model, steppable retrieval viz hydrates, governa
   // The steppable island hydrates: advancing reveals the nearest neighbor and its real score.
   const stepper = page.getByRole('group', { name: 'Nearest-neighbor ranking of king' });
   await stepper.scrollIntoViewIfNeeded();
+  // Wait for the client:visible island to hydrate before interacting (Astro drops the
+  // `ssr` attribute from <astro-island> once hydrated) — clicking before hydration is a race.
+  const island = page.locator('astro-island', { has: stepper });
+  await expect(island).not.toHaveAttribute('ssr', /.*/);
   const next = stepper.getByRole('button', { name: 'Next' });
   await expect(next).toBeEnabled();
   await next.click();
