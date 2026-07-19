@@ -43,7 +43,7 @@ test.describe('concept index', () => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     await page.goto('/concepts?layer=core-mechanism'); // params inert without JS
-    await expect(page.locator('li[data-layer]')).toHaveCount(7);
+    await expect(page.locator('li[data-layer]')).toHaveCount(8);
     await context.close();
   });
 });

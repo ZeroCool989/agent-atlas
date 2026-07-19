@@ -166,8 +166,7 @@ versions and provider guarantees, not just a zero.
 - **"Temperature controls how smart / creative the model is."** It controls the *shape of
   the draw*, nothing about the weights. A hotter setting is more random, not more
   insightful — often it is simply more wrong.
-- **"`temperature: 0` is a pure function."** It's greedy, but not bit-identical across
-  hardware or batches (see complexity). Reproducibility needs more than a zero.
+- **"`temperature: 0` is a pure function."** It's greedy, but not bit-identical across hardware or batches (see complexity). Reproducibility needs more than a zero.
 - **"Top-k and top-p do the same thing."** Top-k is a fixed count; top-p is a dynamic mass
   threshold that adapts to the model's confidence. The demo above shows them keeping
   different candidate sets from the same distribution.
