@@ -1,0 +1,43 @@
+question: "Explain the recall-versus-latency trade-off in an approximate vector index, and one governance obligation a vector store creates."
+concepts:
+  - vector-search
+roles:
+  - engineer
+  - architect
+  - governance
+difficulty: deep
+governanceAngle: "A vector index holds data derived from personal data, so a GDPR deletion request must reach the index, not just the source table — the person's vectors have to leave the store too. Approximate indexes can make guaranteed deletion harder (rebuilds, tombstones), and 'the store quietly kept vectors for deleted content' is a real compliance gap. Data residency (where the vector-DB service runs) and reproducibility of approximate results for auditable decisions are the other two obligations worth naming."
+answers:
+  beginner: >-
+    An approximate index is faster because it only looks at part of the corpus, but that means
+    it can miss some of the true nearest neighbors — its recall is below 100%. There's a dial
+    (how much of the index to search) that trades the two: search more for higher recall and
+    higher latency, search less for lower latency and lower recall. On governance: if you
+    store vectors derived from people's data, a deletion request has to remove those vectors
+    from the index too, not just the original record.
+  professional: >-
+    Recall is the fraction of the true top-k that the index actually returns; latency is how
+    long the query takes. They move together against a single knob — IVF's nProbe (how many
+    clusters to open) or HNSW's ef (how wide to search the graph). Turn it up and you examine
+    more candidates: recall climbs toward 1, latency and cost rise. Turn it down and you get
+    speed at the price of missed neighbors. The right operating point isn't guessed — you
+    build a recall@k benchmark against exact results and pick the smallest search effort that
+    clears your target. Governance-wise, the index is a data surface: deletions must propagate
+    to it (GDPR right-to-erasure covers derived vectors), its location raises data-residency
+    questions, and because results are approximate they may not be reproducible across builds
+    — which matters when retrieval feeds a decision you have to defend.
+  deep: >-
+    Formally you're choosing a point on a recall/latency curve whose shape is set by the index
+    and its build parameters (IVF cluster count and nProbe; HNSW M and efConstruction, then ef
+    at query time). Two subtleties bite in production. First, metadata filtering interacts with
+    recall: pre-filtering shrinks the candidate set and can starve the search, post-filtering
+    wastes work and can return too few — both silently move your effective recall, so the knob
+    must be tuned *with* the filters in place. Second, updates degrade the curve: inserts and
+    deletes fragment IVF cluster balance and leave HNSW tombstones, so recall drifts until a
+    rebuild — which is also where erasure guarantees get hard. On governance, the through-line
+    is that an approximate index trades determinism for speed, and anywhere retrieval feeds a
+    consequential or regulated decision you either pin/version the index (or fall back to exact
+    for the record) and ensure erasure and residency are provable, not assumed.
+followUps:
+  - "How does pre-filtering versus post-filtering by metadata change effective recall?"
+  - "How would you guarantee a deleted document's vectors are actually gone from an HNSW index?"

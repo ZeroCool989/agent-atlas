@@ -1,0 +1,14 @@
+type: paper
+title: "Malkov & Yashunin — Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs (HNSW)"
+url: "https://arxiv.org/abs/1603.09320"
+ingestedAt: 2026-07-19
+routedTo:
+  - vector-search
+decisions: >-
+  The reference for the HNSW graph-index family named in the Vector Search concept —
+  grounds the "why was this invented?" and "how does it work?" claims that ANN indexes buy
+  speed by looking at less of the corpus, and that HNSW's `ef` parameter is the same
+  recall/latency dial as IVF's `nProbe`. Cited for the method's existence and its
+  speed-vs-recall trade-off only; the lesson's runnable engine implements the simpler
+  IVF-style cluster-probing index, and is explicit that HNSW differs in mechanism (graph
+  hops, not clusters).

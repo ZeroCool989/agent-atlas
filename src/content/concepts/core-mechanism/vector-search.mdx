@@ -1,19 +1,185 @@
 ---
 title: "Vector search"
 layer: core-mechanism
-oneLiner: "Nearest-neighbor retrieval at scale: store many embeddings and find the closest to a query fast, usually approximately."
+oneLiner: "Finding the nearest vectors to a query — exactly by scanning them all, or approximately with an index (a vector database) that skips most of the corpus to go fast at scale."
 prerequisites:
   - embeddings
 related:
-  - context-windows
-interviewTags: ["vector-search", "ann", "retrieval", "vector-database"]
-status: stub
+  - rag
+governance:
+  - gdpr
+interviewTags: ["vector-search", "vector-database", "ann", "hnsw", "ivf", "recall", "retrieval"]
+status: complete
+verdict:
+  classification: commonly-useful
+  problem: "Embeddings turn meaning into vectors, but a query still has to find its nearest neighbors among them. Comparing against every stored vector is exact and simple — and, at millions of vectors and real query rates, too slow and expensive."
+  simplerBaseline: "A flat brute-force scan: compute cosine against every vector in an array and sort. Exact, ~50 lines, no database — and perfectly fine up to hundreds of thousands, often millions, of vectors."
+  mainCost: "An approximate index (or a vector database service) buys sub-linear speed by *not* looking at the whole corpus — so results become approximate (recall < 1, tunable), and you take on an index to build, tune, keep fresh, and operate."
+sources:
+  - malkov-hnsw-2016
 updated: 2026-07-19
 ---
 
-> **Stub** — planned territory on the atlas. This concept will cover: what a vector index
-> is and why exact nearest-neighbor search does not scale, approximate nearest-neighbor
-> methods (HNSW, IVF) and their recall/speed trade-off, when a vector database earns its
-> place versus a plain array scan (the `nearestNeighbors` engine from the Embeddings
-> concept *is* exact search — this is what changes when the corpus grows), and hybrid
-> lexical+vector retrieval. It sits between Embeddings and RAG on the L2 path.
+import VectorSearchScan from '../../../components/viz/VectorSearchScan.astro';
+
+Once [embeddings](/concepts/embeddings) have turned text into vectors, retrieval is one
+concrete operation: given a query vector, return the *k* nearest stored vectors by cosine
+similarity. Doing it exactly is trivial — compare the query to every vector, sort, take the
+top *k* — and it is exactly what a flat scan does. **Vector search** is the study of doing
+that same thing *fast* when "every vector" means millions or billions of them: an
+**approximate nearest-neighbor (ANN) index**, wrapped with storage, filtering, and CRUD,
+is what a **vector database** is.
+
+> **Mental model: a library catalogue.** Exact search is walking every shelf and reading
+> every spine — you will always find the book, but the time grows with the collection. An
+> ANN index is a catalogue that sends you straight to the few shelves most likely to hold
+> it: dramatically faster, because you never visit the rest.
+> **Where the analogy breaks:** the catalogue is *approximate* — if the book you wanted was
+> shelved just across an aisle you were never sent down, you simply won't find it, and
+> nothing tells you it was there. You can check more shelves (raise the "probe" or "ef"
+> setting) to find more, at more cost; the dial between speed and completeness is the whole
+> game, and a badly-tuned index drops relevant results silently.
+
+## What problem existed before this?
+
+With embeddings in hand, the naive retriever is a loop: score the query against every
+stored vector and keep the best few. This **flat** (brute-force) search is exact — it
+always returns the true nearest neighbors — and its cost is one comparison per stored
+vector, per query. That is completely fine for thousands or even millions of vectors. It
+stops being fine when the corpus is very large *and* queries are frequent: scanning a
+hundred million vectors for every one of thousands of queries per second is too slow and
+too expensive to do exhaustively.
+
+## Why was this invented?
+
+The insight: you rarely need the *provably* nearest neighbor — you need *good* neighbors,
+fast. **Approximate nearest-neighbor (ANN)** indexes trade a little accuracy for a large
+speedup by structuring the vectors so a query only has to look at a small, promising slice
+of the corpus. Two families dominate. **IVF** ("inverted file") clusters the vectors and,
+at query time, only scans the few clusters nearest the query. **HNSW** builds a navigable
+graph and walks it greedily toward the query's neighborhood. Both do the same trick: *look
+at less of the corpus*. A **vector database** packages such an index with persistence,
+metadata filtering ("nearest vectors *where* `tenant = X`"), updates, and scaling.
+
+## How does it work?
+
+Flat search compares the query to every vector. An IVF-style index instead compares the
+query to a handful of cluster **centroids**, opens only the nearest cluster(s), and ranks
+just their members — far fewer comparisons. The catch is visible below: a true neighbor
+sitting in a cluster you didn't open is missed, so **recall** (the fraction of the true
+top-*k* you actually return) drops below 1. Opening more clusters recovers it, at more
+cost. Every number here — comparison counts, cosine scores, recall — is computed by the
+real [`src/lib/retrieval`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/retrieval/vector-index.ts)
+index over a tiny illustrative space (the *vectors* are hand-placed so the trade-off is
+visible; the *counting* is exact):
+
+<VectorSearchScan />
+
+At this toy scale the approximate index isn't even worth it — probing every cluster costs
+*more* than the flat scan, because the overhead (comparing centroids) outweighs any saving.
+That is honest and important: ANN wins only when the corpus is large enough that skipping
+most of it saves far more than the index costs. HNSW works differently in the details
+(graph hops, not clusters) but exposes the identical dial — its `ef` parameter is IVF's
+`nProbe`: search wider for higher recall, narrower for lower latency.
+
+## Is it actually necessary?
+
+Nearest-neighbor search is necessary the moment you retrieve with embeddings — but an
+**approximate index or a dedicated vector database usually is not.** For thousands to low
+millions of vectors, a flat cosine scan over an in-memory array is exact, trivially
+correct, and fast enough; you do not need a new service. The index earns its keep at scale:
+large corpora, high query rates, tight latency budgets, or a need for persistence, metadata
+filtering, and live updates that an array doesn't give you.
+
+## What are the trade-offs?
+
+The core trade-off is **recall versus latency**, and it is a dial, not a fixed point. A
+lower probe/`ef` setting is faster and cheaper but returns fewer of the true neighbors; a
+higher setting recovers recall at more cost. Around that sit the usual index trade-offs:
+memory (graph indexes like HNSW are memory-hungry), index **build time**, and **staleness**
+— inserts, deletes, and updates must reach the index, or retrieval silently returns results
+that no longer reflect the data. And because the results are approximate, they can be
+slightly non-deterministic across index versions or builds.
+
+## What complexity does it introduce?
+
+- **An index to build and tune.** Choosing IVF vs HNSW, cluster counts or graph parameters,
+  and the recall/latency operating point is real work, and the right setting is
+  corpus-specific — measured with a recall benchmark, not guessed.
+- **A service to operate** (if you use a vector database rather than an embedded library):
+  another system to deploy, scale, back up, secure, and pay for.
+- **Metadata filtering interactions.** "Nearest vectors where `field = X`" is subtler than
+  it looks — pre- vs post-filtering changes both recall and latency, and a naive filter can
+  quietly gut recall.
+- **Freshness and deletes.** Keeping the index in sync with the source data — including
+  *removing* vectors when their source is deleted — is an ongoing obligation, not a one-time
+  load.
+
+## What simpler alternative exists?
+
+**A flat brute-force scan** — exactly the `FlatIndex` in this repo: cosine against every
+vector, sort, take *k*. Exact, no service, no tuning, and correct by construction; the right
+default until you have measured that it is too slow. Between "an array" and "a dedicated
+vector database" sit two more modest steps worth trying first: an **embedded ANN library**
+(FAISS, hnswlib) inside your own process — the index without the service — and
+**`pgvector`** or a similar extension that adds vector search to a database you already run.
+Reach for a standalone vector database when scale, query rate, or operational needs
+genuinely outgrow those.
+
+## When should I use it?
+
+When the corpus is large enough that a flat scan misses your latency or cost budget; when
+query volume is high; when you need vector search *plus* metadata filtering, persistence,
+and live inserts/deletes/updates together; and when you can define an acceptable recall
+target and tune to it. In short: at the scale where "look at everything, every query" stops
+being affordable.
+
+## When should I avoid it?
+
+When the corpus is small (a flat scan is simpler *and* exact). When exact nearest neighbors
+are mandatory and a missed result is unacceptable — approximate indexes can silently drop
+one. When a library or `pgvector` would do and a separate service is pure operational
+overhead. And whenever you haven't yet *measured* that flat search is too slow — adding an
+approximate index you didn't need is complexity, tuning burden, and a new failure mode
+(silent recall loss) bought for nothing.
+
+## The engine, in a few readable functions
+
+The whole thing is small and dependency-free:
+[`vector-index.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/retrieval/vector-index.ts)
+builds on the cosine core from embeddings and adds a `FlatIndex` (exact, scans everything)
+and a `ClusteredIndex` (IVF-style: bucket by centroid, probe the nearest clusters), plus a
+`recall` helper. Read `ClusteredIndex.search` and watch the comparison count fall — and the
+recall with it, until you raise `nProbe`. That is the exact trade-off every vector database
+sells you a dial for.
+
+## Governance
+
+A vector index is infrastructure that holds derived personal data, so it inherits real
+obligations:
+
+- **Deletion has to reach the index.** Under **GDPR**, honoring a deletion request means the
+  person's vectors must leave the vector store too, not just the source table — an index
+  that quietly retains deleted content is a compliance gap, and approximate indexes can make
+  deletes harder to guarantee.
+- **Data residency and access.** Where the vector database runs, and who can query it, is
+  part of the data-governance story — a hosted vector-DB service is a processor holding
+  data derived from your users.
+- **Approximate ≠ reproducible.** When retrieval feeds a consequential decision, "the index
+  returned a slightly different set this build" matters for auditability; you may need to
+  pin index versions or fall back to exact search for the record.
+- **Applicability is conditional.** Whether GDPR, the EU AI Act, or sector rules bite
+  depends on the data, use case, role, and jurisdiction — a vector index doesn't trigger a
+  framework by itself. What it creates is a *surface* you must account for: what vectors it
+  holds, where, and how completely you can change or remove them.
+
+## Build it, then own it
+
+The practical example is the index module above —
+[`src/lib/retrieval/vector-index.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/retrieval/vector-index.ts)
+plus its tests. Run the flat search and note it is exact but scans everything; run the
+clustered search at `nProbe = 1` and watch it miss a true neighbor for a lower comparison
+count; raise `nProbe` and watch recall climb back at a higher cost. That single dial — how
+much of the corpus you're willing to look at — is what separates "an array" from "a vector
+database," and it's what the next concept, [RAG](/concepts/rag), retrieves through. Then try
+the interview questions below.

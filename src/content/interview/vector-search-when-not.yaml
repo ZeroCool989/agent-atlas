@@ -1,0 +1,40 @@
+question: "A team is about to add a dedicated vector database for a new search feature. When would you tell them they don't need one — and what would you reach for instead?"
+concepts:
+  - vector-search
+roles:
+  - engineer
+  - architect
+difficulty: standard
+criticalThinking: true
+practicalExample: "src/lib/retrieval/vector-index.ts — FlatIndex is exact brute-force nearest-neighbor search (~a dozen readable lines over the cosine core); ClusteredIndex is the IVF-style approximate index. The tests show flat scanning all 16 vectors for perfect recall, while probing one cluster does 8 comparisons and misses a true neighbor (recall 0.67) — the trade a vector database exists to manage."
+answers:
+  beginner: >-
+    If the corpus is small — thousands, even low millions of vectors — a plain flat scan
+    (cosine against an array, sort, take the top k) is exact, simple, and fast enough; no
+    database needed. I'd only add an approximate index or a vector-DB service when a flat scan
+    is measurably too slow for the scale and query rate. Before a standalone service, I'd try
+    an embedded library or a vector extension on a database we already run.
+  professional: >-
+    The honest default is a flat brute-force scan over an in-memory array, which is exact and
+    correct by construction; it holds up to hundreds of thousands and often millions of
+    vectors. I'd skip a dedicated vector database when we're below that scale, when exact
+    results are mandatory (an approximate index can silently drop a true neighbor), or when we
+    haven't yet measured that flat search misses our latency budget. Between "an array" and "a
+    vector-DB service" there are cheaper rungs: an embedded ANN library (FAISS, hnswlib) —
+    the index without the operational overhead — or pgvector on a Postgres we already operate.
+    A standalone vector database earns its place when scale, query rate, or the combination of
+    vector search *plus* metadata filtering, persistence, and live updates genuinely outgrows
+    those.
+  deep: >-
+    The failure mode is adopting an approximate index for its own sake and inheriting its
+    costs without its benefit. Below the scale threshold, the index overhead loses to a flat
+    scan on latency *and* you've added tuning burden and a new silent failure — recall loss
+    you won't see unless you're benchmarking against exact ground truth. There's also a
+    correctness argument: approximate results can vary across builds, which is a problem for
+    reproducibility and auditability. So the decision is measured, not fashionable: start with
+    exact flat search, build a recall/latency benchmark, and only climb the ladder — library,
+    then pgvector, then a dedicated service — when the numbers say the current rung has run
+    out. Complexity you didn't measure a need for is complexity you'll pay to operate.
+followUps:
+  - "At roughly what corpus size does flat search stop being the right default, and what determines that?"
+  - "What does pgvector give you over a standalone vector database, and what does it not?"

@@ -1,0 +1,13 @@
+---
+/**
+ * Composition root for the flat-vs-approximate vector-search viz: builds the scenes through
+ * the real retrieval engine at build time and hands them to the island. Real math and real
+ * comparison counts; illustrative (hand-placed) vectors — labelled as such in the lesson.
+ */
+import { buildVectorSearchScenes } from '../../lib/viz/vector-search-scene';
+import VectorSearchScanIsland from './VectorSearchScanIsland';
+
+const scenes = buildVectorSearchScenes();
+---
+
+<VectorSearchScanIsland client:visible scenes={scenes} />
