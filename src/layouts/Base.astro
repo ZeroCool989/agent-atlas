@@ -7,6 +7,19 @@ interface Props {
 }
 
 const { title, description = 'An interactive atlas of modern AI systems.' } = Astro.props;
+
+const nav = [
+  { href: '/', label: 'Atlas' },
+  { href: '/learn', label: 'Learn' },
+  { href: '/concepts', label: 'Concepts' },
+  { href: '/playgrounds', label: 'Playgrounds' },
+  { href: '/interview', label: 'Interview' },
+  { href: '/governance', label: 'Governance' },
+  { href: '/sources', label: 'Sources' },
+  { href: '/search', label: 'Search' },
+];
+const path = Astro.url.pathname;
+const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
 ---
 
 <html lang="en">
@@ -25,6 +38,29 @@ const { title, description = 'An interactive atlas of modern AI systems.' } = As
     >
       Skip to content
     </a>
+    <header class="border-b border-slate-200">
+      <nav aria-label="Primary" class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-1 px-6 py-3 text-sm">
+        <a href="/" class="font-semibold tracking-tight">Agent Atlas</a>
+        <ul class="flex flex-wrap items-center gap-x-4 gap-y-1">
+          {
+            nav.map((item) => (
+              <li>
+                <a
+                  href={item.href}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
+                  class:list={[
+                    'hover:text-slate-900',
+                    isActive(item.href) ? 'font-medium text-slate-900 underline underline-offset-4' : 'text-slate-500',
+                  ]}
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </header>
     <slot />
   </body>
 </html>

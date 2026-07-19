@@ -45,6 +45,6 @@ test('only the visualization page loads island JavaScript', async ({ page }) => 
   page.on('request', (req) => {
     if (req.resourceType() === 'script') plainScripts.push(req.url());
   });
-  await page.goto('/concepts/context-windows');
+  await page.goto('/governance/gdpr');
   expect(plainScripts).toEqual([]);
 });

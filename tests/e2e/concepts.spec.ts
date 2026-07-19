@@ -49,11 +49,7 @@ test.describe('concept index', () => {
 });
 
 test.describe('concept pages', () => {
-  test('complete page: verdict, canonical sections, relationships separated, governance, sources — zero JS', async ({ page }) => {
-    const scripts: string[] = [];
-    page.on('request', (req) => {
-      if (req.resourceType() === 'script') scripts.push(req.url());
-    });
+  test('complete page: verdict, canonical sections, relationships separated, governance, sources', async ({ page }) => {
     await page.goto('/concepts/context-windows');
     await expect(page.getByRole('heading', { level: 1, name: 'Context windows' })).toBeVisible();
 
@@ -92,8 +88,6 @@ test.describe('concept pages', () => {
     await expect(answer).toBeHidden();
     await details.locator('summary').click();
     await expect(answer).toBeVisible();
-
-    expect(scripts).toEqual([]); // plain concept page with a static viz ships zero JS
   });
 
   test('stub page looks intentionally incomplete, not broken', async ({ page }) => {

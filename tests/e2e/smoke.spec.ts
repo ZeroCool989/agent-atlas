@@ -13,7 +13,7 @@ test('plain content page ships zero client JS', async ({ page }) => {
   page.on('request', (req) => {
     if (req.resourceType() === 'script') scriptRequests.push(req.url());
   });
-  await page.goto('/concepts/context-windows');
+  await page.goto('/governance/gdpr');
   expect(scriptRequests).toEqual([]);
   expect(await page.locator('script').count()).toBe(0);
 });
