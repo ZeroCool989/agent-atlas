@@ -32,6 +32,15 @@ export {
   EVAL_DEMO_CASES,
 } from './evaluation-scene';
 export type { EvaluationSceneInput } from './evaluation-scene';
+export {
+  createCitationCheckScene,
+  CITATION_CHECK_DEMO_INPUT,
+} from './citation-check-scene';
+export type {
+  CitationCheckScene,
+  CitationCheckSceneInput,
+  CitationCheckRow,
+} from './citation-check-scene';
 export type {
   ContextWindowSegment,
   ContextWindowStatus,

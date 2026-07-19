@@ -1,0 +1,178 @@
+---
+title: "Hallucination & Failure Modes"
+layer: foundation
+oneLiner: "A language model outputs plausible text, not true text — so confident, fluent, wrong answers are a structural property to be bounded and detected, never a bug to be fully patched."
+prerequisites:
+  - what-is-a-language-model
+related:
+  - sampling
+  - tokens
+  - structured-outputs
+  - prompt-engineering
+governance:
+  - eu-ai-act
+interviewTags: ["hallucination", "failure-modes", "reliability", "sycophancy", "grounding", "citation-verification"]
+status: complete
+verdict:
+  classification: essential
+  problem: "Anyone shipping an LLM feature has to answer 'how do you keep it from being confidently wrong?' Without a correct model of WHY it hallucinates, teams either over-trust the output or chase a fix that does not exist."
+  simplerBaseline: "There is no simpler thing to 'use instead' — this is a property to understand, not a component to adopt. The honest baseline is engineering discipline: bound the model with retrieval, validate its output with deterministic checks, and keep a human in the loop for anything high-stakes."
+  mainCost: "Accepting that no method guarantees truth. Every mitigation reduces the rate or bounds the blast radius; none eliminates it. Designing for that reality costs more than pretending a better prompt will fix it."
+sources:
+  - ji-hallucination-survey
+updated: 2026-07-19
+---
+
+import CitationCheckDemo from '../../../components/viz/CitationCheckDemo';
+
+A language model is a [next-token predictor](/concepts/what-is-a-language-model): it emits
+text that is *plausible* given its training, with no separate signal for whether that text
+is *true*. When plausible and true coincide, it looks brilliant. When they diverge, it
+produces a confident, fluent, well-formed statement that is simply false — a
+**hallucination**. This is not a defect bolted onto an otherwise-truthful system; it is the
+direct consequence of what the model optimises for. Understanding that is the difference
+between engineering around the problem and being surprised by it in production.
+
+> **Mental model: a brilliant improviser with no fact-checker.** Picture someone who has
+> read almost everything and can continue any sentence in a fitting, confident voice — but
+> has no notion of "I'm not sure" and never says it. **Where the analogy breaks:** a human
+> improviser knows when they're bluffing; the model has no internal "truth" variable at
+> all, so its confident-sounding tone carries exactly zero information about correctness.
+
+## What problem existed before this?
+
+Earlier NLP systems failed *loudly*: a rule-based parser threw an error, a classifier
+returned low confidence, a search engine returned nothing. You could tell when they didn't
+know. Generative language models removed that signal. They always produce fluent output,
+and the fluency is uniform whether the content is right or invented — so the failure became
+*silent and disguised as success*. The new problem is not "the model breaks" but "the model
+is smoothly, plausibly wrong and looks exactly like when it's right."
+
+## Why was this invented?
+
+Nobody invented hallucination on purpose — it falls directly out of the training objective.
+A model rewarded for predicting the most probable next token learns to produce text that
+*fits the patterns of its corpus*, not text that corresponds to reality. There is no
+ground-truth-of-the-world term in the loss, only "does this look like the training data."
+Alignment (instruction tuning, RLHF) makes models more helpful and better-behaved, but it
+optimises for *human-preferred* responses — which can actively make things worse in one
+specific way: **sycophancy**, the tendency to agree with the user or tell them what they
+seem to want, because agreeable answers were rewarded. So the very training that makes the
+output useful also bakes in its failure modes.
+
+## How does it work?
+
+The core failures share one root — plausibility is not truth — but show up in distinct,
+recognisable shapes worth naming:
+
+- **Factual hallucination:** a confident claim that is simply false.
+- **Fabricated sources:** invented citations, URLs, quotes, or case law that *look*
+  authoritative — a favourite because the format is easy to imitate.
+- **Sycophancy:** agreeing with a wrong premise in the prompt, or reversing a correct
+  answer when the user pushes back.
+- **Instruction drift & brittleness:** obeying then quietly abandoning a constraint over a
+  long output, or flipping behaviour on a trivial rewording of the prompt.
+- **Fluent reasoning errors:** a wrong chain of steps that survives review *because* the
+  prose is confident and well-structured.
+
+You cannot detect these by reading, because reading is exactly the sense fluency fools. You
+detect them with deterministic checks. Walk through the cheapest, most effective one — does
+each cited source actually exist in what we retrieved?
+
+<CitationCheckDemo client:visible />
+
+The checker reliably catches the two easy failures: a **fabricated citation** (an id that
+was never retrieved) and an **uncited claim**. The last step is the important one: a
+sentence whose citation *resolves* is marked "supported" even though that source does not
+actually back the claim. Catching a made-up citation is simple string work; verifying that
+a real citation *supports* its statement is the hard, unsolved part — a smaller version of
+the whole problem.
+
+## Is it actually necessary?
+
+Understanding this is unconditionally necessary — it is the risk model behind every LLM
+feature. What's optional is *how much you spend defending against it*, and that scales with
+stakes. A brainstorming toy can tolerate the occasional confident fib; a system that
+answers medical, legal, or financial questions cannot, and needs grounding, verification,
+and human review proportional to the harm a wrong answer causes. The mistake is treating a
+high-stakes deployment with low-stakes caution because a demo looked convincing.
+
+## What are the trade-offs?
+
+- **Usefulness vs. trust.** The generative flexibility that makes the model useful is the
+  same mechanism that lets it be fluently wrong; you cannot keep one and delete the other.
+- **Mitigation cost vs. residual risk.** Grounding, verification, self-consistency, and
+  human review each cut the error rate — at the cost of latency, money, and complexity —
+  and each leaves a residual you must still plan for.
+- **Refusal vs. helpfulness.** Tuning a model to say "I don't know" more often reduces
+  confident errors but also produces unhelpful refusals on things it did know. There is no
+  setting that is only upside.
+
+## What complexity does it introduce?
+
+- **You must design for wrong output as the normal case, not the exception** — every
+  downstream step needs to assume the text may be false.
+- **Detection is itself hard.** The reliable checks are the narrow, deterministic ones
+  (does the citation resolve? does the JSON validate? does the number fall in range?).
+  Checking *semantic* truth generally requires another fallible model or a human.
+- **Evaluation must be built.** "It looked fine in the demo" is not measurement; catching
+  regressions in a probabilistic system means an [eval](/concepts/tool-calling) set and
+  scored runs, not spot-checks.
+- **Mitigations interact.** Retrieval reduces fabrication but can introduce
+  mis-attribution; lower temperature reduces wild errors but can entrench a confident wrong
+  answer. There is no single knob.
+
+## What simpler alternative exists?
+
+If the task has a checkable structure, prefer a mechanism that *can* be verified over free
+prose that can't. Extract structured data and [validate it](/concepts/structured-outputs)
+rather than trusting a paragraph. Retrieve facts and cite them
+([RAG](/concepts/rag)) rather than asking the model to recall them. For anything with a
+deterministic answer, don't use a generative model at all. The simplest reliable pattern is
+"narrow the surface": the less open-ended text you trust, the fewer places a hallucination
+can hide.
+
+## When should I use it?
+
+This is a lens you apply, not a feature you switch on — so "use it" means: **assume it,
+always.** Whenever a language model's output influences a decision, ask where a confident
+wrong answer would go and what would catch it. Reach hardest for the mitigations —
+grounding, output validation, citation checks, self-consistency, human-in-the-loop — in
+proportion to how much a wrong answer costs.
+
+## When should I avoid it?
+
+Avoid two opposite mistakes. First, do **not** promise anyone you have "eliminated"
+hallucination — you can reduce, bound, and detect it, and claiming more is the failure mode
+that gets teams (and their compliance officers) into trouble. Second, do not over-engineer a
+low-stakes feature into paralysis: a creative-writing helper does not need a citation
+pipeline. Match the defence to the stakes — neither pretend the problem is solved, nor
+treat every use as life-critical.
+
+## Common misconceptions
+
+- **"A better prompt will stop it hallucinating."** Prompting can reduce the rate and steer
+  behaviour, but there is no incantation that makes a plausibility engine truthful. The
+  control is architectural (grounding + verification + review), not lexical.
+- **"RAG fixes hallucination."** Grounding *bounds* it — the model answers from retrieved
+  text instead of memory — but it can still mis-read, over-generalise, or cite a source
+  that doesn't actually support the claim (exactly the trap in the demo). RAG lowers the
+  rate; it does not guarantee truth.
+- **"Temperature 0 makes it accurate."** Lower [temperature](/concepts/sampling) makes
+  output more *deterministic*, not more *correct* — it can just as easily lock in a
+  confident wrong answer.
+- **"If it cites a source, it's verified."** A citation that exists is not a citation that
+  supports the claim. Resolution is necessary, not sufficient.
+- **"Hallucination means the model is broken."** It's working as trained. The model is a
+  fluent text predictor doing exactly that; truth was never in its objective.
+
+## Build it, then own it
+
+The L1 reliability build project behind this page is a real, deterministic control:
+[`src/lib/reliability/citation-check.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/reliability/citation-check.ts)
+— it parses `[source-id]` citations, flags any that were never retrieved (fabricated) and
+any claim made with no citation, and returns a per-sentence report. Read it end to end and
+notice what it deliberately does *not* attempt: it never claims a resolving citation
+*supports* its sentence. That honest boundary — easy to verify existence, hard to verify
+support — is the whole concept in one small, testable file. The interview questions below
+test exactly that judgment.

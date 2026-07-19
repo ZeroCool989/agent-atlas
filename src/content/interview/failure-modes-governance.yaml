@@ -1,0 +1,40 @@
+question: "How does hallucination show up as a regulatory and risk-governance concern, not just an engineering one?"
+concepts:
+  - failure-modes
+roles:
+  - governance
+  - architect
+  - consultant
+difficulty: deep
+governanceAngle: "EU AI Act accuracy/robustness obligations for high-risk systems, the transparency duty to disclose that output may be inaccurate, and hallucination as a named, monitored risk in an ISO 42001 / NIST AI RMF risk register with human oversight as a control."
+answers:
+  beginner: >-
+    Regulators treat a confidently-wrong AI answer as a real-world harm, not a quirk. For
+    higher-risk uses, frameworks expect the system to be accurate and robust enough for its
+    purpose, expect users to be told the output can be wrong, and expect a human to be able to
+    catch and override mistakes. So hallucination becomes something you have to document,
+    measure, and put controls around — it's on the risk register, with an owner.
+  professional: >-
+    Hallucination maps onto obligations that already exist. The EU AI Act requires high-risk
+    systems to meet appropriate levels of accuracy and robustness and to enable human
+    oversight; it also carries transparency duties — users should know they're dealing with AI
+    output that may be inaccurate. ISO 42001 and the NIST AI RMF frame this as risk management:
+    you identify hallucination as a risk, assess its impact for your use case, apply controls
+    (grounding, verification, human review), and monitor the residual over time. The practical
+    consequence for an architect is that "we reduce hallucination" isn't a slide — it's
+    evidence: a measured error rate, the automated checks in place, the human-oversight step,
+    and a documented residual. That evidence chain is what an assessment actually inspects.
+  deep: >-
+    The governance lens changes what "good" means: not the lowest possible error rate in the
+    abstract, but a *defensible, documented* treatment proportional to harm. That means being
+    explicit about what you can and cannot guarantee — you can show fabricated-citation and
+    schema checks catch classes X and Y deterministically, and you must be honest that semantic
+    correctness is bounded and monitored, not eliminated (over-claiming here is itself a
+    compliance risk). It also means designing the human-oversight control so it's real, not a
+    rubber stamp: a reviewer who can actually catch a fluent wrong answer needs the sources and
+    the checks in front of them. The strongest position in an audit is the honest one — a risk
+    register entry that states the mechanism, the mitigations, the measured residual, and the
+    accountable owner — because that is exactly the shape ISO 42001 and the AI Act ask for.
+followUps:
+  - "What evidence would you put in front of an auditor to show hallucination is 'under control'?"
+  - "Why can over-claiming that you've 'solved' hallucination be a compliance liability?"

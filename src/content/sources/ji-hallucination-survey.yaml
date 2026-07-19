@@ -1,0 +1,12 @@
+type: paper
+title: "Survey of Hallucination in Natural Language Generation (Ji et al., 2023)"
+url: "https://dl.acm.org/doi/10.1145/3571730"
+ingestedAt: 2026-07-19
+routedTo:
+  - failure-modes
+decisions: >-
+  Grounds the failure-modes concept's framing that hallucination is intrinsic to how
+  generative models produce fluent, plausible text rather than verified fact, and that
+  mitigation is a matter of reduction and detection (grounding, verification) rather than
+  elimination. Used for the taxonomy of failure modes and the "structural, not a bug"
+  claim; the concept states mitigations' limits rather than any solved-it claim.
