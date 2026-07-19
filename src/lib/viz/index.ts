@@ -25,11 +25,20 @@ export type {
   GenerationSceneInput,
   GenerationCandidate,
 } from './generation-scene';
+export {
+  createEvaluationScene,
+  EVALUATION_DEMO_INPUT,
+  EVAL_DEMO_SUBJECT,
+  EVAL_DEMO_CASES,
+} from './evaluation-scene';
+export type { EvaluationSceneInput } from './evaluation-scene';
 export type {
   ContextWindowSegment,
   ContextWindowStatus,
   ContextWindowView,
   DistributionBar,
+  EvalCaseView,
+  EvaluationScene,
   PromptAssemblyScene,
   PromptSegmentView,
   SamplingScene,

@@ -1,0 +1,40 @@
+question: "Your eval score went up after a change. How do you know the system actually got better, and didn't just overfit the eval?"
+concepts:
+  - evaluation
+roles:
+  - engineer
+  - architect
+difficulty: deep
+criticalThinking: true
+practicalExample: >-
+  src/lib/eval/harness.ts in this repo: runEval scores a subject against cases and, in the
+  `json` assertion, separates SHAPE from VALUE — the `wrong-value` reason catches an output
+  that is valid JSON with the right key and the wrong value, exactly the kind of failure a
+  higher aggregate score can hide.
+answers:
+  beginner: >-
+    A higher number isn't automatically better. You check that the gain came from more
+    cases genuinely passing (not the eval set leaking into your prompt/training), look at
+    which cases changed — did anything regress? — and confirm the improvement holds on
+    held-out cases the change never saw.
+  professional: >-
+    This is Goodhart's law: once the score is the target, people optimize the score rather
+    than the goal. Three checks. First, provenance — was the eval set used to tune the very
+    change you're testing? If cases leaked into prompt-tuning or few-shot examples, you're
+    testing on the training set and the number is meaningless. Second, read the diff at the
+    case level, not the aggregate — a rising average can hide a specific case getting worse
+    while another improved more. Third, validate on a held-out slice the optimization never
+    touched, and ideally confirm with an online signal, since the offline set is only a
+    sample of reality. If the gain survives all three, it's real; if it only shows on the
+    tuned set, you overfit.
+  deep: >-
+    Treat the eval set like a machine-learning dataset because that's what it is: keep a
+    held-out split you never optimize against, watch for train/test contamination
+    (few-shot examples drawn from eval cases, judges prompted with the answer key), and be
+    suspicious of suspiciously large jumps. Distinguish improving the *system* from
+    improving the *measurement* — tuning the judge's rubric until scores rise is gaming the
+    instrument. The organizational tell is a team that reports the aggregate and can't name
+    which cases moved; the fix is making failure review, not the headline number, the ritual.
+followUps:
+  - "How would eval-set contamination happen in practice, and how would you detect it?"
+  - "When is a small, honest drop in eval score actually the right change to ship?"

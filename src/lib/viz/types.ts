@@ -128,3 +128,40 @@ export interface PromptAssemblyScene {
   /** Percent of the window used so far, one decimal. */
   percentUsed: number;
 }
+
+/** Render-ready view of one eval case as the run reveals it. */
+export interface EvalCaseView {
+  id: string;
+  /** Short human label for the case (what it probes). */
+  label: string;
+  /** Which assertion kind judged it — exact / contains / json. */
+  assertionKind: 'exact' | 'contains' | 'json';
+  /** False until the run has reached and scored this case. */
+  revealed: boolean;
+  /** Present once revealed. */
+  pass?: boolean;
+  /** Present once revealed and failed (e.g. 'wrong-value'). */
+  failReason?: string;
+  /** Human-readable why, present once revealed. */
+  detail?: string;
+}
+
+/** One step of the evaluation demo: the eval set scored case by case, then aggregated. */
+export interface EvaluationScene {
+  step: number;
+  totalSteps: number;
+  title: string;
+  /** Teaching text for the step; doubles as the accessible scene description. */
+  description: string;
+  cases: EvalCaseView[];
+  /** Cases passed among those revealed so far. */
+  passed: number;
+  /** Cases revealed so far. */
+  revealedCount: number;
+  /** Total cases in the suite. */
+  total: number;
+  /** Aggregate score (0–100, one decimal) over the whole suite — shown at the final step. */
+  scorePercent: number;
+  /** True on the final step, when the aggregate score is presented. */
+  scored: boolean;
+}

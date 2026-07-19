@@ -1,0 +1,43 @@
+question: "When would you use an LLM as a judge to score outputs, and what are its failure modes?"
+concepts:
+  - evaluation
+roles:
+  - engineer
+  - governance
+  - consultant
+difficulty: standard
+governanceAngle: >-
+  Evals are the evidence behind accuracy and robustness claims — the EU AI Act's testing
+  expectations for high-risk systems and ISO 42001's ongoing performance evaluation are
+  met in practice by an eval process and its records. But an LLM judge is itself a model
+  with biases, so its scores are not self-justifying: for a conformity or audit file you
+  need the judge validated against human ratings, the rubric documented, and the held-out
+  cases kept out of tuning — otherwise the "evidence" is a model grading itself.
+answers:
+  beginner: >-
+    Use an LLM judge when "correct" is fuzzy — helpfulness, tone, whether a summary is
+    faithful — things you can't check with an exact-match or schema assertion. It scales
+    human-like judgment cheaply. The catch is that it's a model with biases, so you have
+    to validate its grades against real human ratings before trusting the numbers.
+  professional: >-
+    LLM-as-judge fills the gap above mechanical assertions and below human eval: it grades
+    open-ended outputs against a rubric at scale. Known failure modes: position bias
+    (favouring the first or second option in a comparison), verbosity bias (longer looks
+    better), self-preference (a judge rating its own model's style higher), and
+    sensitivity to rubric wording. Mitigations: randomize option order, calibrate against
+    a human-labelled sample and report the agreement, use a different model family as
+    judge than the one under test, and keep the rubric versioned. Crucially, adding a judge
+    creates a *second* evaluation problem — you now have to evaluate the judge — so only
+    reach for it when assertions genuinely can't express the quality you care about.
+  deep: >-
+    The rigorous framing: an LLM judge is an estimator of human judgment with unknown bias
+    and variance, so you characterize it before you deploy it — measure judge-human
+    agreement (e.g. correlation or agreement rate) on a labelled slice, check that
+    agreement holds across the score range (not just at the extremes), and re-validate when
+    you change the judge model or prompt. Watch for the incentive trap where the judge and
+    the system share a model or a prompt author, which quietly correlates their errors.
+    And remember the judge is only as good as the rubric: a vague rubric produces confident,
+    reproducible, and wrong scores.
+followUps:
+  - "How would you measure whether your judge agrees with human raters, and what agreement is good enough?"
+  - "Why is using the same model to generate and to judge outputs a problem?"

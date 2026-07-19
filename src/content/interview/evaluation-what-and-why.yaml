@@ -1,0 +1,36 @@
+question: "What is an eval, and why can't you just spot-check a few outputs when improving an LLM system?"
+concepts:
+  - evaluation
+roles:
+  - engineer
+  - product
+difficulty: standard
+answers:
+  beginner: >-
+    An eval is a fixed set of cases — an input plus a definition of an acceptable output —
+    that you run your system against to get a comparable score. Spot-checking a few
+    outputs can't tell a real improvement from luck, can't show the regression a change
+    caused on cases you didn't re-check, and gives you no evidence for anyone who asks
+    "how do you know it works?"
+  professional: >-
+    A model's output is a distribution, so any change moves quality in some direction and
+    the only honest question is whether it got better or worse. An eval answers that over
+    a fixed set: a change that raises the score is progress; one that lowers it is a
+    regression you catch before it ships. Spot-checking fails on all three counts —
+    sampling noise, invisible regressions on untested inputs, and no artifact to defend
+    the change. The practical starting point isn't a framework: it's ~20 real cases with
+    assertions, run in CI as a gate. You grow to reference metrics or an LLM judge only
+    when mechanical checks can't express "correct."
+  deep: >-
+    The scoring ladder matters: exact/contains/schema-and-value assertions are cheap and
+    deterministic and should be your default; reference metrics compare to a gold answer
+    but "close to the reference" isn't always right; an LLM-as-judge scales fuzzy criteria
+    but has position and self-preference bias and must itself be validated against humans;
+    human eval is the ground truth the rest approximate. Cross that with offline (a fixed
+    CI gate — catches regressions) versus online (thumbs, task success — confirms the
+    offline set still reflects reality). The subtlety that separates a useful eval from a
+    vanity number is that you read the failures, not just the aggregate, and refresh the
+    set as reality drifts.
+followUps:
+  - "What kinds of assertions can you check mechanically, and where do they stop working?"
+  - "Offline evals versus online signals — what does each tell you that the other can't?"

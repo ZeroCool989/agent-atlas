@@ -1,22 +1,188 @@
 ---
 title: "Evaluation"
 layer: core-mechanism
-oneLiner: "You cannot improve what you do not measure: evaluation turns 'it seems to work' into scored, repeatable evidence — the difference between a demo and a system."
+oneLiner: "Measuring whether an AI system actually works — turning 'seems better' into a score you can compare, gate on, and defend."
 prerequisites:
-  - tool-calling
   - structured-outputs
+  - tool-calling
+  - what-is-a-language-model
 related:
-  - rag
   - workflows-vs-agents
-interviewTags: ["evaluation", "evals", "testing", "metrics"]
-status: stub
+  - prompt-engineering
+governance:
+  - eu-ai-act
+interviewTags: ["evaluation", "evals", "llm-as-judge", "testing", "regression"]
+status: complete
+verdict:
+  classification: essential
+  problem: "You changed a prompt, a model, or a chunking strategy — did it get better or worse? Without measurement you are shipping on vibes, and regressions ship silently."
+  simplerBaseline: "A handful of assertion tests over real cases, run in CI. Twenty good cases beat an elaborate eval framework nobody maintains — start there, grow only when it pays."
+  mainCost: "An eval set to curate and keep honest, the discipline to read failures rather than chase a single number, and the humility that the eval set is itself fallible ground truth you can overfit."
 updated: 2026-07-19
 ---
 
-> **Stub** — planned territory on the atlas. This concept will cover: why evaluating LLM
-> systems is different from testing deterministic code (valid shape is not correct value),
-> the ladder of methods (golden sets and assertions, reference-based metrics, LLM-as-judge
-> with its own biases, human review), evaluating *systems* not just models (retrieval
-> quality, task success, regressions), running evals in CI, and when a cheap assertion beats
-> an elaborate scorer. It builds on Tool calling and Structured outputs, and anchors the L5
-> eval-harness build project.
+import EvaluationDemo from '../../../components/viz/EvaluationDemo';
+
+A language model's output is a distribution, not a guarantee (see
+[what a language model is](/concepts/what-is-a-language-model)). So every change you make
+to an LLM system — a new prompt, a cheaper model, a different chunking strategy — moves
+that distribution in some direction, and the only honest question is: *did it get better
+or worse?* **Evaluation** is how you answer that with evidence instead of a feeling: a
+fixed set of cases, a definition of what a good answer looks like, and a score you can
+compare run to run. It is the difference between engineering and vibes.
+
+> **Mental model: a test suite whose subject lies sometimes.** Unit tests assume the code
+> is deterministic — same input, same output, and a green suite means *correct*. An eval
+> is a test suite for a component that is probabilistic and can be confidently wrong: it
+> tells you the *rate* at which the system meets your bar, and which cases it misses.
+> **Where the analogy breaks:** with ordinary tests, passing means correct; with evals,
+> your eval set is a *sample* of reality and is itself fallible — a green eval is evidence,
+> not proof, and a score you optimize too hard stops measuring what you actually care about.
+
+## What problem existed before this?
+
+Early on, people improved LLM systems by eyeballing a few outputs: tweak the prompt, run
+it on two or three examples, decide it "feels better," ship. That fails in three ways —
+you can't tell a real improvement from luck on your favourite example; you can't see the
+*regression* a change caused on cases you didn't re-check; and you have no evidence for
+anyone who asks "how do you know it works?" A model's output being probabilistic makes all
+three worse: the same prompt can pass your spot-check and fail in production on inputs you
+never tried.
+
+## Why was this invented?
+
+Because you cannot improve or trust what you cannot measure. Evaluation turns a vague
+"seems better" into a number over a *fixed* set of cases, so two runs are comparable: a
+change that raises the score is progress, one that lowers it is a regression you can catch
+*before* it ships. It also produces the artifact everyone downstream needs — evidence.
+"Accuracy went from 82% to 91% on our 200-case suite" is a sentence you can put in a pull
+request, a design review, or a regulatory file.
+
+## How does it work?
+
+An eval is three things: a set of **cases** (an input plus an *assertion* about the output
+you'd accept), a **subject** to run them against, and a **scorer** that judges each output
+and aggregates. Run the real harness — advance it case by case:
+
+<EvaluationDemo client:visible />
+
+Each result comes from the actual eval harness
+([`src/lib/eval/harness.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/eval/harness.ts));
+the subject and cases are illustrative, the scoring is real. Watch the third case: the
+output is **valid JSON with the right key and the wrong value** — `{"sentiment":"positive"}`
+for a scathing review. A schema validator (see
+[structured outputs](/concepts/structured-outputs)) waves it through: the *shape* is
+correct. The eval catches it, because the eval checks the *value*. That is the whole
+reason evaluation is its own concept: structured output guarantees the form's shape;
+evaluation is how you learn the form was filled in *correctly*.
+
+Scoring runs a ladder from cheap-and-exact to expensive-and-judgmental:
+
+- **Assertions** — exact match, "contains", schema-and-value checks. Cheap, deterministic,
+  and where you should start. They only work when "correct" is mechanically checkable.
+- **Reference-based metrics** — compare against a gold answer (string overlap, embedding
+  similarity). Useful, but "close to the reference" isn't always "right."
+- **LLM-as-judge** — a model grades outputs against a rubric. It scales to fuzzy criteria
+  (helpfulness, tone) but is *not* free: judges have position bias and self-preference, and
+  a judge must itself be validated against human ratings before you trust it.
+- **Human evaluation** — the ground truth the others approximate; the most trustworthy and
+  the least scalable.
+
+And a second axis: **offline** evals (a fixed set you run before shipping — a regression
+gate in CI, per this project's [testing strategy](/concepts/workflows-vs-agents)) versus
+**online** signals (thumbs, task success, escalations from real traffic). Offline tells you
+if you broke something; online tells you if the offline set still reflects reality.
+
+## Is it actually necessary?
+
+If you iterate on an LLM system at all — and everyone does — then yes: without an eval, you
+are choosing changes by superstition and finding regressions in production. It's also the
+only credible answer to "how do you know it works?", whether the asker is a teammate or an
+auditor. The one honest exception is a genuine throwaway: a one-off script you'll run once
+and delete needs no eval, the same way it needs no tests.
+
+## What are the trade-offs?
+
+You gain a comparable measurement and pay for it in three currencies. First, **effort**: an
+eval set is curated and maintained, and a stale eval measures a world that no longer exists.
+Second, **fallible ground truth**: your cases are a *sample*, your "expected" answers can be
+wrong, and a high score on a biased set is false confidence. Third, and most insidious,
+**Goodhart's law**: the moment a metric becomes the target, people optimize the metric
+rather than the goal — prompts tuned to pass the eval, judges gamed, real quality flat.
+The discipline that keeps evals useful is reading the *failures*, not just the number, and
+periodically refreshing the set against reality.
+
+## What complexity does it introduce?
+
+Real machinery: a case format and a place to store cases; a choice of scorer per case
+(assertion vs metric vs judge) and the cost/latency that comes with it; a decision about
+offline-vs-online and how the two feed each other; wiring the offline suite into CI as a
+gate; and — if you use an LLM judge — a *second* evaluation problem, because now you must
+validate the judge. None of it is exotic, but "we have evals" quietly means "we own an eval
+set, a scorer, a CI gate, and a refresh process."
+
+## What simpler alternative exists?
+
+For most systems, the 80/20 is not a framework — it's **twenty good assertion cases over
+real inputs, run in CI**. Concrete inputs you've actually seen, an `expected` you'd defend,
+a red build when the score drops. It catches the regressions that matter and costs an
+afternoon. Reach for reference metrics, an LLM judge, or a managed eval platform only when
+mechanical assertions genuinely can't express "correct" and the value of the extra signal
+clears its cost. An elaborate eval harness nobody runs is worse than five tests that fail
+the build.
+
+## When should I use it?
+
+Whenever a change could move quality and you need to know: comparing prompts or models,
+before shipping, as a CI regression gate, when tuning RAG or an agent, and whenever you owe
+someone evidence — a reviewer, a customer, or a conformity file. Build the smallest real
+eval *before* you start optimizing, so "better" has a meaning.
+
+## When should I avoid it?
+
+Skip formal evals for genuine throwaways, and don't build eval infrastructure *before* you
+have a working system to evaluate — that's premature. Be wary when you *can't define
+"correct"*: for open-ended generation with no checkable answer, a fake offline metric gives
+false precision, and you're better served by human review or online signals than by a
+number that looks rigorous and measures nothing. And never treat a single aggregate score
+as the whole truth — the failures are where the information is.
+
+## Common misconceptions
+
+- **"A passing eval means the output is correct."** No — an assertion checks what you told
+  it to. The demo's third case is valid JSON with the wrong value; only a *value* check
+  catches it. Valid shape ≠ correct value, the same lesson as
+  [structured outputs](/concepts/structured-outputs).
+- **"One score is enough."** The aggregate compresses away *which* cases fail. Read the
+  failures; a rising average can hide a case getting worse.
+- **"LLM-as-judge is objective."** It's a model with biases (position, verbosity,
+  self-preference). It scales fuzzy judgments but must be validated against humans before
+  you trust its numbers.
+- **"High offline score = production-ready."** Your eval set is a sample; production traffic
+  drifts. Offline evals catch regressions; only online signals confirm the set still
+  reflects reality.
+- **"More metrics is better."** Optimizing a proxy metric hard triggers Goodhart's law —
+  you improve the number and not the goal.
+
+## Security and governance
+
+- **Evals are the evidence behind trust claims.** "The system is accurate/robust" is an
+  assertion until an eval measures it. Documented eval coverage — the cases, the scores,
+  the failures and how they were handled — is the concrete artifact behind accuracy and
+  robustness expectations.
+- **Regulatory frame, carefully.** The EU AI Act's expectations around accuracy,
+  robustness, and testing for high-risk systems, and ISO 42001's call for ongoing
+  performance evaluation, are satisfied *in practice* by an eval process and its records —
+  but none of these apply *merely because* a system is evaluated; applicability depends on
+  the system, its use case, data, and jurisdiction.
+- **Guard the eval set itself.** If the eval set leaks into training or prompt-tuning data,
+  the score becomes meaningless (you're testing on the training set). Keep held-out cases
+  held out, and treat "we optimized directly against the eval" as a red flag in review.
+
+## Build it, then own it
+
+The eval harness is the L5 build-project seed and a few dozen readable lines:
+[`harness.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/eval/harness.ts)
+— cases, a scorer with a `json` assertion that separates shape from value, and a diagnostic
+report. Read it, notice how the `wrong-value` reason is the whole point, then try the
+interview questions below.
