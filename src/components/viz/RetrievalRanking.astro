@@ -1,0 +1,14 @@
+---
+/**
+ * Composition root for the retrieval-ranking viz: builds the scenes through the real
+ * retrieval engine at build time and hands them to the island. Real math, illustrative
+ * (hand-placed) vectors — labelled as such in the lesson.
+ */
+import { buildRetrievalScenes } from '../../lib/viz/retrieval-scene';
+import RetrievalRankingIsland from './RetrievalRankingIsland';
+
+const query = (Astro.props.query as string | undefined) ?? 'king';
+const scenes = buildRetrievalScenes(query);
+---
+
+<RetrievalRankingIsland client:visible scenes={scenes} />

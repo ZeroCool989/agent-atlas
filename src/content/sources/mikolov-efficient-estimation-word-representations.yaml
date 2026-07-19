@@ -1,0 +1,12 @@
+type: paper
+title: "Mikolov et al. — Efficient Estimation of Word Representations in Vector Space (word2vec)"
+url: "https://arxiv.org/abs/1301.3781"
+ingestedAt: 2026-07-19
+routedTo:
+  - embeddings
+decisions: >-
+  The canonical demonstration that word vectors learned from context capture real
+  semantic structure — grounds the Embeddings concept's "why was this invented?" section
+  (the distributional hypothesis made practical). Cited for the historical claim only;
+  the lesson is explicit that modern embeddings generalize word2vec to sentences and
+  documents, and that the bundled illustrative vectors are hand-placed, not learned.

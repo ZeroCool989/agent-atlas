@@ -1,0 +1,19 @@
+---
+title: "Vector search"
+layer: core-mechanism
+oneLiner: "Nearest-neighbor retrieval at scale: store many embeddings and find the closest to a query fast, usually approximately."
+prerequisites:
+  - embeddings
+related:
+  - context-windows
+interviewTags: ["vector-search", "ann", "retrieval", "vector-database"]
+status: stub
+updated: 2026-07-19
+---
+
+> **Stub** — planned territory on the atlas. This concept will cover: what a vector index
+> is and why exact nearest-neighbor search does not scale, approximate nearest-neighbor
+> methods (HNSW, IVF) and their recall/speed trade-off, when a vector database earns its
+> place versus a plain array scan (the `nearestNeighbors` engine from the Embeddings
+> concept *is* exact search — this is what changes when the corpus grows), and hybrid
+> lexical+vector retrieval. It sits between Embeddings and RAG on the L2 path.

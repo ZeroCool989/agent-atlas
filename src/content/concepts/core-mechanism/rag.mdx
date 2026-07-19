@@ -1,0 +1,22 @@
+---
+title: "Retrieval-augmented generation (RAG)"
+layer: core-mechanism
+oneLiner: "Retrieve relevant text first, then put it in the prompt so the model answers from evidence it can cite instead of from memory alone."
+prerequisites:
+  - embeddings
+  - vector-search
+related:
+  - context-windows
+  - tool-calling
+interviewTags: ["rag", "retrieval", "grounding", "citations"]
+status: stub
+updated: 2026-07-19
+---
+
+> **Stub** — planned territory on the atlas. This concept will cover: why RAG exists
+> (knowledge the model never saw, freshness, provenance, and grounding against
+> hallucination), the pipeline (chunk → embed → retrieve → assemble context → generate),
+> where quality is actually won or lost (chunking and retrieval, not the model), when NOT
+> to RAG (long-context inclusion, fine-tuning, or just answering directly), and that
+> "retrieved the most similar chunk" is not "answered correctly." It builds directly on
+> Embeddings and Vector search, and anchors the L2 build project (mini retrieval engine).

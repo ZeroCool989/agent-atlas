@@ -1,0 +1,51 @@
+question: "Your retrieval returns the highest-cosine chunk, but the answer built from it is wrong. Walk through why 'most similar' isn't 'correct', and where you'd intervene."
+concepts:
+  - embeddings
+roles:
+  - engineer
+  - architect
+  - governance
+difficulty: standard
+answers:
+  beginner: >-
+    Cosine similarity ranks by how close two vectors point, which the model has arranged to
+    mean "similar topic" — not "true" and not "answers this exact question." The nearest chunk
+    can be on-topic but outdated, partial, or about a neighboring issue. So high similarity is
+    a good *candidate* signal, not a correctness signal. I'd fix it by retrieving several
+    chunks, not one, and by verifying the final answer against the retrieved text rather than
+    trusting the top hit.
+  professional: >-
+    Three gaps stack up: the embedding model's notion of "similar" is learned and approximate;
+    chunking may have split the actually-relevant passage away from what got embedded; and
+    similarity says nothing about freshness or factual correctness. Interventions, cheapest
+    first: retrieve top-k and let the model synthesize across them; add lexical/hybrid search
+    so exact terms aren't lost; revisit chunking so retrievable units are coherent; add a
+    re-ranker; and, downstream, verify claims against the sources rather than treating the
+    nearest neighbor as ground truth. The mental correction is to stop reading a cosine score
+    as relevance or truth — it's a ranking prior, and everything after it is your job.
+  deep: >-
+    The vector step optimizes for directional similarity in a learned space; relevance to a
+    specific information need and factual correctness are different targets it never promised
+    to hit. Cranking similarity thresholds doesn't buy correctness — it just changes recall.
+    The durable fix is to treat retrieval as one stage in an evaluated pipeline: measure
+    retrieval quality (did the right passage come back?) separately from answer quality (is
+    the synthesized claim supported?), so you know whether a failure is a retrieval problem
+    (embedding/chunking/hybrid) or a generation problem (synthesis/verification). That
+    separation is also what makes the system auditable — you can show what was retrieved and
+    whether the answer was grounded in it.
+followUps:
+  - "How would you measure retrieval quality separately from answer quality?"
+  - "When does re-ranking help, and when is it lipstick on a bad chunking strategy?"
+practicalExample: >-
+  The retrieval engine in this repo (src/lib/retrieval/embeddings.ts) makes the point in
+  code: nearestNeighbors scores every candidate by cosineSimilarity, sorts, and returns the
+  top k — it returns *similar*, never *correct*. Reading it shows exactly what retrieval does
+  and does not promise, which is the whole reason RAG adds synthesis and verification on top.
+governanceAngle: >-
+  Presenting a confidently-wrong answer built from a similar-but-irrelevant source is the risk
+  behind accuracy and human-oversight expectations; keeping — and being able to show — what was
+  retrieved and whether the answer was grounded in it is the concrete control. Because the
+  vectors are derived from source data (often personal data under GDPR), the retrieval surface
+  is also a data-protection surface: what was embedded, where the vectors live, and how
+  retrieval behaves all have to be accountable. Which framework actually applies depends on the
+  data, use case, role, and jurisdiction.
