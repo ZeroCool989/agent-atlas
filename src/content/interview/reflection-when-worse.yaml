@@ -1,0 +1,51 @@
+question: "When does adding reflection make an agent's output worse, and how would you know it happened?"
+concepts:
+  - reflection
+  - failure-modes
+  - evaluation
+roles:
+  - architect
+  - consultant
+  - engineer
+difficulty: deep
+answers:
+  beginner: >-
+    Reflection makes things worse when the critic is wrong. A model judging its own work shares its own
+    blind spots, so it can confidently "improve" a good answer into a worse one, or wave through a bad
+    one — sycophancy. It also just costs more: every iteration is extra latency and money, often for
+    diminishing returns. You'd know it happened only with a *separate* measure — a held-out eval, a
+    verifier, or a human — because the critic that drove the change will report success either way.
+  professional: >-
+    Three ways it backfires. First, a bad-proxy critic: the rubric rewards something correlated with
+    quality but not quality itself (length, confident tone, agreeing with the user), and optimizing it
+    degrades the real answer — Goodhart's law, and sycophancy is the classic instance. Second, cost for
+    no gain: reflection multiplies calls and latency, and past the first pass or two the score usually
+    plateaus, so you're paying for iterations that don't help. Third, false confidence: because the
+    loop's success signal is the critic, a team can watch the score climb and believe quality improved
+    when a held-out check would show it didn't. How you'd know: you never trust the in-loop critic as
+    the verdict. You keep an independent eval set the loop can't see and compare true quality before and
+    after reflection; if the critic score rose but the held-out score didn't, reflection is optimizing
+    the proxy. When the answer is mechanically checkable, a deterministic check or a better prompt is
+    simpler and more reliable than a refine loop.
+  deep: >-
+    The precise trap is that reflection's guardrails — iteration caps, stall checks, keep-the-best —
+    bound *effort*, not *correctness*. They stop the loop spinning; they can't stop it climbing a wrong
+    hill. So the decision isn't "is the output imperfect" (it usually is) but "do I have an independent
+    signal that revision improves *true* quality, and does that improvement clear the added cost?" If the
+    only signal is self-critique, I assume nothing improved. Concretely I'd want a held-out oracle: in
+    this repo's harness, the sycophancy fixture shows the critic reaching 100% confidence while the oracle
+    score falls from 100% to 0% — same loop, catastrophic result, and completely invisible from inside.
+    The reach-for-something-simpler test: if a verifier or assertion can check correctness, use it (that's
+    verification, and it's independent); if a sharper prompt gets the first draft right, you don't need the
+    loop at all. Reflection earns its place when judging is genuinely easier than generating, the critic is
+    trustworthy or externally grounded, and you've measured that it helps.
+followUps:
+  - "How would you build a held-out check that the in-loop critic can't overfit to?"
+  - "Sycophancy vs. a genuinely helpful revision — how do you tell them apart at scale?"
+criticalThinking: true
+practicalExample: >-
+  src/lib/reflection/demo.ts encodes both outcomes deterministically: FIX, where reflection drives a
+  weak draft from 0/3 to a passing 3/3 (with a mid-trace regression the bounded loop rides out), and
+  SYCOPHANCY, where a critic that rewards agreement takes a correct answer to a wrong one — the critic
+  scores it 100% while a held-out oracle (src/lib/reflection/reflect.ts, rubricCritic) scores it 0%. The
+  numbers in the lesson are computed from that module, not asserted.

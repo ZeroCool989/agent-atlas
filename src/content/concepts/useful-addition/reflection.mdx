@@ -8,15 +8,179 @@ prerequisites:
 related:
   - planning
   - failure-modes
-interviewTags: ["reflection", "self-critique", "agents", "quality"]
-status: stub
+governance:
+  - eu-ai-act
+interviewTags: ["reflection", "self-critique", "reflexion", "self-refinement", "agents", "quality"]
+status: complete
+verdict:
+  classification: situational
+  problem: "A model's first draft is often not its best output — but a single generation pass has no chance to catch its own mistakes, so obvious flaws ship as-is."
+  simplerBaseline: "A sharper prompt that gets the first draft right, or — where 'correct' is mechanically checkable — a deterministic verifier. Reach for a refine loop only when judging a candidate is genuinely easier than generating a perfect one in one pass."
+  mainCost: "Extra latency and cost per iteration, diminishing returns, and a critic that can be wrong: a model judging itself shares its own blind spots, so it can confidently 'improve' a good answer into a worse one, or rubber-stamp a bad one."
+sources:
+  - shinn-reflexion-2023
 updated: 2026-07-19
 ---
 
-> **Stub** — planned territory on the atlas. This concept will cover: the reflect →
-> critique → revise loop (self-refinement, reflexion), why a model can often judge a draft
-> better than it can produce one in a single pass, the connection to evaluation (the critic
-> is an eval applied inline), the honest trade-offs (more latency and cost, no guarantee the
-> critique is correct — a model can confidently "improve" a good answer into a worse one),
-> and when reflection earns its cost versus when a better prompt or a fixed check is simpler.
-> It builds on Workflows vs agents and Evaluation.
+import ReflectionDemo from '../../../components/viz/ReflectionDemo';
+
+A single generation pass commits to whatever the model produced first — and a first draft is
+often not its best output (see [what a language model is](/concepts/what-is-a-language-model)).
+**Reflection** adds a loop *after* producing: the agent critiques its own output against a goal
+or rubric, then revises — bounded, stopping when the critique passes or improvement stalls. It
+goes by several names (self-refinement, reflexion, critic-actor loops) and shares one bet: for
+many tasks, *judging* a candidate against explicit criteria is easier than *generating* a
+perfect one in a single pass. Like [planning](/concepts/planning), it is a *technique inside* a
+tool-using or stateful agent, not a new rung on the autonomy ladder.
+
+> **Mental model: a writer with an editor pass.** Producing the draft and red-penning it are
+> different jobs, and doing the second on the first buys real quality — you catch what you'd
+> have shipped blind. **Where the analogy breaks:** here the editor is the *same mind* as the
+> writer. A human editor is a second, independent reader; a self-critic shares the author's
+> blind spots, so it can "fix" a correct sentence into a wrong one and feel more sure, not less.
+
+## What problem existed before this?
+
+One-shot generation has no second look. The model emits an answer from the prompt alone, and if
+that answer is almost-right — a summary missing the key number, code with an off-by-one, a plan
+with a contradiction — nothing in the process notices, because there is no step whose job is to
+*check*. You could re-prompt by hand, but that's you doing the reflecting. The gap is a built-in
+phase where the system evaluates its own draft and gets a chance to fix it before it ships.
+
+## Why was this invented?
+
+To close the produce-then-ship gap with a produce-then-*critique*-then-revise loop. The insight
+is asymmetry: even when a model can't nail a task in one pass, it can often *tell* what's wrong
+with a candidate when handed explicit criteria — the same asymmetry that makes grading an essay
+easier than writing one. Reflexion and self-refinement operationalize it: generate a draft, have
+a critic score it against a goal or rubric and say what's wrong, feed that back, and revise. The
+critic doesn't have to be the model, either — a compiler, a test suite, or a search result can
+play it, which is where reflection is strongest.
+
+## How does it work?
+
+Produce → critique → revise, repeated under a bound. A critic scores the current draft against
+criteria and returns *what's wrong*; the producer revises using that feedback; the loop stops
+when the critic passes or when revisions stop improving the score. Watch it run — a weak first
+draft is scored, revised (including one revision that overcorrects and scores *worse*, which the
+bounded loop keeps out of), and finally accepted; a last beat shows the honest limit:
+
+<ReflectionDemo client:visible />
+
+The mechanism is the deterministic harness in this repo (`src/lib/reflection/`): a `Critic`
+(draft → score + issues), a `Reviser` (goal + draft + critique → revised draft), and a loop
+bounded by an iteration cap and a *stall* check that returns the best-scoring draft, not the
+last. The load-bearing detail: **the critic is an [evaluation](/concepts/evaluation) applied
+inline** — `rubricCritic` is built from the eval harness's own `scoreAssertion`
+(`src/lib/eval/harness.ts`), pointed at the draft. Reflection *is* the eval harness, in a loop.
+In production the producer and critic are model calls; here they're fixed functions, which is
+the point of ADR-0005 — swap them for a model and the loop is unchanged.
+
+Three variants trade off along one axis, **how independent the critic is**:
+
+- **Self-critique** — the model grades its own output. Cheapest, and the *least* independent.
+- **External-tool / verifier feedback** — a compiler, test runner, schema, or search result
+  grades it. More trustworthy, because the signal comes from outside the model.
+- **Multi-sample + select** — generate several candidates and let the critic pick the best
+  (`bestOfN` in the module). Parallel instead of iterative, same "judging is easier" bet.
+
+## Is it actually necessary?
+
+Usually not as a first move. If a sharper prompt gets the first draft right, you don't need a
+loop; if "correct" is mechanically checkable, a deterministic verifier is simpler and more
+reliable than asking the model to re-grade itself. Reflection earns its keep on tasks where the
+first pass is reliably imperfect *and* judging a candidate is genuinely easier than generating
+one — and even then, only when the critic is trustworthy or externally grounded. Treat "we added
+a self-critique step" as a claim to justify with a measurement, not a default.
+
+## What are the trade-offs?
+
+You buy quality on hard-to-one-shot tasks and pay in three currencies. **Cost and latency**:
+every iteration is another model call or two, and past the first pass or two the score usually
+plateaus — diminishing returns you're still paying for. **A critic that can be wrong**: this is
+the honest core. A model judging itself shares its own blind spots, so it can confidently
+"improve" a good answer into a worse one, or rubber-stamp a bad one — **sycophancy**, when a
+critic rewards agreement over truth (see [failure modes](/concepts/failure-modes)). The demo's
+final beat is exactly this: run the same loop with a critic that rewards a fawning, agreeable
+answer, and it takes a *correct* reply ("the capital of Australia is Canberra") to a confidently
+*wrong* one — the critic scores it **100%** while a held-out oracle the loop never sees scores it
+**0%**. And **false confidence**: because the loop's success signal *is* the critic, a rising
+score can look like progress while true quality is flat or falling. The bounds (iteration cap,
+stall check) limit *effort*; they do nothing about a critic climbing the wrong hill.
+
+## What complexity does it introduce?
+
+A second role to design and maintain (the critic and its rubric), extra control flow that must
+terminate (caps, stall detection, keep-the-best), and a new evaluation problem: if the critic is
+a model, you now must validate *it*, the same way an LLM judge must be validated (see
+[evaluation](/concepts/evaluation)). You also inherit a subtle bookkeeping rule — return the
+best draft seen, never blindly the last, or a late regression ships. None of it is exotic, but
+"we added reflection" quietly means "we own a critic, a rubric, a bounded loop, and a way to
+check the loop actually helped."
+
+## What simpler alternative exists?
+
+In order of preference: a **better prompt** that gets the first draft right (often the "reflection"
+was papering over a vague instruction); a **deterministic check** — a schema, a test, a
+verifier — where correctness is mechanically checkable, which is both simpler and *independent* in
+a way self-critique never is; or **external-tool feedback** instead of self-critique when you do
+loop, so the grading signal comes from outside the model. Reach for a full self-critique loop only
+when none of those express the task. A check you can trust beats a critic you have to second-guess.
+
+## When should I use it?
+
+When the first pass is reliably imperfect and judging is easier than generating: drafting-then-
+polishing (writing, summaries), code that can be run against tests, structured output re-checked
+against a schema, multi-constraint answers where a rubric catches misses. It's strongest when the
+critic is **external** — tests, tools, a validated judge — because then the feedback is
+independent. And use it when the added latency and cost are affordable and you can *measure*, on a
+held-out set, that reflection raised true quality and not just the critic's opinion of it.
+
+## When should I avoid it?
+
+When a better prompt or a deterministic check already solves it; when the task is cheap to get
+right in one pass; when you can't afford the extra latency/cost or the quality gain doesn't clear
+it; and — most important — when the only available critic is the model grading itself on a task
+where its blind spots and the critic's blind spots are the *same*. That's where reflection quietly
+makes things worse: it will optimize its own score, sycophantically, while true quality drops. If
+you can't measure the improvement independently, assume there wasn't one.
+
+## Common misconceptions
+
+- **"Reflection makes the agent a higher tier of autonomy."** No — it's a technique used *inside*
+  a tool-using or stateful agent, like [planning](/concepts/planning). It changes *how* an output
+  is produced, not *who* decides the next step.
+- **"Self-critique verifies the output."** It does not. Reflection is the model improving its own
+  work; **verification** is a *separate*, independent check that the work is correct. A model
+  grading itself is not independent — that's the whole reason external verifiers and human review
+  still matter.
+- **"More iterations, better answer."** Returns diminish fast, and every extra pass is a chance for
+  the critic to talk the producer *out* of a good answer. Bound the loop and keep the best draft.
+- **"A higher critic score means higher quality."** Only if the critic is a faithful measure of the
+  goal. Optimize a proxy hard enough and you get Goodhart's law — a better number, not a better
+  answer (see [evaluation](/concepts/evaluation)).
+
+## Autonomy, oversight, and risk
+
+Reflection is often *sold* as a safety feature — "the system checks its own work" — and that
+framing is the risk. Self-critique is a quality technique, **not independent assurance**: a model
+grading its own output shares its blind spots, so a self-critique score is not admissible evidence
+of correctness on its own, and a sycophantic critic can raise that score while true quality falls.
+For higher-risk, regulated use cases the correctness signal must come from *outside* the loop — an
+external verifier or tool where the answer is checkable, a held-out [evaluation](/concepts/evaluation)
+the loop can't overfit, or a human reviewer at consequential decision points. This is where
+reflection meets the [EU AI Act](/governance/eu-ai-act)'s human-oversight and accuracy expectations
+for high-risk systems (and ISO 42001-style management processes): they are satisfied in practice by
+evidence of an *independent* check and its records — never by "the model reviews itself."
+Applicability depends on role, use case, and jurisdiction.
+
+## Build it, then own it
+
+The reflect-critique-revise harness is a few dozen readable lines:
+[`reflect.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/reflection/reflect.ts) —
+a critic built from the eval harness applied inline, a bounded loop that keeps the best draft, and
+a `bestOfN` for the multi-sample variant. The two fixtures in
+[`demo.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/reflection/demo.ts) are the
+whole lesson in code: one where reflection drives a weak draft from 0/3 to a passing 3/3 (riding out
+a mid-trace regression), and one where a sycophantic critic reaches 100% confidence on an answer a
+held-out oracle scores 0%. Read them, then try the interview questions below.

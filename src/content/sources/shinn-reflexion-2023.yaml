@@ -1,0 +1,14 @@
+type: paper
+title: "Shinn et al. — Reflexion: Language Agents with Verbal Reinforcement Learning (2023)"
+url: "https://arxiv.org/abs/2303.11366"
+ingestedAt: 2026-07-19
+routedTo:
+  - reflection
+decisions: >-
+  Logged as the primary reference for the reflection concept's account of the
+  produce → critique → revise loop (self-refinement / reflexion / critic-actor loops).
+  Routed to: reflection (complete). Creates no new concept; contradicts nothing existing.
+  Used to keep the lesson's framing honest — the critic is an evaluation applied inline,
+  and the strongest variants ground the critic in external/tool feedback rather than pure
+  self-critique. Supports the honesty point that self-critique is not independent
+  verification (a model grading itself shares its blind spots).

@@ -1,0 +1,46 @@
+question: "Walk me through the reflect-critique-revise loop and its bounds. How do you keep it from running forever or making the output worse?"
+concepts:
+  - reflection
+  - evaluation
+roles:
+  - engineer
+  - architect
+difficulty: deep
+answers:
+  beginner: >-
+    The loop is: produce a draft, critique it against the goal, and if it doesn't pass, revise using
+    the critique — then critique again. You bound it two ways: a hard cap on the number of revisions,
+    and a stall check that stops when a revision no longer improves the score. You also keep the
+    best-scoring draft rather than the latest, so a revision that makes things worse can't be adopted.
+  professional: >-
+    Concretely: an actor produces a draft; a critic scores it against a rubric and returns what's
+    wrong; if it passes, accept; otherwise feed the issues back to the actor for a revision and
+    re-critique. The two bounds are a maximum-iterations cap (the defense against an endless refine
+    loop) and a stall/patience check (stop after N revisions that fail to beat the best score so far —
+    diminishing returns). Crucially the loop optimizes the *critic's* score and nothing else, so I
+    track the best draft seen and return that, not the last one — otherwise a regression gets shipped.
+    The critic is an evaluation applied inline, which means all the eval discipline applies: the score
+    is only as meaningful as the rubric, and Goodhart's law bites — optimize a proxy hard enough and
+    you improve the number while the real quality flatlines or drops.
+  deep: >-
+    The honest failure the bounds *don't* fix is a wrong critic. Iteration caps and stall checks stop
+    the loop from spinning; they do nothing about a critic that's a poor proxy for the goal, because
+    the loop faithfully climbs whatever hill the critic defines. In this repo's harness, one fixture
+    shows refinement working (0/3 → 2/3 → a regression to 1/3 the loop rides out → 3/3 accepted), and a
+    second shows a sycophantic critic taking a correct answer to a confidently wrong one: the critic
+    score rises to 100% while a held-out oracle the loop never sees drops to 0%. That's the tell — if
+    your only signal that reflection helped is the critic that drove it, you've measured nothing. The
+    fixes are independence and measurement: prefer an external verifier (tests, tools, a validated
+    judge) over self-critique where you can, keep a held-out eval to confirm reflection actually raised
+    true quality, and treat "the model says it's better now" as a claim to check, not evidence.
+followUps:
+  - "How would you detect that reflection is optimizing the critic instead of the goal?"
+  - "What's the difference between the critic used in the loop and an offline eval of the whole system?"
+criticalThinking: false
+practicalExample: >-
+  The reflect-critique-revise harness in this repo (src/lib/reflection/reflect.ts) makes it concrete:
+  the critic is built from the eval harness's own scoreAssertion (src/lib/eval/harness.ts) applied to
+  the draft, the loop is bounded by maxIterations and a patience-based stall check, and it returns the
+  best-scoring draft, not the last. The demo (src/lib/reflection/demo.ts) includes both a case where
+  reflection fixes a flawed draft and one where an over-eager critic degrades a good one — the second
+  measured against a held-out oracle to expose the regression the critic is blind to.

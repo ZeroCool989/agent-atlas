@@ -1,0 +1,44 @@
+question: "What is reflection in an agent, and how is it different from planning and from verification?"
+concepts:
+  - reflection
+  - planning
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    A model's first draft is often not its best output. Reflection is a loop that runs after
+    producing: the agent critiques its own output against a goal or rubric, then revises — repeat
+    a bounded number of times, stopping when the critique passes or improvement stalls. It works
+    because judging a candidate against explicit criteria is often easier than generating a perfect
+    one in a single pass. It's a technique used inside an agent, not a new level of autonomy.
+  professional: >-
+    Reflection (self-refinement, reflexion, critic-actor loops) separates producing an answer from
+    judging it: an actor generates a draft, a critic scores it against a goal or rubric and says
+    what's wrong, and the actor revises using that feedback — bounded by an iteration cap and a
+    stall check. Three distinctions matter. Planning decides the *sequence of steps* before acting;
+    reflection revises *an output* after producing it — different phase, different object. And
+    reflection is not verification: reflection is the model improving its own work; verification is
+    a *separate* check — a test, a tool, a schema, a human — that the work is actually correct. The
+    critic in reflection is really an evaluation applied inline, which is exactly why it's powerful
+    and exactly why it's limited: it's only as good as the rubric, and a model judging itself is not
+    an independent check.
+  deep: >-
+    Mechanically, reflection is the eval harness pointed at a draft, in a loop: critique = score the
+    output against criteria, revise = feed the failing criteria back to the producer, repeat with
+    bounds. Variants trade off the same way: self-critique (the model grades itself — cheapest, least
+    independent); external-tool or verifier feedback (a compiler, test suite, or search result grades
+    it — more trustworthy because the signal is independent); and multi-sample-plus-select (generate N
+    candidates, let the critic pick — parallel instead of iterative). The load-bearing subtlety is
+    independence: self-critique shares the producer's blind spots, so it can confidently "improve" a
+    correct answer into a wrong one, or rubber-stamp a bad one. That's why reflection, planning, and
+    verification are three different tools — reflection improves a draft, planning orders the steps,
+    and verification is the outside check none of the others replace. On the autonomy spectrum none of
+    them is a new tier; they're techniques inside a tool-using or stateful agent, and each still needs
+    bounds and evaluation.
+followUps:
+  - "Where does the loop terminate, and what stops it from refining forever?"
+  - "Why is the critic best thought of as an evaluation, and what does that buy you?"
+  - "When would you reach for multi-sample-plus-select instead of iterative revision?"
+criticalThinking: false

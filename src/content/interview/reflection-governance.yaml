@@ -1,0 +1,49 @@
+question: "A team points to their agent's self-critique step as evidence the system checks its own work. How would you assess that claim for a regulated, higher-risk use case?"
+concepts:
+  - reflection
+  - evaluation
+roles:
+  - governance
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Self-critique is a quality technique, not an assurance guarantee. A model grading its own output is
+    not an independent check — it shares the same blind spots, so it can be confidently wrong about
+    itself. For a regulated, higher-risk use case I'd treat the reflection step as helpful engineering
+    but insist that assurance comes from something *independent*: a deterministic verifier, a validated
+    evaluation, or a human reviewer — with records to back it up.
+  professional: >-
+    I'd separate two claims: "the system tries to improve its answers" (reflection — fine, and probably
+    useful) and "the system verifies its answers are correct" (assurance — which self-critique does not
+    provide). The reason is independence: a self-critique loop is the same model judging itself, so it
+    isn't the arm's-length check that oversight and conformity expectations are really asking for. For a
+    higher-risk system I'd want the correctness signal to be independent of the thing being graded — an
+    external verifier or tool where the answer is checkable, a validated eval set the loop can't overfit,
+    and a human decision point where the stakes warrant it. I'd also flag sycophancy explicitly as a
+    risk: a critic that rewards agreement can make the output *worse* while reporting success, so the
+    self-critique score is not admissible evidence on its own. The governance ask is documentation:
+    show the independent check, its results, and how failures were handled — not "the model reviews
+    itself."
+  deep: >-
+    The subtle governance error is accepting a self-referential control as an independent one. Frameworks
+    like the EU AI Act's human-oversight and accuracy/robustness expectations for high-risk systems, and
+    ISO 42001-style management systems, are satisfied in practice by evidence that an *independent*
+    process checks the system — which a model grading itself is not. So I'd map the reflection step to its
+    honest role (an internal quality improvement) and require the assurance to sit outside the loop:
+    external verification where correctness is checkable, a held-out evaluation with retained records to
+    show reflection actually raised true quality rather than just the critic's score, and human review at
+    the consequential decision points. None of this makes the system "compliant" by itself; it makes the
+    correctness claim *reviewable*, which is the precondition the obligations actually turn on.
+    Applicability still depends on role, use case, sector, and jurisdiction.
+followUps:
+  - "Where exactly would you place the independent check relative to the reflection loop?"
+  - "What would you retain as evidence that reflection improved true quality, not just the critic score?"
+criticalThinking: false
+governanceAngle: >-
+  Self-critique is not independent assurance: a model grading its own output shares its blind spots, so a
+  reflection step is an internal quality technique, not evidence of correctness. Where regulated,
+  higher-risk assurance is needed, the correctness signal must come from outside the loop — an external
+  verifier or tool, a held-out validated evaluation, or a human reviewer — with records to back it, since
+  a sycophantic critic can raise its own score while true quality falls. Applicability depends on role,
+  use case, and jurisdiction.
