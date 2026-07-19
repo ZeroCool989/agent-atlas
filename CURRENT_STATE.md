@@ -36,6 +36,14 @@ index, per-framework pages, and the concept×regulation **mapping matrix**, with
 GDPR enriched and NIST AI RMF + OWASP LLM Top 10 stubs (accurate appliesTo mappings).
 Suite: 426 unit, 45 e2e, build 30 pages — green at 52b6440.
 
+**Phase 2 underway (2026-07-19, 39fcd6b).** L3 agent layer deepened: **memory** (working +
+episodic, honestly RAG-over-transcripts), **planning** (plan→execute→re-plan harness), and
+**MCP** (JSON-RPC protocol toy, framework-abstraction layer) all complete. **16 complete
+concepts, 2 stubs** (reflection, multi-agent-systems seeded as forward map territory).
+Interview bank 64. Suite: 494 unit, 61 e2e, build 49 pages — green. Next Phase-2: complete
+reflection + verification, computer-use/voice (L4), governance expansion (DORA/ISO-42001/FINMA),
+SRS, the multi-agent visualizer (L4 flagship). Cloudflare deploy still owner-gated.
+
 **MVP COMPLETE (2026-07-19, fb928e2).** All §19 surfaces shipped: Atlas graph home,
 13-concept spine (L0-L3 + evals + failure modes), Path (/learn) curriculum with progress,
 4+ playgrounds surfaced at /playgrounds, interview bank at **60** questions with drill mode
