@@ -1,0 +1,63 @@
+---
+/**
+ * Playgrounds index (plan §4, §8 Tier-3): every interactive simulation in the atlas, in one
+ * place. Each playground lives inside its host concept lesson; this page surfaces them
+ * together and links through. Zero client JS — the simulations hydrate on their own pages.
+ */
+import { getCollection } from 'astro:content';
+
+import Base from '../../layouts/Base.astro';
+import { PLAYGROUNDS } from '../../lib/playgrounds/registry';
+
+const concepts = await getCollection('concepts');
+const conceptById = new Map(concepts.map((c) => [c.id, c.data.title]));
+
+// Only surface playgrounds whose host concept exists (defensive; registry is curated).
+const items = PLAYGROUNDS.filter((p) => conceptById.has(p.concept));
+
+const LAYER_ORDER = ['foundation', 'core-mechanism', 'useful-addition', 'advanced-system'] as const;
+const groups = LAYER_ORDER.map((layer) => ({
+  layer,
+  items: items.filter((p) => p.layer === layer),
+})).filter((g) => g.items.length > 0);
+---
+
+<Base
+  title="Playgrounds"
+  description="Every interactive simulation in the atlas — deterministic, inspectable, no API keys."
+>
+  <main id="main" class="mx-auto max-w-3xl space-y-8 px-6 py-12">
+    <header class="space-y-2">
+      <h1 class="text-3xl font-bold tracking-tight">Playgrounds</h1>
+      <p class="text-slate-600">
+        Deterministic, inspectable simulations — no API keys, no hidden state. Each one lives
+        inside the lesson it teaches; open it to step through the mechanism yourself.
+      </p>
+    </header>
+
+    {
+      groups.map((g) => (
+        <section class="space-y-3" aria-label={`${g.layer} playgrounds`}>
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">{g.layer}</h2>
+          <ul class="grid gap-3 sm:grid-cols-2">
+            {g.items.map((p) => (
+              <li class="rounded border border-slate-200 p-4">
+                <a
+                  href={`/concepts/${p.concept}`}
+                  class="font-semibold underline"
+                  data-playground={p.id}
+                >
+                  {p.title}
+                </a>
+                <p class="mt-1 text-sm text-slate-600">{p.summary}</p>
+                <p class="mt-2 text-xs text-slate-400">
+                  in <span class="text-slate-500">{conceptById.get(p.concept)}</span>
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+  </main>
+</Base>

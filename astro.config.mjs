@@ -29,7 +29,9 @@ export default defineConfig({
         "base-uri 'self'",
         "form-action 'self'",
       ],
-      scriptDirective: { resources: ["'self'"] },
+      // 'wasm-unsafe-eval' is the narrow allowance Pagefind needs to instantiate its
+      // search WASM (self-hosted at /pagefind/); it does NOT permit unsafe-eval/inline JS.
+      scriptDirective: { resources: ["'self'", "'wasm-unsafe-eval'"] },
       styleDirective: { resources: ["'self'"] },
     },
   },

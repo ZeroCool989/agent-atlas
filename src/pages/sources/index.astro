@@ -1,0 +1,81 @@
+---
+/**
+ * Sources ledger (plan §4, §11): the intake changelog. Every source that has been ingested,
+ * what it was routed to, and the recorded decision — the platform documents itself. Zero
+ * client JS. routedTo links resolve to concept pages (integrity guaranteed by `validate`).
+ */
+import { getCollection } from 'astro:content';
+
+import Base from '../../layouts/Base.astro';
+
+const [sources, concepts] = await Promise.all([
+  getCollection('sources'),
+  getCollection('concepts'),
+]);
+const conceptTitle = new Map(concepts.map((c) => [c.id, c.data.title]));
+
+const rows = sources
+  .map((s) => ({ id: s.id, ...s.data }))
+  .sort((a, b) => b.ingestedAt.getTime() - a.ingestedAt.getTime());
+
+const fmt = (d: Date) => d.toISOString().slice(0, 10);
+---
+
+<Base
+  title="Sources"
+  description="The intake ledger: every source ingested into the atlas, where it was routed, and why."
+>
+  <main id="main" class="mx-auto max-w-3xl space-y-8 px-6 py-12">
+    <header class="space-y-2">
+      <h1 class="text-3xl font-bold tracking-tight">Sources</h1>
+      <p class="text-slate-600">
+        The intake ledger. Every source that shaped the atlas is logged here with what it was
+        routed to and the decision made — no loose ends, no separate notes directory. This
+        page is the changelog.
+      </p>
+      <p class="text-sm text-slate-400">{rows.length} sources ingested.</p>
+    </header>
+
+    <ol class="space-y-5">
+      {
+        rows.map((s) => (
+          <li class="rounded border border-slate-200 p-4" data-source={s.id}>
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 class="text-base font-semibold">
+                {s.url ? (
+                  <a href={s.url} class="underline" rel="noopener noreferrer">
+                    {s.title}
+                  </a>
+                ) : (
+                  s.title
+                )}
+              </h2>
+              <div class="flex gap-2 text-xs text-slate-500">
+                <span class="rounded bg-slate-100 px-2 py-0.5 font-medium">{s.type}</span>
+                <time datetime={fmt(s.ingestedAt)}>{fmt(s.ingestedAt)}</time>
+              </div>
+            </div>
+
+            {s.routedTo.length > 0 && (
+              <p class="mt-2 text-sm">
+                <span class="text-slate-500">Routed to:</span>{' '}
+                {s.routedTo.map((slug, i) => (
+                  <>
+                    {i > 0 && <span class="text-slate-300">, </span>}
+                    <a href={`/concepts/${slug}`} class="underline">
+                      {conceptTitle.get(slug) ?? slug}
+                    </a>
+                  </>
+                ))}
+              </p>
+            )}
+
+            {s.decisions.trim().length > 0 && (
+              <p class="mt-2 text-sm text-slate-600">{s.decisions}</p>
+            )}
+          </li>
+        ))
+      }
+    </ol>
+  </main>
+</Base>
