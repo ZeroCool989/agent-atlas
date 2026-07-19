@@ -1,0 +1,86 @@
+---
+/**
+ * The Path (plan §4): the L0→L6 curriculum as one ordered reading sequence. The list is
+ * server-rendered and fully usable with zero JS; the PathProgress island enhances it with
+ * local read-state (a ✓ per read concept, "read prerequisites first" hints) and JSON
+ * export/import. Order comes from the pure `orderedCurriculum` (src/lib/curriculum).
+ */
+import { getCollection } from 'astro:content';
+
+import Base from '../../layouts/Base.astro';
+import StatusBadge from '../../components/concept/StatusBadge.astro';
+import PathProgress from '../../components/PathProgress';
+import { orderedCurriculum, type CurriculumConcept } from '../../lib/curriculum/order';
+import type { ConceptStatus } from '../../lib/content/model';
+
+const concepts = await getCollection('concepts');
+const asCurriculum: CurriculumConcept[] = concepts.map((c) => ({
+  id: c.id,
+  title: c.data.title,
+  layer: c.data.layer,
+  status: c.data.status,
+  prerequisites: c.data.prerequisites ?? [],
+}));
+const groups = orderedCurriculum(asCurriculum);
+const total = asCurriculum.length;
+
+const LAYER_BLURB: Record<string, string> = {
+  foundation: 'What a model is and how it behaves — non-negotiable literacy.',
+  'core-mechanism': 'The reusable building blocks of AI systems.',
+  'useful-addition': 'Valuable for specific problems, skippable otherwise.',
+  'advanced-system': 'Compositions of the core mechanisms.',
+  'framework-abstraction': "Someone else's opinions about the layers above.",
+  'vendor-specific': "One company's implementation.",
+};
+---
+
+<Base
+  title="The Path"
+  description="The L0→L6 curriculum as one ordered reading sequence — start at the foundations and work outward."
+>
+  <main id="main" class="mx-auto max-w-3xl px-6 py-12">
+    <h1 class="text-3xl font-bold tracking-tight">The Path</h1>
+    <p class="mt-3 text-slate-600">
+      One ordered route through the atlas — foundations first, then each layer that builds on
+      it. Read in order, or jump to any concept. Your progress is stored locally in your
+      browser.
+    </p>
+
+    <div class="mt-6">
+      <PathProgress client:idle total={total} />
+    </div>
+
+    {
+      groups.map((group) => (
+        <section class="mt-10" aria-labelledby={`layer-${group.layer}`}>
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id={`layer-${group.layer}`} class="text-xl font-semibold capitalize">
+              <a href={`/learn/${group.layer}`} class="hover:underline">
+                {group.layer.replace('-', ' ')}
+              </a>
+            </h2>
+            <span class="text-sm text-slate-500">{group.concepts.length} concepts</span>
+          </div>
+          <p class="mt-1 text-sm text-slate-500">{LAYER_BLURB[group.layer]}</p>
+          <ol class="mt-3 divide-y divide-slate-100 rounded border border-slate-200">
+            {group.concepts.map((c, i) => (
+              <li
+                class="flex items-center gap-3 px-4 py-2"
+                data-concept-item
+                data-slug={c.id}
+                data-title={c.title}
+                data-prereqs={c.prerequisites.join(',')}
+              >
+                <span class="w-5 shrink-0 text-right text-xs text-slate-400">{i + 1}</span>
+                <a href={`/concepts/${c.id}`} class="font-medium hover:underline">
+                  {c.title}
+                </a>
+                <StatusBadge status={c.status as ConceptStatus} />
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))
+    }
+  </main>
+</Base>

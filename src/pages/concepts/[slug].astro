@@ -8,6 +8,7 @@ import { getCollection, render } from 'astro:content';
 
 import StatusBadge from '../../components/concept/StatusBadge.astro';
 import VerdictBox from '../../components/concept/VerdictBox.astro';
+import MarkAsRead from '../../components/MarkAsRead';
 import Base from '../../layouts/Base.astro';
 
 export async function getStaticPaths() {
@@ -85,6 +86,8 @@ const statusNote: Record<string, string | undefined> = {
     }
 
     <VerdictBox layer={data.layer} verdict={data.verdict} />
+
+    <div class="not-prose"><MarkAsRead client:idle slug={concept.id} /></div>
 
     {
       (data.prerequisites.length > 0 || data.related.length > 0) && (

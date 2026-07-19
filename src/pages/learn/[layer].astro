@@ -1,0 +1,64 @@
+---
+/**
+ * A single layer of the Path (plan §5 /learn/[layer]): its ordered lessons plus prev/next
+ * navigation through the curriculum. Static, zero-JS. Only layers that contain concepts get
+ * a page (getStaticPaths derives them), so there are no empty routes.
+ */
+import { getCollection } from 'astro:content';
+
+import Base from '../../layouts/Base.astro';
+import StatusBadge from '../../components/concept/StatusBadge.astro';
+import { orderedCurriculum, type CurriculumConcept } from '../../lib/curriculum/order';
+import type { ConceptStatus } from '../../lib/content/model';
+
+export async function getStaticPaths() {
+  const concepts = await getCollection('concepts');
+  const asCurriculum: CurriculumConcept[] = concepts.map((c) => ({
+    id: c.id,
+    title: c.data.title,
+    layer: c.data.layer,
+    status: c.data.status,
+    prerequisites: c.data.prerequisites ?? [],
+  }));
+  const groups = orderedCurriculum(asCurriculum);
+  return groups.map((group, i) => ({
+    params: { layer: group.layer },
+    props: {
+      group,
+      prev: i > 0 ? groups[i - 1]!.layer : null,
+      next: i < groups.length - 1 ? groups[i + 1]!.layer : null,
+    },
+  }));
+}
+
+const { group, prev, next } = Astro.props;
+const nice = (l: string) => l.replace('-', ' ');
+---
+
+<Base title={`Learn · ${nice(group.layer)}`} description={`The ${nice(group.layer)} layer of the Path — its concepts in reading order.`}>
+  <main id="main" class="mx-auto max-w-3xl px-6 py-12">
+    <p class="text-sm text-slate-500">
+      <a href="/learn" class="hover:underline">The Path</a> / <span class="capitalize">{nice(group.layer)}</span>
+    </p>
+    <h1 class="mt-1 text-3xl font-bold capitalize tracking-tight">{nice(group.layer)}</h1>
+
+    <ol class="mt-6 divide-y divide-slate-100 rounded border border-slate-200">
+      {
+        group.concepts.map((c, i) => (
+          <li class="flex items-center gap-3 px-4 py-2">
+            <span class="w-5 shrink-0 text-right text-xs text-slate-400">{i + 1}</span>
+            <a href={`/concepts/${c.id}`} class="font-medium hover:underline">
+              {c.title}
+            </a>
+            <StatusBadge status={c.status as ConceptStatus} />
+          </li>
+        ))
+      }
+    </ol>
+
+    <nav class="mt-8 flex justify-between text-sm" aria-label="Curriculum layers">
+      {prev ? <a href={`/learn/${prev}`} class="capitalize hover:underline">← {nice(prev)}</a> : <span />}
+      {next ? <a href={`/learn/${next}`} class="capitalize hover:underline">{nice(next)} →</a> : <span />}
+    </nav>
+  </main>
+</Base>
