@@ -28,7 +28,7 @@ test('rag lesson: mental model, steppable pipeline viz hydrates, governance, int
   await expect(page.getByText(/To cancel your subscription/).first()).toBeVisible();
 
   // Governance section makes the GDPR/retrieved-data point.
-  await expect(page.getByText(/Retrieved personal data is still processing/)).toBeVisible();
+  await expect(page.getByText(/Retrieved personal data is still processing/).first()).toBeVisible();
 
   // Nine-section body renders.
   await expect(page.getByRole('heading', { name: 'When should I avoid it?' })).toBeVisible();

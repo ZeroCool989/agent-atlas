@@ -1,0 +1,22 @@
+---
+title: "Memory"
+layer: useful-addition
+oneLiner: "A model's weights are frozen and its context is finite, so anything it should remember across turns or sessions has to be stored outside it and retrieved back in."
+prerequisites:
+  - tool-calling
+  - workflows-vs-agents
+related:
+  - rag
+  - context-windows
+interviewTags: ["memory", "state", "agents", "context"]
+status: stub
+updated: 2026-07-19
+---
+
+> **Stub** — planned territory on the atlas. This concept will cover: why "memory" is not a
+> model feature but an engineering pattern (the weights don't learn from your chat), the
+> kinds (working/scratchpad, episodic history, semantic/long-term via retrieval), how memory
+> is really just RAG over your own past plus context management, the cost and staleness
+> trade-offs, and when a stateful agent actually needs it versus when it's complexity. It
+> builds on Tool calling and Workflows vs agents and moves along the autonomy spectrum toward
+> stateful agents.
