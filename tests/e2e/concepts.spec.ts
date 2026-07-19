@@ -23,7 +23,7 @@ test.describe('concept index', () => {
 
   test('status filter and combined filters work; form reflects the URL', async ({ page }) => {
     await page.goto('/concepts?status=complete');
-    await expect(page.locator('li[data-status="complete"]:visible')).toHaveCount(21); // + memory, planning, mcp
+    await expect(page.locator('li[data-status="complete"]:visible')).toHaveCount(23); // + memory, planning, mcp
     await expect(page.getByLabel('Status')).toHaveValue('complete');
 
     await page.goto('/concepts?layer=foundation&status=needs-update');
@@ -43,7 +43,7 @@ test.describe('concept index', () => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     await page.goto('/concepts?layer=core-mechanism'); // params inert without JS
-    await expect(page.locator('li[data-layer]')).toHaveCount(24);
+    await expect(page.locator('li[data-layer]')).toHaveCount(25);
     await context.close();
   });
 });
