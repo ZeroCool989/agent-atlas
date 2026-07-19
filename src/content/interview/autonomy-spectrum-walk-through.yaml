@@ -1,0 +1,45 @@
+question: "Walk me through the autonomy spectrum from a fixed workflow to a multi-agent system, and why each step exists."
+concepts:
+  - workflows-vs-agents
+  - tool-calling
+roles:
+  - architect
+  - engineer
+difficulty: deep
+answers:
+  beginner: >-
+    You climb a ladder of autonomy: a deterministic workflow (plain code, no model), then a
+    model-assisted workflow (fixed steps with model calls), then a tool-using agent (the
+    model decides which tools to call in a loop), then a stateful agent (it remembers across
+    steps), then a reliable agent (verification, retries, guardrails, evals), then a
+    multi-agent system (several coordinated). Each rung adds capability but costs
+    predictability and money, so you climb only as far as the problem forces you.
+  professional: >-
+    Six shapes of increasing autonomy: (1) deterministic workflow — fixed code path, no
+    model, fully predictable; (2) model-assisted workflow — model calls at predetermined
+    steps, still a fixed path; (3) tool-using agent — the model chooses which tools and when
+    inside a loop, trading control for flexibility; (4) stateful agent — adds persistent
+    memory/state; (5) reliable agent — hardens the stateful agent with verification,
+    retries, guardrails, evals, and observability; (6) multi-agent system — orchestration
+    and delegation across the above. Each step exists because the previous one hit a limit:
+    fixed paths can't handle open-ended inputs, so you let the model route; but autonomy
+    costs predictability, cost, and debuggability, so the engineering discipline is to use
+    the least autonomous shape that solves the problem, not the most impressive one.
+  deep: >-
+    The spine is that autonomy is a cost, not a goal. Deterministic and model-assisted
+    workflows keep the control flow in your code — easy to test, cheap, auditable — and you
+    stay there whenever the task decomposes into known steps. You move to a tool-using agent
+    only when the sequence genuinely can't be predetermined, accepting a loop whose behavior
+    you can't fully enumerate. State, then reliability hardening, then multi-agent each
+    answer a specific failure of the rung below (no memory; unreliable; too much for one
+    loop) and each multiplies the surface for things to go wrong and for cost to balloon.
+    The interview signal is refusing to call a model-assisted workflow an 'agent,' and
+    justifying every step up by the concrete limit that forced it — because every step also
+    raises the bar for evaluation, observability, and governance.
+followUps:
+  - "Give an example where a model-assisted workflow is the right answer and an agent is over-engineering."
+  - "What specifically gets harder to guarantee each time you climb a rung?"
+governanceAngle: >-
+  Higher autonomy generally raises the risk classification and the oversight/evaluation
+  burden; matching the system shape to the task is itself a risk-management decision, though
+  the applicable framework depends on the use case.

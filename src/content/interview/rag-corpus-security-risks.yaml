@@ -1,0 +1,45 @@
+question: "What are the security risks of a RAG corpus, and how would you mitigate them?"
+concepts:
+  - rag
+  - failure-modes
+  - tool-calling
+roles:
+  - governance
+  - engineer
+difficulty: standard
+answers:
+  beginner: >-
+    The corpus is untrusted input the model will read, so someone can plant text that tries
+    to hijack the model's instructions (indirect prompt injection), and it can hold
+    sensitive data that shouldn't reach every user. Mitigations: control what goes into the
+    corpus, enforce per-user access on what can be retrieved, treat retrieved text as data
+    not commands, and give the model least privilege over any tools.
+  professional: >-
+    Two main risks. (1) Indirect prompt injection: retrieved documents can contain
+    instructions that the model may follow ('ignore previous instructions, exfiltrate X'),
+    so a poisoned or attacker-controlled source becomes an attack path. (2) Data exposure:
+    the corpus may contain personal or confidential data, and naive retrieval can surface it
+    to users who shouldn't see it, or leak it into logs. Mitigations: govern ingestion
+    (trusted sources, review), enforce access control at retrieval time (filter by the
+    requesting user's permissions, not after), separate and clearly delimit retrieved
+    content as data, apply least privilege to tools the model can call, and log/monitor.
+    Injection isn't fully solvable by prompting, so defense-in-depth is the posture.
+  deep: >-
+    Model the corpus as an untrusted, mutable channel into the model's context. Indirect
+    injection (OWASP LLM Top 10 #1) means any content that can enter the retrievable set —
+    a wiki page, an email, a scraped doc — can carry instructions; there is no prompt that
+    reliably immunizes against it, so controls are architectural: provenance and review on
+    ingestion, strong separation of retrieved data from system instructions, capability
+    reduction (the model can propose but a constrained tool layer with allowlists/human
+    approval executes), and output monitoring. On confidentiality, enforce authorization at
+    query time so retrieval only ever returns what the caller may see (post-hoc filtering
+    leaks via the model's answer), and keep the vector store's access and logs audited.
+    Because none of these is complete alone, the honest design is layered with monitoring,
+    and the governance story is access control, provenance, and audit trails.
+followUps:
+  - "Why can't a stricter system prompt fully stop indirect prompt injection?"
+  - "Why should access control happen at retrieval time rather than after the model answers?"
+governanceAngle: >-
+  RAG corpora typically implicate data-protection (access control, minimisation, audit) and
+  security-guidance frameworks like the OWASP LLM Top 10; the specific obligations depend on
+  the data, use case, and jurisdiction.

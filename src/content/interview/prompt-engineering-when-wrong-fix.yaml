@@ -1,0 +1,41 @@
+question: "A feature's answers are poor and someone says 'just improve the prompt.' When is that the wrong fix?"
+concepts:
+  - prompt-engineering
+  - rag
+  - what-is-a-language-model
+roles:
+  - consultant
+  - engineer
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    Prompting helps when the model could do the task but you're asking unclearly. It's the
+    wrong fix when the real problem is missing knowledge (the model doesn't know your data —
+    that needs retrieval), a capability limit (wrong or too-small model), or something that
+    needs a tool (math, live data). No wording gets a model to know a fact it never saw or
+    do something it fundamentally can't.
+  professional: >-
+    Diagnose the gap first. Prompt engineering addresses an elicitation gap — the capability
+    is there but you're not specifying the task, format, or examples well. It's the wrong
+    tool for three other gaps: a knowledge gap (needs current or private facts → RAG or
+    tools, since weights are frozen and prompting can't add knowledge), a capability gap
+    (the task exceeds the model → better model, decomposition, or a tool), and a
+    reliability gap (it's occasionally wrong in a way words won't fix → validation, verification,
+    human review). Chain-of-thought and few-shot elicit existing ability; they don't create
+    it. So 'improve the prompt' is right for clarity/format issues and a distraction when the
+    problem is knowledge, capability, or reliability.
+  deep: >-
+    The failure is treating prompting as a universal lever. Frame it as: does the model
+    have the knowledge, the capability, and the reliability the task needs, and are you
+    specifying it clearly? Prompting only moves the last one. Knowledge that's missing,
+    private, or fresh must come from retrieval or tools — no prompt reaches into frozen
+    weights and adds a fact, and 'it worked once' with a cleverer prompt often just got
+    lucky on that input. Capability ceilings need a stronger model or task decomposition.
+    Reliability needs structural controls (validation, verification, oversight), because
+    the same prompt will still fail some fraction of the time. Endless prompt-tweaking on a
+    knowledge or capability problem burns time and produces brittle, model-version-sensitive
+    results; recognizing which gap you actually have is the senior move.
+followUps:
+  - "How would you quickly test whether it's a knowledge gap versus a prompting gap?"
+  - "Why can a clever prompt that 'fixed' one example still be the wrong solution?"

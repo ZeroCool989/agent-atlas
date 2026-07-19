@@ -1,0 +1,43 @@
+question: "A stakeholder demands the AI feature 'never be wrong.' How do you set expectations and still ship something responsible?"
+concepts:
+  - failure-modes
+  - evaluation
+  - rag
+roles:
+  - product
+  - consultant
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    I'd be honest that 'never wrong' isn't achievable with an LLM — being confidently wrong
+    is built into how it works. What I can promise is to reduce errors, catch the ones that
+    matter, and keep a human in the loop for high-stakes decisions. Then I'd agree on an
+    acceptable error rate and how we measure it, rather than an impossible guarantee.
+  professional: >-
+    Reset the goal from 'perfect' to 'bounded and monitored.' Hallucination is structural,
+    so the responsible design is layers: ground answers in retrieved sources with citations,
+    validate structured outputs, keep temperature low for factual tasks, and add human
+    review where the cost of error is high. Crucially, define and measure it: build an eval
+    set of real cases with a target accuracy, track it over time, and decide together what
+    error rate is acceptable for this use case. Ship with clear UI cues that it's AI, make
+    sources visible, and give users an easy way to flag mistakes. That's a defensible
+    posture; a 'never wrong' promise is not.
+  deep: >-
+    The move is to convert an impossible absolute into an engineered risk budget. First,
+    segment by stakes: for low-stakes assistive output a modest error rate with easy
+    correction is fine; for high-stakes output you add mandatory human sign-off or don't
+    automate it. Then stack mitigations whose limits you state honestly — RAG and citations
+    reduce but don't eliminate (the model can still misattribute), validation catches
+    shape and some value errors but not all, evals measure but can be gamed or overfit. Make
+    the whole thing observable (log inputs, retrieved context, outputs, human overrides) so
+    you can prove the error rate and improve it. Governance frameworks generally ask for
+    exactly this — documented accuracy targets, oversight, and a risk register — not a
+    guarantee of perfection.
+followUps:
+  - "How would you decide which decisions require a human in the loop?"
+  - "How do you measure 'wrong' when there isn't a single correct answer?"
+governanceAngle: >-
+  Accuracy and human-oversight expectations under frameworks like the EU AI Act are met by
+  documented error targets, monitoring, and oversight — not by claiming zero error, which
+  can itself be a misrepresentation risk. Applicability depends on the system and use case.

@@ -1,0 +1,42 @@
+question: "A stakeholder says: 'just use a model with a huge context window so it remembers everything.' How do you respond?"
+concepts:
+  - context-windows
+  - rag
+  - failure-modes
+roles:
+  - product
+  - architect
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    A bigger window helps, but it isn't memory and it isn't free. Everything you stuff in
+    is re-sent and re-billed every call, latency grows, and models can miss facts buried
+    in the middle of a very long context. For durable "remembering," you retrieve the few
+    relevant pieces (RAG) or store state, rather than pasting everything every time.
+  professional: >-
+    Large context windows are genuinely useful, but "remembers everything" conflates three
+    things: window size, cost/latency, and retrieval quality. Filling a big window re-sends
+    all those tokens on every request (cost and latency scale with it), and long-context
+    recall is uneven — relevant facts placed mid-context are often used less reliably than
+    ones near the edges. It's also stateless: the window resets each call unless you
+    re-supply it. The right design usually retrieves the relevant slice (RAG) or keeps
+    explicit state, using the large window as headroom, not as a database.
+  deep: >-
+    Three honest caveats. (1) Economics: context is paid per token per call, so a
+    permanently-full 200k window is a recurring cost and latency tax, not a one-time load.
+    (2) Effectiveness: attention over very long inputs degrades non-uniformly, so more
+    tokens can dilute rather than help; retrieval that puts the right 2k tokens in beats
+    100k of mostly-irrelevant text. (3) Semantics: the window is working memory, not
+    persistence — cross-session memory needs a store. So the answer isn't "small window
+    good, big window bad," it's that big context and retrieval solve different problems;
+    you use retrieval/state for durable knowledge and reserve window headroom for the task
+    at hand. Which matters most depends on the use case, volume, and latency budget.
+followUps:
+  - "When would you genuinely prefer long-context stuffing over RAG?"
+  - "How would you test whether the model actually uses information in the middle of a long context?"
+governanceAngle: >-
+  Pasting large documents wholesale into every call can pull more personal or sensitive
+  data into processing and logs than needed; retrieving only what's relevant is closer to
+  data-minimisation — though whether that obligation applies depends on the data, use, and
+  jurisdiction.

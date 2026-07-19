@@ -1,0 +1,46 @@
+---
+/**
+ * Role-track view (plan §5 /interview/[track], §9). A saved filter per target role —
+ * the same drill list, pre-filtered to one role. Static-first; the island adds grading.
+ */
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import InterviewDrill, { type DrillQuestion } from '../../components/InterviewDrill';
+import { filterQuestions } from '../../lib/interview/filter';
+import { INTERVIEW_ROLES, type InterviewRole } from '../../lib/content/model';
+
+export function getStaticPaths() {
+  return INTERVIEW_ROLES.map((track) => ({ params: { track } }));
+}
+
+const { track } = Astro.params as { track: InterviewRole };
+const DIFF_ORDER: Record<string, number> = { screen: 0, standard: 1, deep: 2 };
+const all = (await getCollection('interview'))
+  .map((e): DrillQuestion => ({
+    id: e.id,
+    question: e.data.question,
+    difficulty: e.data.difficulty,
+    roles: e.data.roles,
+    criticalThinking: e.data.criticalThinking,
+    answers: e.data.answers,
+  }))
+  .sort((a, b) => (DIFF_ORDER[a.difficulty] ?? 9) - (DIFF_ORDER[b.difficulty] ?? 9));
+
+const questions = filterQuestions(all, { role: track });
+---
+
+<Base
+  title={`Interview prep — ${track} track`}
+  description={`Interview questions relevant to the ${track} role, with tiered answers and self-grading.`}
+>
+  <main id="main" class="mx-auto max-w-3xl px-6 py-12">
+    <p class="text-sm"><a href="/interview" class="underline">← All interview prep</a></p>
+    <h1 class="mt-2 text-3xl font-bold tracking-tight capitalize">{track} track</h1>
+    <p class="mt-2 text-slate-600" data-track-count={questions.length}>
+      {questions.length} questions relevant to the {track} role.
+    </p>
+    <div class="mt-6">
+      <InterviewDrill questions={questions} client:visible />
+    </div>
+  </main>
+</Base>

@@ -1,0 +1,39 @@
+question: "The model returns JSON that parses fine. Why would you still validate it against a schema?"
+concepts:
+  - structured-outputs
+  - failure-modes
+roles:
+  - engineer
+  - architect
+difficulty: screen
+answers:
+  beginner: >-
+    Parsing only tells you it's well-formed JSON — not that it has the right fields, types,
+    or sane values. The model can return valid JSON with a missing key, a number as a
+    string, or a confidently wrong value. Schema validation catches those before they flow
+    into the rest of your system, and you can retry or fail cleanly instead of corrupting
+    downstream data.
+  professional: >-
+    'Parses' and 'correct' are different guarantees. A schema check enforces the contract:
+    required fields present, correct types, allowed enum values, ranges. Models routinely
+    emit valid JSON that violates the contract — wrong key name, string where a number
+    belongs, extra fields, or a plausible-but-wrong value. Without validation those errors
+    become silent bad data or runtime failures deep in the system. With it, you get a
+    typed, trusted object at the boundary and a clean control point: on a validation failure
+    you can retry with the error fed back, fall back, or fail loudly. The one thing schema
+    validation can't catch is a value that's the right shape but factually wrong — that's
+    what evals and downstream checks are for.
+  deep: >-
+    Structured output pushes the model toward a shape, but generation is still probabilistic,
+    so treat its output as untrusted input and validate at the trust boundary. Layer the
+    checks: syntactic (it parses), schema (fields/types/enums/ranges — the contract), and
+    semantic (the value is actually right), where each layer catches strictly less-obvious
+    errors than the last and the semantic layer generally isn't a pure validation problem.
+    Provider 'JSON mode' / constrained decoding reduces syntactic failures but does not
+    guarantee the schema-level contract or correctness. So validation earns its place by
+    turning a probabilistic string into a typed value with a defined failure path (retry
+    with the validator's error, fall back, or hard-fail), which is exactly the discipline
+    that makes tool calling and pipelines reliable.
+followUps:
+  - "What kind of error can schema validation never catch, and how do you handle that?"
+  - "When a validation fails, when do you retry versus fail hard?"

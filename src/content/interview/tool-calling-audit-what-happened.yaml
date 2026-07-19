@@ -1,0 +1,42 @@
+question: "A reviewer asks how you know what your tool-using agent actually did. What do you show them?"
+concepts:
+  - tool-calling
+  - workflows-vs-agents
+  - evaluation
+roles:
+  - governance
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    I'd show the trace: for each step, what the model decided, which tool it called with
+    what arguments, what the tool returned, and how the final answer was formed. If every
+    tool call and result is logged, you can reconstruct exactly what happened and why,
+    rather than trusting the model's prose about it.
+  professional: >-
+    The answer is observability by design. A tool-using agent runs a loop — decide, call a
+    tool, observe the result, repeat — and each of those events should be recorded: the
+    inputs, the model's chosen tool and arguments, the validation outcome, the tool's actual
+    output, retries, and the stopping reason. That trace is the audit artifact: it shows the
+    agent's behavior is driven by deterministic tool results, not unverifiable text, and it
+    lets you replay or investigate any run. I'd also show the guardrails (allowlisted tools,
+    argument validation, human-approval gates for sensitive actions) and the eval results
+    that demonstrate the behavior was tested, not just observed once.
+  deep: >-
+    Distinguish two things the reviewer cares about: what happened (a specific run) and what
+    generally happens (systemic behavior). For the former, a structured trace with
+    per-step decidedBy, tool name and arguments, validation result, tool output, and outcome
+    gives full reconstructability — crucially, the tool result, not the model's narration,
+    is the source of truth, so the log is trustworthy. For the latter, you show the control
+    surface (tool allowlist, schema validation, least-privilege execution, human-in-the-loop
+    for high-impact actions) and the eval evidence across scenarios. Together these answer
+    accountability and human-oversight expectations. The honest caveat is that a trace proves
+    what the agent did, not that the decision was correct — which is why validation and evals
+    sit alongside logging.
+followUps:
+  - "Why is the logged tool result more trustworthy than the model's description of what it did?"
+  - "Which agent actions would you gate behind human approval, and why?"
+governanceAngle: >-
+  Traceability and human oversight are recurring expectations in AI governance (e.g. EU AI
+  Act, ISO 42001); a per-step trace plus guardrail configuration is the concrete evidence,
+  with applicability depending on the system and use case.
