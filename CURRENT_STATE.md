@@ -36,6 +36,14 @@ index, per-framework pages, and the concept×regulation **mapping matrix**, with
 GDPR enriched and NIST AI RMF + OWASP LLM Top 10 stubs (accurate appliesTo mappings).
 Suite: 426 unit, 45 e2e, build 30 pages — green at 52b6440.
 
+**Phase 2 deep (2026-07-19, 45168b7).** Reliable-agent tier done: **reflection** (self-critique
+loop reusing the eval harness), **verification** (independent-check pipeline reusing schema/value/
+grounding/policy checks), **computer-use** (L4 GUI agent; safety enforced by the runtime, not the
+model). **19 complete concepts, 1 stub** (multi-agent-systems). Interview bank 82. Suite: 569 unit,
+67 e2e, build 51 pages — green. Next: multi-agent-systems + the multi-agent visualizer (L4 flagship),
+L5 production concepts (observability, prompt-injection/security, reliability patterns, cost), L6
+governance (DORA/FINMA/ISO-42001), SRS, interview→~150.
+
 **Phase 2 underway (2026-07-19, 39fcd6b).** L3 agent layer deepened: **memory** (working +
 episodic, honestly RAG-over-transcripts), **planning** (plan→execute→re-plan harness), and
 **MCP** (JSON-RPC protocol toy, framework-abstraction layer) all complete. **16 complete
