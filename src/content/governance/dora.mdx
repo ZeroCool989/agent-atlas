@@ -1,0 +1,46 @@
+---
+title: "DORA"
+kind: regulation
+binding: true
+oneLiner: "The EU's Digital Operational Resilience Act: binding ICT risk-management, incident-reporting, resilience-testing and third-party rules for financial entities, applicable from January 2025."
+bindsWho: "EU financial entities (banks, insurers, investment firms, payment and e-money institutions, crypto-asset service providers, and more) and the critical ICT third-party providers that serve them."
+appliesTo:
+  - observability
+  - evaluation
+  - verification
+  - failure-modes
+  - multi-agent-systems
+obligations:
+  - requirement: "ICT risk-management framework — govern, identify, protect, detect and respond to ICT risk."
+    control: "A documented ICT risk framework: asset inventory, monitoring and detection controls, and defined response and recovery procedures."
+  - requirement: "ICT-related incident management, classification and reporting of major incidents."
+    control: "Detect, classify, log and (where major) report incidents — tracing/observability good enough to reconstruct what a system did and when."
+  - requirement: "Digital operational resilience testing of ICT systems, up to threat-led penetration testing for some entities."
+    control: "Regular, repeatable testing — evaluation harnesses, failure-mode and scenario testing, with recorded results."
+  - requirement: "ICT third-party risk management, including a register of arrangements and exit strategies."
+    control: "Track ICT/AI-provider dependencies, contractual and exit arrangements, and concentration risk; critical providers fall under an EU oversight regime."
+  - requirement: "Information and intelligence sharing on cyber threats (voluntary within the framework)."
+    control: "Arrangements to exchange threat intelligence where the entity chooses to participate."
+---
+
+**DORA** — the **Digital Operational Resilience Act**, Regulation (EU) 2022/2554 — is a
+**binding EU regulation** that has applied since **17 January 2025**. It sets uniform
+requirements for the **operational resilience of the ICT** that financial entities depend
+on, built on five pillars: ICT risk management, incident management and reporting,
+resilience testing, ICT third-party risk, and information sharing. It also brings
+**critical ICT third-party providers** under a direct EU oversight framework.
+
+The mappings on this page are **potential relevance**, not determinations. Whether — and
+how — DORA applies depends on the entity type, its ICT arrangements, the specific use
+case, and the jurisdiction; DORA governs the *operational resilience* of ICT, not AI as
+such. Where an AI system is part of a financial entity's ICT, it inherits that ICT's
+obligations. The atlas shows *which technical mechanism a pillar reaches*:
+**observability** is where incident detection and reconstruction live, **evaluation** and
+**failure modes** are where resilience testing becomes evidence, **verification** is the
+in-line checking that keeps a system within tolerance, and **multi-agent systems** are
+where composed, third-party-dependent ICT raises the concentration and resilience
+questions the third-party pillar is about.
+
+> Not legal advice. The Regulation number and application date are given for orientation;
+> confirm current scope, technical standards (RTS/ITS), and applicability for any real
+> assessment.
