@@ -1,0 +1,131 @@
+---
+title: "Planning"
+layer: useful-addition
+oneLiner: "Decide a multi-step plan before acting, then execute it — and re-plan when a step fails — instead of choosing one greedy step at a time."
+prerequisites:
+  - workflows-vs-agents
+  - tool-calling
+related:
+  - failure-modes
+  - evaluation
+governance:
+  - eu-ai-act
+interviewTags: ["planning", "agents", "react", "plan-then-execute", "autonomy"]
+status: complete
+verdict:
+  classification: situational
+  problem: "A greedy tool-using agent picks the next action from the current state alone. On long tasks that need coordinated steps, greedy choices drift: the agent loses the thread, repeats itself, or paints itself into a corner it can't reverse."
+  simplerBaseline: "Most tasks people reach for 'planning' on are better served by a fixed workflow (the developer plans, once, in code) or a single well-structured prompt. Reach for agent planning only when the steps genuinely can't be known in advance."
+  mainCost: "A plan is a second thing that can be confidently wrong: a bad plan gets executed to completion. Planning adds an up-front model call, latency, and the need for re-planning, checkpoints, and bounds — more autonomy, more to verify."
+sources:
+  - yao-react-2022
+updated: 2026-07-19
+---
+
+import PlanningDemo from '../../../components/viz/PlanningDemo';
+
+A tool-using agent decides one step at a time (see [workflows vs agents](/concepts/workflows-vs-agents)). That
+is enough for short tasks, but on longer ones a purely greedy loop drifts — it optimizes the
+next move without a picture of the whole job. **Planning** adds a phase before acting: the agent
+produces a multi-step plan, executes it, and revises the plan when reality pushes back. It is a
+*technique inside* the tool-using / stateful agent, not a new rung on the autonomy ladder.
+
+## What problem existed before this?
+
+A step-at-a-time agent chooses each action from the current messages and tools alone. For a task
+whose later steps depend on getting earlier ones right — book the room *after* you know who's
+free, *after* you know the team size — greedy selection has no representation of "the whole job."
+It can wander, redo work, or commit to an action it can't take back, and it has no artifact to
+point at when a human asks "what is it going to do?"
+
+## Why was this invented?
+
+To give the agent an explicit, inspectable **plan** — an ordered set of intended steps produced
+before execution — so the system reasons about the task as a whole, can be checked before it acts,
+and can *revise* course when a step fails instead of blundering onward. Patterns range from
+**plan-then-execute** (decompose the task up front, then run the steps) to **ReAct**-style
+interleaving (reason → act → observe, re-deciding each turn) to explicit **task decomposition**
+into subtasks. They share one idea: separate *deciding what to do* from *doing it*, and keep the
+decision visible.
+
+## How does it work?
+
+Plan-then-execute is the clearest version. A planner turns the goal into ordered steps; a runtime
+executes them; when a step fails, the planner is called again to **re-plan the remainder** around
+the failure. Watch it run — a plan is made up front, the 9:00 room check fails, and the planner
+routes to the next open slot rather than insisting on 9:00. The final beat shows the same task run
+greedily, with no plan to revise, drifting instead:
+
+<PlanningDemo client:visible />
+
+The mechanism is the deterministic harness in this repo (`src/lib/planning/`): a `Planner`
+(goal → steps), a `StepExecutor` (run one step, report success or a recoverable failure), and a
+loop that executes in order and re-plans on failure — bounded by a step cap and a re-plan cap so it
+can never loop forever. In production the planner is a model call; here it's a fixed function, which
+is the point of ADR-0005 — swap the planner for a model and the loop is unchanged.
+
+## Is it actually necessary?
+
+Usually not. If you can write the steps down in advance, you don't need the model to plan — you need
+a **workflow** (you did the planning, in code, once). Planning earns its keep only when the sequence
+genuinely can't be known ahead of time and depends on what earlier steps reveal. Treat "we added a
+planner" as a claim to justify, not a default.
+
+## What are the trade-offs?
+
+You buy coherence on long tasks and pay in predictability and cost. A plan is an extra model call
+(latency, tokens) and a new failure mode: a **confident wrong plan** executed to completion is worse
+than a greedy agent that at least fails early. Re-planning helps but can loop; you now need
+checkpoints, step and re-plan bounds, and evaluation to know the planner is any good. Autonomy went
+up, and so did the amount you must verify.
+
+## What complexity does it introduce?
+
+A plan is state to represent, persist, and reason about; re-planning is control flow that must
+terminate; and a plan executed without human checkpoints raises the stakes of every step. You inherit
+the tool-using agent's whole burden — traces, limits, evals — and add the plan on top. This is why
+planning lives in the `useful-addition` layer: valuable for the right problem, pure overhead for the
+wrong one.
+
+## What simpler alternative exists?
+
+In order of preference: a **fixed workflow** (developer-authored steps, no model discretion); a
+**single, well-structured prompt** that asks for the answer directly (often the "plan" was imaginary);
+or a plain **tool-using agent** with a tight step limit. Add planning only when those genuinely can't
+express the task. A fixed sequence you can test beats an agentic plan you have to babysit.
+
+## When should I use it?
+
+When the task is multi-step, the steps depend on runtime discoveries, and the sequence can't be
+hard-coded — research-and-synthesize tasks, multi-tool workflows where the branch depends on results,
+long jobs where a greedy agent measurably loses the thread. And when you can afford checkpoints: a
+plan you can inspect and interrupt is much safer than one that runs to completion unattended.
+
+## When should I avoid it?
+
+When a workflow or a good prompt already solves it (most of the time); when the task is short enough
+that greedy step-selection is fine; when you can't afford the extra latency/cost or can't supervise a
+multi-step run; and any time "add a planner" is reaching for autonomy to paper over an unclear task
+or a wrong model choice. Planning makes a confused agent *confidently* wrong, faster.
+
+## Common misconceptions
+
+- **"Planning makes the agent a higher tier of autonomy."** No — it's a technique used *inside* a
+  tool-using or stateful agent. The autonomy spectrum is about *who decides the next step*; planning
+  changes *how* the model decides, not that it decides.
+- **"A plan means the agent will do the right thing."** A plan is only as good as the model's
+  understanding of the task. A wrong plan executed faithfully is a distinct, often costlier, failure
+  than a greedy misstep — see [failure modes](/concepts/failure-modes).
+- **"Re-planning fixes failures."** It routes around *recoverable* ones. Some failures no plan can
+  rescue; a bounded harness ends honestly as failed rather than looping — which is the correct
+  behavior, not a bug.
+
+## Autonomy, oversight, and risk
+
+Planning increases the length of the leash: more steps executed per human decision. That is exactly
+where governance frameworks focus. The [EU AI Act](/governance/eu-ai-act)'s human-oversight
+expectations for higher-risk systems push toward **checkpoints** (a plan a person can review or
+interrupt) rather than fire-and-forget execution, and toward **auditability** — an explicit,
+logged plan is far easier to review after the fact than a stream of greedy actions. The reliability
+answer (verification between steps, re-planning limits, evals of plan quality) is where planning meets
+[evaluation](/concepts/evaluation): you cannot trust a planner you have never measured.

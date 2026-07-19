@@ -59,3 +59,5 @@ export type {
 } from './types';
 export { buildRagScenes } from './rag-scene';
 export type { RagScene } from './rag-scene';
+export { createPlanningScene, PLANNING_DEMO_INPUT } from './planning-scene';
+export type { PlanningScene, PlanningSceneInput, PlanningSceneKind } from './planning-scene';

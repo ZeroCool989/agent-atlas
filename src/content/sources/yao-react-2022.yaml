@@ -1,0 +1,14 @@
+type: paper
+title: "Yao et al. — ReAct: Synergizing Reasoning and Acting in Language Models (2022)"
+url: "https://arxiv.org/abs/2210.03629"
+ingestedAt: 2026-07-19
+routedTo:
+  - planning
+decisions: >-
+  Logged as the primary reference for the planning concept's account of interleaved
+  reason-and-act (ReAct) alongside plan-then-execute. Routed to: planning (complete).
+  Creates no new concept; contradicts nothing existing. Used to keep the lesson's
+  taxonomy honest (ReAct interleaves reasoning and acting each turn; plan-then-execute
+  decides the whole plan up front — both are "planning" techniques inside a tool-using
+  agent, not a new autonomy tier). Contributes the plan-then-execute-vs-ReAct follow-up
+  to the interview bank.
