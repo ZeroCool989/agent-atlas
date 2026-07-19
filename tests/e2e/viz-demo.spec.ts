@@ -39,11 +39,12 @@ test('only the visualization page loads island JavaScript', async ({ page }) => 
   await page.goto('/viz-demo');
   await page.getByRole('button', { name: 'Next' }).click(); // proves hydration happened
   expect(vizScripts.length).toBeGreaterThan(0);
-  // The content-only home page still ships zero JS (also asserted in smoke.spec.ts).
-  const homeScripts: string[] = [];
+  // A plain content page (no island) still ships zero JS. The home is now the interactive
+  // Atlas graph and legitimately hydrates — so the invariant is checked on a content page.
+  const plainScripts: string[] = [];
   page.on('request', (req) => {
-    if (req.resourceType() === 'script') homeScripts.push(req.url());
+    if (req.resourceType() === 'script') plainScripts.push(req.url());
   });
-  await page.goto('/');
-  expect(homeScripts).toEqual([]);
+  await page.goto('/concepts/context-windows');
+  expect(plainScripts).toEqual([]);
 });
