@@ -1,0 +1,14 @@
+---
+/**
+ * Composition root for the MCP handshake viz: builds the scenes through the real in-memory
+ * toy MCP client/server at build time and hands them to the island. Every envelope shown
+ * is genuine protocol output — labelled in the lesson as an in-memory model of the shape,
+ * not a live connection. Zero JS until the island hydrates on scroll (client:visible).
+ */
+import { buildMcpHandshakeScenes } from '../../lib/viz/mcp-handshake-scene';
+import McpHandshakeIsland from './McpHandshakeIsland';
+
+const scenes = buildMcpHandshakeScenes();
+---
+
+<McpHandshakeIsland client:visible scenes={scenes} />

@@ -1,0 +1,262 @@
+---
+title: "Model Context Protocol (MCP)"
+layer: framework-abstraction
+oneLiner: "An open protocol that standardizes how an agent connects to external tools, data, and prompts — so an integration written once works with any MCP-capable client. It is plumbing over tool-calling, not a new capability."
+prerequisites:
+  - tool-calling
+  - structured-outputs
+related:
+  - workflows-vs-agents
+  - rag
+governance:
+  - owasp-llm-top-10
+  - eu-ai-act
+interviewTags: ["mcp", "model-context-protocol", "interoperability", "tool-calling", "integration"]
+status: complete
+verdict:
+  classification: situational
+  problem: "Once agents use tools, every application re-implements the same tool and data integrations by hand. Wiring N clients to M tools is an N×M problem: each pairing is bespoke, and nothing is reusable across apps."
+  simplerBaseline: "For a single application, a direct hardcoded tool integration is simpler and has fewer moving parts — you do not need MCP to call a tool. MCP only starts paying off when the same integration must be reused across many clients, or consumed from many servers."
+  mainCost: "A protocol layer to run and a new trust boundary: an MCP server is third-party code you execute and a path your data can leave by. It adds interoperability, not model capability — underneath, the model is still just doing tool-calling."
+sources:
+  - anthropic-building-effective-agents
+updated: 2026-07-19
+---
+
+import McpHandshake from '../../../components/viz/McpHandshake.astro';
+
+Once an agent can [call tools](/concepts/tool-calling), a new kind of work appears — and
+it is boring, repetitive work. Every application that wants the model to read a database,
+search a wiki, or hit an internal API writes that integration itself, in its own shape.
+Do it across a few apps and a few tools and you are maintaining the same connectors many
+times over. The **Model Context Protocol (MCP)** is an *open protocol* that standardizes
+this connection: a common wire format for a client to *discover* what an external system
+offers and to *invoke* it. Write the integration once as an MCP **server**, and any
+MCP-capable **client** can use it. That is the entire idea — and the honest catch, which
+this lesson keeps returning to, is that it buys **interoperability, not new capability**.
+Underneath the protocol, the model is still doing plain tool-calling.
+
+> **Mental model: a universal power outlet.** Before standard sockets, every appliance
+> shipped with its own wiring and you hard-wired each one into the wall. A standard outlet
+> did not make appliances more powerful — a lamp is exactly as bright — it just meant any
+> plug fits any socket, so a device built once works everywhere. MCP is that outlet for
+> agents: tools, data, and prompts on one side; clients on the other; one agreed shape in
+> between.
+> **Where the analogy breaks:** a wall socket delivers inert electricity, but an MCP
+> server delivers *code you run* and *data that can leave*. The outlet is also a door.
+> Plugging in a server you did not write is closer to installing a browser extension than
+> to plugging in a lamp — which is why the security section is not optional here.
+
+## What problem existed before this?
+
+Tool-calling gave a model a way to *ask* for real work; it said nothing about how the
+application connects to the systems that do it. So each application built its own
+connectors. A chat app, an IDE assistant, and a customer-support agent that all needed to
+search the same internal wiki each wrote their own wiki integration — different code,
+different auth handling, different result shapes. Add a new client and you re-implement
+every integration it needs; add a new tool and you wire it into every client separately.
+This is the **N×M integration problem**: N clients times M tools, each pairing bespoke.
+Nothing is reusable, and the same connector is maintained in a dozen places at once.
+
+## Why was this invented?
+
+To turn N×M into **N+M**. If clients and servers agree on one protocol, then each tool is
+integrated *once* (as a server) and each client learns the protocol *once* — and every
+client can then use every server, without either side knowing about the other in advance.
+MCP is that agreement, published as an open specification so it is not owned by a single
+vendor's product. It reuses [JSON-RPC 2.0](https://www.jsonrpc.org/) as its message
+format and defines a small set of operations — connect, list capabilities, invoke — so a
+tool author and a client author who have never met can still interoperate. The design goal
+is the same one that made the Language Server Protocol collapse the "every editor × every
+language" problem in developer tooling: standardize the boundary, and integrations become
+write-once.
+
+## How does it work?
+
+Three roles, one envelope. A **host** is the application the user runs (a desktop
+assistant, an IDE, an agent runtime). Inside it, a **client** maintains a connection to a
+**server**, which is a separate program — often written and run by whoever owns the
+integration — that exposes **capabilities**. There are three kinds: **tools** (things the
+model can invoke, each with a JSON-Schema input), **resources** (readable data addressed
+by URI), and **prompts** (reusable templates the server offers). Messages travel over a
+**transport**: `stdio` (the host launches the server as a subprocess and they exchange
+messages over stdin/stdout — the local case) or **HTTP** (the server is a remote endpoint).
+The transport is interchangeable because both carry the *same* JSON-RPC envelope.
+
+The handshake below is driven by the in-memory toy MCP client and server in this repo, so
+every envelope shown is real protocol output — an *in-memory model of the shape*, not a
+live socket. Step through it and watch two things: the envelope keeps the *same shape* at
+every hop, and at the moment the model acts (step 4), it emits an ordinary tool call with
+no idea MCP is involved.
+
+<McpHandshake />
+
+The sequence is: the client **connects** (`initialize`, negotiating a version and learning
+the server's capabilities) → **discovers** the tool manifest (`tools/list`) → the model
+**selects** a tool the way it always does → the client **invokes** it over the envelope
+(`tools/call`) → the server **returns** a result → the client **maps** that result back
+into the agent's own tool-result type, and the loop continues. The method names and the
+JSON-RPC framing match the real protocol's shape; the exact fields here are simplified to
+what teaches the idea. What matters is the shape, not any one field.
+
+## Is it actually necessary?
+
+No — and this is the load-bearing honest point of the whole lesson. **MCP is a
+standardization and interoperability layer, not a model capability.** It does not let a
+model do anything it could not already do with plain tool-calling; strip MCP away and the
+model still selects a tool name and arguments, and some runtime still validates and
+executes. Everything the protocol adds happens *around* that unchanged core: a common way
+to *discover* capabilities and a common envelope to *carry* the call.
+
+Concretely: **you do not need MCP to call a tool.** For a single application talking to a
+handful of tools you control, a direct hardcoded integration is simpler — fewer moving
+parts, no extra process, no protocol to run, one trust boundary instead of two. MCP earns
+its complexity only when the *N×M* problem is real: many clients that must reuse the same
+integrations, or one client that wants to consume an ecosystem of servers it did not write.
+Its value is collapsing N×M to N+M — reuse and interoperability — and nothing else.
+
+It also does **not change an agent's autonomy**. On the
+[autonomy spectrum](/concepts/workflows-vs-agents) — deterministic workflow, model-assisted
+workflow, tool-using agent, stateful agent, reliable agent, multi-agent system — MCP moves
+an agent exactly zero tiers. A tool-using agent that reaches its tools over MCP is still a
+tool-using agent. MCP is plumbing: it changes *how the pipes connect*, never *how much the
+agent decides*.
+
+## What are the trade-offs?
+
+MCP buys **write-once reuse and interoperability** and charges **a protocol to operate and
+a new trust boundary to secure.**
+
+- **You gain:** an integration written once works across any MCP client; a client that
+  speaks MCP can use a growing ecosystem of servers without custom code; the
+  discovery/invocation boundary is uniform, so tooling (logging, permissioning, UIs) can be
+  built once against the protocol rather than per-integration.
+- **You pay:** a second process and a wire protocol where a function call used to do; an
+  indirection that makes debugging cross a serialization boundary; version and capability
+  negotiation to get right; and — the big one — a server is **third-party code you run and
+  a path your data can leave by**. The convenience that any server plugs in is exactly the
+  risk that *any server plugs in*.
+
+The honest summary: MCP trades the low cost and tight control of a bespoke integration for
+reuse across many. If you will never have "many," you are paying for reuse you will not use.
+
+## What complexity does it introduce?
+
+A clean split of responsibilities — and two programs where there was one:
+
+- **Host** — the user's application; owns which servers are connected and with what
+  permissions. This is where the human-consent and least-privilege decisions live.
+- **Client** — inside the host; maintains the connection, runs discovery, and translates
+  between the protocol and the host's own agent loop. In this repo's toy the client maps a
+  discovered tool into the agent's `ToolDefinition` and a protocol result back into a
+  `ToolResultMessage`, so the rest of the loop never learns MCP exists.
+- **Server** — a separate program exposing capabilities; owns the actual integration and
+  its credentials. It is the reusable unit and the trusted third party.
+- **Transport** — `stdio` or HTTP; carries the envelope. Interchangeable by design.
+
+The protocol adds real operational surface: capability negotiation, a message format to
+serialize (everything crossing the boundary must be JSON), error handling that must
+distinguish a *protocol* failure (unknown method, malformed request) from a *tool* failure
+(the tool ran and errored), and lifecycle management for a subprocess or a remote endpoint.
+None of this is exotic, but none of it exists in a direct in-process call.
+
+## What simpler alternative exists?
+
+**A direct, hardcoded tool integration.** For one application and tools you own, write the
+tool as ordinary code the [runtime](/concepts/tool-calling) executes — the calculator in
+the tool-calling lesson is exactly this. No server, no transport, no protocol: the model
+selects, your code runs, done. This is simpler, faster to debug, and has one trust
+boundary. It is the right answer whenever reuse across clients is not a requirement.
+
+Between "hardcode everything" and "adopt MCP" sits a plain internal library or SDK shared
+across your own applications — reuse without a protocol, appropriate when all the clients
+are yours and you control both ends. MCP specifically earns its keep when the clients and
+the servers are *not* all yours: an open boundary is worth a protocol; a closed one usually
+is not.
+
+## When should I use it?
+
+- When the **same integrations must be reused across several clients** (a desktop app, an
+  IDE plugin, a service) — write each once as a server instead of N times.
+- When you want to **consume an ecosystem** of tools/data/prompts you did not build, from a
+  client that speaks one protocol rather than one adapter per source.
+- When a **clean, uniform boundary** is itself the goal — so that permissioning, auditing,
+  and human-consent UIs can be built once against the protocol.
+- When you are **publishing** an integration for others to use: a server is the
+  interoperable, write-once unit.
+
+## When should I avoid it?
+
+- For a **single application with a few tools you control** — a direct integration is
+  simpler and gives you one trust boundary instead of two. Do not add a protocol to solve a
+  problem you do not have.
+- When you **cannot vet or contain the server** — an MCP server is code you run and a data
+  path out; an unvetted third-party server is a supply-chain and data-egress risk that a
+  hardcoded, reviewed integration does not carry.
+- When the extra process, serialization boundary, and version negotiation would **cost more
+  than the reuse is worth** — which, below the N×M threshold, it usually does.
+- When someone reaches for MCP expecting **more capability or more autonomy**: it delivers
+  neither. If the goal is "make the agent able to do X," the question is tool-calling, not
+  MCP.
+
+## Security
+
+An MCP server is not a passive data source; it is **trusted third-party code you execute
+and a path your data can leave by**. That framing drives every control:
+
+- **Supply-chain risk.** Connecting a server runs someone else's code with whatever access
+  you grant it. A malicious or compromised server can exfiltrate data, take unintended
+  actions, or lie about its capabilities. Treat adding a server like adding a dependency or
+  a browser extension: vet the source, pin versions, prefer servers you or a trusted party
+  operate, and read what it asks for.
+- **Prompt injection through tool results.** This is the sharpest risk MCP inherits from
+  tool-calling and *widens*. Whatever a server returns becomes an observation the model
+  acts on — and a server can return content sourced from a web page, a document, or another
+  system an attacker controls. A poisoned result can attempt to steer the agent's next
+  action. MCP does not create this channel, but by making it trivial to connect *many*
+  servers, it multiplies the surface. Treat every tool result as untrusted input.
+- **Over-broad permissions / least privilege.** The host owns the allow-list of connected
+  servers and the scope each is granted. Grant the narrowest capability that does the job,
+  keep consequential tools behind an explicit human-approval gate, and never let a server's
+  reach exceed what you would give an untrusted caller. The protocol's uniform boundary is
+  an *opportunity* for good permissioning — it does not provide it for free.
+- **Data egress and auditability.** Because a server is an outbound path, log every
+  exchange at the transport (the toy's `onExchange` hook is exactly where an audit log or an
+  egress monitor sits) so an incident can be reconstructed: which server saw which data,
+  which tool ran, and with what result.
+
+MCP standardizes the boundary; it does not secure it. The host does.
+
+## Governance
+
+The engineering controls above *are* the governance story:
+
+- **Third-party and supply-chain risk** — a connected server is a vendor dependency. Who
+  operates it, what it can access, and how it is vetted and pinned is a third-party-risk
+  question, and the transport log is the evidence of what it actually did. This is the
+  angle the [OWASP LLM Top 10](/governance/owasp-llm-top-10) frames directly: supply-chain
+  (LLM03), prompt injection (LLM01), and excessive agency (LLM08) are precisely the MCP
+  failure classes.
+- **Least privilege and bounded agency** — the host's per-server permissions and approval
+  gates are auditable evidence that the system can only do what it was permitted to do,
+  regardless of how many servers are attached.
+- **Regulatory frame, carefully** — nothing about the [EU AI Act](/governance/eu-ai-act) or
+  any other instrument applies *merely because* a system uses MCP. Applicability depends on
+  the system, your role, the use case, the data, and the jurisdiction. What MCP determines
+  is the *shape of the evidence* you will have when a framework does apply: a uniform
+  boundary where connected third parties, granted permissions, data flows, and human
+  approvals can be enumerated and logged.
+
+## Build it, then own it
+
+The protocol is a few readable, dependency-free files — no SDK, no sockets, just the shape:
+[`protocol.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/mcp/protocol.ts)
+(the JSON-RPC envelope and the three capability types),
+[`server.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/mcp/server.ts)
+(a server that advertises a manifest and answers requests, distinguishing a protocol error
+from a tool error), and
+[`client.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/mcp/client.ts)
+(a client that discovers capabilities and maps them into the agent's *own* `ToolCall` /
+`ToolResultMessage` types). Read `client.ts` and notice that after discovery, an MCP tool
+is indistinguishable from a hardcoded one — that single fact is the whole reason MCP is
+"plumbing, not capability." Then try the interview questions below.

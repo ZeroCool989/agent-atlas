@@ -1,0 +1,44 @@
+question: "Walk me through the roles in MCP — host, client, server — the transports, and what happens on a single tool call."
+concepts:
+  - mcp
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    A host is the app the user runs — a desktop assistant, an IDE, an agent runtime. Inside
+    it sits a client that connects to a server, a separate program that exposes tools, data
+    (resources), and prompt templates. They talk over a transport: stdio when the host
+    launches the server locally as a subprocess, or HTTP when the server is remote. On a
+    tool call the client discovers the tools, the model picks one, the client sends a
+    tools/call message, the server runs it and returns a result, and the client hands that
+    result back to the agent loop.
+  professional: >-
+    Three roles. The host owns which servers are connected and with what permissions — the
+    consent and least-privilege decisions live here. The client, inside the host, maintains
+    one connection, runs discovery, and translates between the protocol and the host's own
+    agent loop. The server is the reusable, trusted unit that owns the integration and its
+    credentials. Transports carry the same JSON-RPC envelope either way: stdio for local
+    subprocess servers, HTTP for remote ones — interchangeable by design. A single call:
+    initialize to negotiate a version and learn capabilities, tools/list to discover the
+    manifest, then the model emits an ordinary tool call, the client wraps it as tools/call,
+    the server executes and returns content, and the client maps that back into the agent's
+    own tool-result type. The rest of the loop never learns MCP was involved.
+  deep: >-
+    The detail worth getting right is error semantics, because it mirrors the tool-calling
+    validation layers. A protocol error — unknown method, unknown tool, malformed params —
+    comes back as a JSON-RPC error object. A tool that ran but failed comes back as a
+    NORMAL, successful response whose result carries isError: true. Those are different
+    failures with different owners: the first is the protocol boundary rejecting a
+    request, the second is the tool reporting its own outcome. A client must handle both and
+    typically collapses them into the runtime's normal error handling. The other detail:
+    everything crossing the transport must be JSON-serializable — in this repo's toy the
+    in-process transport round-trips through JSON.stringify/parse precisely to make that
+    boundary visible, so a non-serializable value breaks exactly as it would over a real
+    wire.
+followUps:
+  - "How does MCP distinguish a protocol error from a tool-execution error, and why does that matter?"
+  - "Why is the transport interchangeable — what stays constant across stdio and HTTP?"
+  - "After discovery, how does a discovered MCP tool differ from a hardcoded one from the model's point of view?"
+criticalThinking: false

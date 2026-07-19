@@ -1,0 +1,57 @@
+question: "An MCP server is trusted code and a data-egress path. What are the security and governance risks of connecting one, and how do you contain them?"
+concepts:
+  - mcp
+roles:
+  - engineer
+  - architect
+  - governance
+difficulty: standard
+answers:
+  beginner: >-
+    Connecting an MCP server runs someone else's code with whatever access you grant it, and
+    it's a path your data can leave by. So the risks are supply-chain (a malicious or
+    compromised server), prompt injection (whatever the server returns becomes text the
+    model acts on, and it can carry attacker-controlled content), and over-broad permissions.
+    Contain them the way you'd contain a dependency: vet and pin the server, grant the
+    narrowest capability that does the job, keep consequential actions behind a human
+    approval gate, treat every tool result as untrusted, and log every exchange.
+  professional: >-
+    Threat-model the boundary. A server is a third-party dependency you execute, so
+    supply-chain risk is first: vet the source, pin versions, prefer servers you or a trusted
+    party operate, and read the permissions it asks for — adding one is closer to installing a
+    browser extension than plugging in a lamp. Second, prompt injection: MCP inherits the
+    tool-calling injection channel — tool results re-enter the model as observations — and
+    WIDENS it, because it's now trivial to connect many servers, each returning content that
+    may be attacker-influenced (a web page, a document, another system). Third, excessive
+    agency: the host owns the allow-list of connected servers and the scope each gets, so
+    apply least privilege — no server's reach should exceed what you'd give an untrusted
+    caller — and gate consequential tools behind human approval. Fourth, data egress: because
+    a server is an outbound path, log every exchange at the transport so an incident can be
+    reconstructed. MCP standardizes the boundary; it does not secure it — the host does.
+  deep: >-
+    The uniform boundary is a double-edged property. It's an OPPORTUNITY: because every
+    integration speaks one protocol, you can build permissioning, consent UIs, egress
+    monitoring, and audit logging once against the protocol instead of per-integration. But
+    it's also RISK: the same uniformity that lets any server plug in means any server plugs
+    in, so the blast radius scales with how many you connect and how broadly you scope them.
+    The security-relevant invariants: no capability a server exposes to the model exceeds what
+    you'd grant an untrusted caller; effectful tools are idempotent or replay-guarded and sit
+    behind approval; tool results are treated as data, never executed; and the transport log
+    is complete enough to reconstruct who saw what data and which tool ran. Defense in depth
+    over trust — MCP gives you the boundary to enforce all of this, but enforcement is on you.
+followUps:
+  - "How would you contain a server whose tool output comes from an untrusted web page?"
+  - "Where do you put the human-consent decision — host, client, or server — and why?"
+  - "What does the transport-level exchange log give you in an incident review?"
+criticalThinking: false
+governanceAngle: >-
+  Each connected server is a third-party/supply-chain dependency and an outbound data path,
+  which maps directly onto the OWASP LLM Top 10: supply-chain (LLM03), prompt injection
+  (LLM01), and excessive agency (LLM08). Governance controls are the engineering controls
+  made auditable: a vetting-and-pinning process for servers, per-server least-privilege
+  scoping owned by the host, human-approval gates on consequential tools, and a transport
+  exchange log as the evidence of what each third party actually accessed and did. No
+  regulation applies merely because a system uses MCP — applicability depends on the system,
+  role, use case, data, and jurisdiction — but MCP's uniform boundary determines the SHAPE of
+  the evidence you'll have: connected parties, granted permissions, data flows, and approvals
+  can all be enumerated and logged in one place.

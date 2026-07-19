@@ -1,0 +1,57 @@
+question: "When is MCP worth it versus a direct integration — what does the protocol buy, and what does it cost?"
+concepts:
+  - mcp
+roles:
+  - architect
+  - engineer
+  - consultant
+difficulty: deep
+answers:
+  beginner: >-
+    Use a direct hardcoded integration when you have one app and a few tools you control —
+    it's simpler, faster to debug, and has one trust boundary. Reach for MCP when the same
+    integrations have to be reused across several clients, or you want to consume tools you
+    didn't build. MCP buys write-once reuse and interoperability. It costs an extra process,
+    a wire protocol, and a second trust boundary — a server is code you run and a path your
+    data can leave by. Below the reuse threshold, that's cost with no payoff.
+  professional: >-
+    Frame it as N×M versus N+M. A direct integration is the right baseline: for a single
+    application, the model selects a tool and your own runtime executes it, no server, no
+    transport, no protocol — the calculator tool in the tool-calling lesson is exactly this.
+    You adopt MCP to collapse N clients × M tools into N+M: integrate each tool once as a
+    server, teach each client the protocol once. What the protocol buys: reuse across
+    clients you may not own, a uniform boundary you can build permissioning and auditing
+    against once, and a write-once unit you can publish. What it costs: a second process and
+    serialization boundary where a function call used to do, version and capability
+    negotiation, and — the decisive one — a new trust boundary, because a server is
+    third-party code and a data-egress path. The judgment: if you'll never have 'many
+    clients' or 'servers you didn't write,' you're paying for reuse you won't use. Between
+    the two extremes sits a shared internal library — reuse without a protocol — which is
+    right when all the clients and tools are yours.
+  deep: >-
+    The honest trap to name in an interview is adopting MCP for the wrong reason. It does
+    not add capability and it does not move an agent on the autonomy spectrum — a tool-using
+    agent over MCP is still a tool-using agent. So 'we added MCP to make the agent more
+    capable' is a category error; the capability question is tool-calling. The real decision
+    variable is whether the integration boundary is OPEN (clients and servers not all yours)
+    or CLOSED (both ends yours). An open boundary is worth a protocol; a closed one usually
+    isn't — a shared SDK gets you reuse without the extra process and trust surface. And the
+    cost side is not just engineering: each connected server is a supply-chain dependency and
+    an outbound data path, so 'worth it' has to price in vetting, permissioning, and audit,
+    not only the reuse you gain. A crisp answer: MCP is worth it when reuse across an open
+    boundary outweighs the cost of running a protocol and securing a second trust boundary —
+    and it's the wrong tool whenever the goal is more capability or more autonomy.
+followUps:
+  - "A team says 'let's put everything behind MCP.' What do you push back on?"
+  - "Where's the line between a shared internal SDK and an MCP server?"
+  - "Give an example where a direct integration is clearly the better engineering choice."
+criticalThinking: true
+practicalExample: >-
+  src/lib/mcp in this repo is a dependency-free in-memory model of the protocol: server.ts
+  advertises a manifest and answers requests (distinguishing a protocol error from a tool
+  error); client.ts discovers capabilities and maps them into the agent's OWN ToolCall /
+  ToolResultMessage types (src/lib/model). Compare client.ts's callTool with the direct
+  calculator tool in src/lib/agent/calculator.ts: after discovery the MCP tool is
+  indistinguishable from the hardcoded one to the model — the concrete proof that MCP is
+  plumbing over tool-calling, not new capability. The handshake is visualized in
+  src/lib/viz/mcp-handshake-scene.ts, driven by that same toy so every envelope shown is real.
