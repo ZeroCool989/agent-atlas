@@ -1,0 +1,55 @@
+question: "What are reliability patterns for LLM apps, and which ones would you reach for first?"
+concepts:
+  - reliability-patterns
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Models and tools fail probabilistically — timeouts, rate limits, malformed output, a bad tool
+    result — so reliability patterns are the classic distributed-systems techniques adapted to keep
+    the app usable despite that. The core four are: retries with exponential backoff and jitter for
+    transient failures; timeouts and budgets to bound latency and cost per request; fallbacks — a
+    cheaper model, a cached answer, or graceful degradation — when the primary fails; and a circuit
+    breaker to stop hammering a dependency that's already down. First reach is usually a timeout plus
+    a bounded retry; the rest you add as the cost of an outage justifies it.
+  professional: >-
+    A reliable agent is a stateful agent hardened with verification, retries, guardrails, evals, and
+    observability — reliability patterns are the retries-and-fallbacks half of that. The building
+    blocks: retry-with-backoff-and-jitter rides out a transient blip (a 503, a rate limit) without
+    retrying in lockstep with every other client; a timeout converts an open-ended hang into a fast,
+    handleable failure and caps cost; a fallback degrades gracefully to a cheaper model or a cached
+    or partial answer instead of failing hard; and a circuit breaker fast-fails calls to a dependency
+    that is durably down so retries don't turn an outage into a self-inflicted DDoS. Two LLM-specific
+    twists matter: a retry with the *same* prompt can fail the same way, so sometimes you retry with a
+    repair prompt, not a blind repeat; and a retry re-runs any side effect, so retries are only safe
+    on idempotent operations — a tool that takes an action needs an idempotency key. And you tie it
+    back to the rest of the stack: a failed verification check is what triggers a retry or fallback,
+    and you need observability/traces to know what was retried and how often the fallback fired.
+  deep: >-
+    I frame reliability as engineering proportional to what an outage costs — not a checklist you
+    apply everywhere. The mechanism first: exponential backoff (delay = base·factor^n, capped) spaces
+    retries; jitter (I default to full jitter, uniform over [0, cap]) de-correlates clients so a
+    rate-limited swarm doesn't reconnect in synchronised waves; a bounded attempt count plus a
+    retry predicate means you only retry what a retry can fix (a 503, not a 400). Timeouts give every
+    call a deadline and a total budget across retries so latency and spend stay bounded. Fallbacks are
+    the graceful-degradation move — cheaper model, cache, partial result — and the honest cost is that
+    a fallback can silently serve a worse answer, so it must be observable. A circuit breaker adds
+    system-level protection: closed → count consecutive failures → open (fast-fail without touching
+    the dependency) → after a cooldown, half-open trial → close on success. The whole set is
+    composable: in this repo they're `withRetry`, `withTimeout`, `withFallback`, and a `CircuitBreaker`
+    you can wrap around any call. The judgment I'd stress in an interview: retries and fallbacks cost
+    money and latency and can *mask* real bugs, so they're a complement to fixing the failure, never a
+    substitute — and you don't add a circuit breaker to a script that runs once.
+followUps:
+  - "How do exponential backoff and jitter differ, and why does jitter matter with many clients?"
+  - "When is a timeout not enough on its own — what does it fail to bound?"
+  - "How do retries and a circuit breaker divide the work between them?"
+practicalExample: >-
+  src/lib/resilience/ in this repo implements the four wrappers as small, dependency-free,
+  unit-tested TypeScript: withRetry (backoff + jitter, retry predicate, injected clock), withTimeout,
+  withFallback, and a three-state CircuitBreaker. They're deterministic via an injected virtual clock
+  and seeded rng, and src/lib/resilience/demo.ts runs three fixtures — a flaky call recovered on a
+  repair-prompt retry, a slow call that times out into a fallback, and a dependency that trips the
+  breaker and then recovers — which drive the lesson's steppable visual with real numbers.

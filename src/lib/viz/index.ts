@@ -103,6 +103,8 @@ export type {
   AgentEdge,
   NodeKind,
 } from './multi-agent-scene';
+export { buildResilienceScenes } from './resilience-scene';
+export type { ResilienceScene, BeatTone } from './resilience-scene';
 export { createPromptInjectionScene, PROMPT_INJECTION_DEMO } from './prompt-injection-scene';
 export type {
   PromptInjectionScene,

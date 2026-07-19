@@ -1,0 +1,228 @@
+---
+title: "Reliability Patterns"
+layer: useful-addition
+oneLiner: "The classic distributed-systems techniques — retries with backoff, timeouts, fallbacks, and circuit breakers — adapted to LLM apps so the system stays usable even though models and tools fail probabilistically."
+prerequisites:
+  - verification
+  - failure-modes
+  - evaluation
+related:
+  - observability
+  - workflows-vs-agents
+  - tool-calling
+governance:
+  - eu-ai-act
+  - nist-ai-rmf
+interviewTags: ["reliability", "resilience", "retries", "backoff", "jitter", "timeout", "fallback", "circuit-breaker", "reliable-agent"]
+status: complete
+verdict:
+  classification: situational
+  problem: "Models and tools fail probabilistically — timeouts, rate limits, malformed output, bad tool results — so a system that assumes the happy path is one flaky dependency away from a hard failure or a hang."
+  simplerBaseline: "A timeout plus a small bounded retry on transient errors covers most of the risk. You add fallbacks and a circuit breaker only when the cost of an outage justifies them — and you add none of it to a script that runs once."
+  mainCost: "Retries cost money and latency and can mask a real bug; fallbacks can silently serve a worse answer; and a retried side effect can duplicate an action. Reliability engineering has to be proportional to what an outage costs, and observable, or it hides more than it fixes."
+updated: 2026-07-19
+---
+
+import ResilienceStack from '../../../components/viz/ResilienceStack.astro';
+
+Everything upstream in the [autonomy spectrum](/concepts/workflows-vs-agents) assumed the call
+*worked*. In production it often doesn't: a model times out, a provider returns a 503 or a rate
+limit, the output comes back malformed, a tool returns a bad result. These are not bugs to be
+patched away — they are the [structural reality](/concepts/failure-modes) that models and tools fail
+*probabilistically*. **Reliability patterns** are the classic distributed-systems techniques —
+retries with backoff and jitter, timeouts and budgets, fallbacks, and circuit breakers — adapted to
+LLM apps so the system stays usable *despite* that. They are the retries-and-fallbacks half of what
+makes a [reliable agent](/concepts/workflows-vs-agents): a stateful agent hardened with verification,
+retries, guardrails, evals, and observability.
+
+> **Mental model: an experienced traveller with a backup plan.** They don't assume the train runs on
+> time — they leave a buffer (a timeout), try again if a connection is missed (a bounded retry), keep
+> a slower route in their pocket (a fallback), and if a whole line is clearly down they stop queuing
+> for it and reroute (a circuit breaker). The trip still happens.
+> **Where the analogy breaks:** a traveller's retry is free and side-effect-free. In software a retry
+> costs money and latency, can *repeat an action* (re-charge a card, re-send a message), and can
+> quietly paper over a real failure — so the discipline is knowing when *not* to retry, which the
+> traveller never has to think about.
+
+## What problem existed before this?
+
+Earlier lessons handled *wrong* output; none handled *failed or slow* calls. [Failure
+modes](/concepts/failure-modes) showed the model can be confidently wrong; [verification](/concepts/verification)
+showed how to check an output before trusting it. But verification assumes you *got* an output. The
+gap is everything that happens when you don't: the provider is rate-limited, the request hangs, the
+tool call returns an error, the network blips. A naive agent loop treats these as fatal — one
+transient 503 ends the run, or worse, an un-bounded call hangs forever and takes a worker with it.
+The [minimal agent loop in this repo](/concepts/tool-calling) is deliberately honest about this: a
+tool error *ends the run*, with a comment that feeding the error back for a retry "belongs to the
+reliability concept." This is that concept.
+
+## Why was this invented?
+
+Because reliability is a property you *build around* an unreliable dependency, and distributed
+systems solved this decades before LLMs existed. A remote call over a network has always been able
+to be slow, fail transiently, or fail durably — so the field developed a small, composable toolkit:
+**retry** a transient failure (with **backoff** so you don't hammer a struggling service, and
+**jitter** so a swarm of clients doesn't retry in lockstep); **timeout** every call so a hang becomes
+a fast, handleable failure; **fall back** to a cheaper or cached answer instead of failing hard; and
+trip a **circuit breaker** to stop calling a dependency that is clearly down. LLM apps inherit all of
+it, plus two twists of their own — a retry with the *same prompt* can fail the same way (so you
+sometimes retry with a *repair* prompt), and a retried *tool call* can repeat a real-world action (so
+retries are only safe on idempotent operations).
+
+## How does it work?
+
+Each pattern is a small wrapper around a call. Step a single request through the whole stack — a
+transient failure ridden out by backoff+retry, a slow call that times out and degrades to a cheaper
+model, and a dead dependency that trips a breaker and then recovers:
+
+<ResilienceStack />
+
+Every attempt count, backoff delay, timeout, and breaker transition is computed by the [resilience
+module in this repo](https://github.com/ZeroCool989/agent-atlas/tree/main/src/lib/resilience) — the
+operations are illustrative, the wrappers are the real thing. The four patterns:
+
+- **Retry with backoff + jitter** (`withRetry`). Re-attempt a *transient* failure, bounded by a max
+  attempt count. The delay grows exponentially (`base · factor^n`, capped) so you back off a
+  struggling service, and **jitter** spreads the actual delay randomly inside that ceiling so many
+  clients don't reconnect in synchronised waves. A **retry predicate** decides what's worth retrying
+  — a 503, yes; a 400, no. The LLM twist: the visual's winning attempt sends a *repair prompt*, not
+  the same prompt again, because an identical retry of a deterministic failure fails identically.
+- **Timeout + budget** (`withTimeout`). Give every call a deadline; if it passes, abort the *wait*
+  and raise a fast failure instead of hanging. Bound the *total* budget across retries too, or three
+  retries silently triple your worst-case latency and cost. (Honest caveat: a JavaScript timeout
+  bounds how long you *wait*, not how long the dependency *works* — real cancellation needs an
+  `AbortSignal` the call honours.)
+- **Fallback** (`withFallback`). When the primary fails, serve something else — a cheaper/smaller
+  model, a cached answer, or a partial result. **Graceful degradation**: a worse answer beats a hard
+  failure — *if* you can see how often it fires.
+- **Circuit breaker** (`CircuitBreaker`). When a dependency is *durably* down, retries make it worse.
+  The breaker counts consecutive failures; at a threshold it **opens** and fast-fails calls *without
+  touching the dependency*; after a cooldown it goes **half-open** and lets one trial through; a
+  success **closes** it. This is the difference from a retry: a retry rides out a *per-request blip*;
+  a breaker protects the *whole system* so retries don't turn an outage into a self-inflicted DDoS.
+
+These compose: a real call path is a breaker wrapping a fallback wrapping a retry wrapping a timeout.
+And they tie back to the rest of the stack — a failed [verification](/concepts/verification) check is
+one of the things that *triggers* a retry or fallback, and you need [observability](/concepts/observability)
+traces to know what was retried and how often the fallback fired.
+
+## Is it actually necessary?
+
+Proportional to stakes — this is the honest core. A one-shot script or a low-stakes internal tool
+needs almost nothing: maybe a timeout so it can't hang. A user-facing agent that makes real calls all
+day needs bounded retries and timeouts as table stakes, and fallbacks and a breaker in proportion to
+what an outage costs. You never add a circuit breaker to something that runs once — reliability
+engineering is a cost you pay against a risk, and if the risk is trivial the engineering is waste.
+The question to ask at each pattern is the same as everywhere on the atlas: *what failure does this
+prevent, and does the value clear its cost?*
+
+## What are the trade-offs?
+
+- **Retries cost money and latency.** Every retry is another paid call and more wall-clock time; a
+  per-request budget matters as much as the per-attempt timeout.
+- **Retries can mask a real bug.** A retry only fixes a *transient* failure. Retrying a deterministic
+  one — a malformed prompt, a schema mismatch, a 400 — pays 2–3× for the same failure and hides it: a
+  green success rate over a rising true error rate. A healthy retry profile is mostly first-attempt
+  successes; a heavy tail of retries is a bug report.
+- **Retries can duplicate side effects.** Re-running a non-idempotent action (charge, send, insert, a
+  tool that acts on the world) repeats it. The fix is **idempotency** — an idempotency key the
+  downstream honours — not a blind retry. This is the sharpest hazard for tool-using agents.
+- **Fallbacks can silently degrade quality.** "Always return something" can turn a hard failure into a
+  soft, unlogged *worse* answer. Availability is not correctness. The fallback rate must be a
+  first-class, alertable metric or quality rots while every request still returns 200.
+- **A breaker is a tuning problem.** Too sensitive and a blip opens it and needlessly degrades
+  everyone; too lax and it never protects anything.
+
+## What complexity does it introduce?
+
+New control flow that must itself be correct and bounded: a retry loop that always terminates, a
+timeout that cleans up, a breaker with three states and a cooldown, and the composition order among
+them (breaker outermost, timeout innermost). New parameters to choose from real data — attempt
+counts, base delay and cap, jitter mode, failure threshold, cooldown — none of which have universal
+right answers. New failure modes of your *own* making — retry storms, thundering herds, duplicated
+actions, silent degradation — that only exist because you added the patterns. And a hard dependency
+on [observability](/concepts/observability): a reliability layer you can't *see* (retry rate,
+fallback rate, breaker state) hides more than it fixes. "We added retries" quietly means "we own a
+bounded loop, a set of tuned parameters, an idempotency story, and the metrics to prove it helps."
+
+## What simpler alternative exists?
+
+In order: **make the call not fail** — fix the deterministic bug a retry would have masked, since a
+retry is a painkiller, not a cure. Then the **80/20**: one timeout plus a small bounded retry on
+transient errors only. That removes hangs and rides out blips for almost no complexity. Reach for a
+fallback only when you have a genuinely-better-than-failing degraded path *and* you'll monitor it;
+reach for a circuit breaker only when a dependency's durable outages are actually hurting you. And
+prefer boring, readable wrappers over a resilience *framework* — the four patterns are a few dozen
+lines each; an elaborate policy engine nobody understands is worse than a timeout and a retry you can
+read.
+
+## When should I use it?
+
+When a call can fail or be slow and that failure would cost something: any user-facing agent, any
+loop that makes many model or tool calls, anything with a latency or availability target. Start with
+timeouts and bounded retries on transient errors everywhere; add fallbacks where a degraded answer is
+genuinely better than an error *and* observable; add a circuit breaker around a dependency whose
+outages you've actually felt. Always retry with backoff *and* jitter, always bound the total budget,
+and always retry side-effecting actions only behind an idempotency key. And log every timeout, retry,
+fallback, and breaker transition — that log is your debugging surface and your evidence that the layer
+helps.
+
+## When should I avoid it?
+
+When the call can't meaningfully fail, or the failure is free — a run-once script, a local
+deterministic step, a low-stakes internal tool. Don't add a circuit breaker to something that runs
+once; don't retry a non-idempotent action without an idempotency key; don't retry a deterministic
+error (a 400, a validation failure) — it just burns money and hides the bug. Don't let a fallback
+degrade *silently*, and for a consequential decision, prefer to **fail safe** — return an error or
+hand off to a human — rather than degrade into a confidently wrong answer to hit an availability
+number. If you can't *observe* the reliability layer, assume it's masking something.
+
+## Common misconceptions
+
+- **"Retries make the system reliable."** Retries make *transient* failures survivable. Against a
+  deterministic bug they amortise the same failure and hide it; against a durable outage, without
+  jitter and a breaker, they *amplify* it. Reliability is the whole set used with judgment, not retries
+  alone.
+- **"A retry is free."** It costs a paid call, latency, and — for a side-effecting operation — a risk
+  of doing the action twice. Retries are only safe on idempotent operations.
+- **"Retrying the same LLM prompt will eventually work."** If the prompt is what's wrong, an identical
+  retry fails identically. The fix is a repair prompt, or a different model — not another blind try.
+- **"A fallback firing means we're fine."** It means you're *up*, on a worse answer. If you're not
+  tracking the fallback rate, quality can rot while every request still returns 200.
+- **"A circuit breaker is just a fancy retry."** Opposite jobs: a retry *keeps trying* to rescue one
+  request; a breaker *stops trying* to protect the system so a struggling dependency can recover.
+
+## Autonomy, oversight, and risk
+
+Reliability patterns are how you keep an autonomous system *available and controlled* under failure,
+which is why they meet governance where robustness and operational resilience are expected — but they
+also introduce a governance-specific risk. **Graceful degradation is a feature until it degrades
+silently.** A fallback that serves a lower-quality answer is acceptable only when it is observable and
+the residual risk is understood; serving a *wrong* answer to hit an availability target is the
+anti-pattern, because availability is not correctness. For consequential decisions the governed choice
+is often to **fail safe** — an honest error or a human handoff — rather than degrade into a confidently
+wrong output. The auditable evidence is the resilience design *plus* the logs of what timed out, what
+was retried, when a fallback fired, and when a breaker opened; the same trace that lets you debug is
+what shows a system behaved in a controlled way. This connects to the [EU AI Act](/governance/eu-ai-act)'s
+accuracy-and-robustness expectations for high-risk systems and the "manage" function of the
+[NIST AI RMF](/governance/nist-ai-rmf) (and to operational-resilience regimes like DORA for regulated
+firms). None of them applies *merely because* a system has retries — applicability depends on the
+system, role, use case, data, and jurisdiction — and the honest caveat governance most needs to hear
+is that retries can *mask* a rising failure rate, so the retry and fallback rates belong in monitoring,
+not just the happy-path SLA.
+
+## Build it, then own it
+
+The resilience module is small, dependency-free, unit-tested, and deterministic — four composable
+wrappers you can read in one sitting:
+[`patterns.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/resilience/patterns.ts)
+holds `withRetry` (backoff + jitter, a retry predicate, an injected clock), `withTimeout`,
+`withFallback`, and a three-state `CircuitBreaker`, all driven by an injected `Clock` and `Rng` so a
+`ManualClock` replays them in exact virtual time with no real waiting. The three fixtures in
+[`demo.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/resilience/demo.ts) are the
+lesson in code: a flaky call recovered on a *repair-prompt* retry after two backoffs, a slow primary
+that times out at 2000ms and degrades to a cheaper model at 2300ms, and a dependency that trips the
+breaker after three failures, fast-fails the next calls, and closes again on a healthy trial. Read
+`withRetry` and notice the honesty the types force: the operation takes an `attempt` number (so it can
+repair, not just repeat), and nothing here makes a side effect safe to retry — that's *your*
+idempotency key, not the wrapper's job. Then try the interview questions below.

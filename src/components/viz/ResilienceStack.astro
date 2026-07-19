@@ -1,0 +1,15 @@
+---
+/**
+ * Composition root for the Reliability-patterns viz: runs the real `src/lib/resilience/` wrappers
+ * through their three scenarios at build time (under a deterministic virtual clock, so no real
+ * waiting) and hands the recorded, plain-data scenes to the island. Real backoff, timeout, and
+ * circuit-breaker behaviour over illustrative operations — labelled as such in the lesson.
+ */
+import { runAllScenarios } from '../../lib/resilience/demo';
+import { buildResilienceScenes } from '../../lib/viz/resilience-scene';
+import ResilienceStackIsland from './ResilienceStackIsland';
+
+const scenes = buildResilienceScenes(await runAllScenarios());
+---
+
+<ResilienceStackIsland client:visible scenes={scenes} />

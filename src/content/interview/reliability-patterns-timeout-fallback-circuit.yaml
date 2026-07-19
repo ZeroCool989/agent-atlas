@@ -1,0 +1,54 @@
+question: "Design the call path for an agent's model call so a slow or failing provider can't take the whole system down. When do timeout, fallback, and a circuit breaker each earn their place?"
+concepts:
+  - reliability-patterns
+roles:
+  - engineer
+  - architect
+difficulty: deep
+answers:
+  beginner: >-
+    I'd give every model call a timeout so a slow provider can't make the request hang forever — that
+    turns a hang into a fast failure I can react to. On that failure I'd fall back to a cheaper or
+    cached answer so the user still gets something. And if the provider keeps failing, a circuit
+    breaker fast-fails further calls for a cooldown instead of everyone piling on a dependency that's
+    already down. Timeout bounds one call, fallback keeps the request useful, and the breaker protects
+    the whole system.
+  professional: >-
+    I compose them, innermost to outermost. Innermost is a timeout on the provider call — a deadline
+    plus a total budget so retries can't blow latency or cost. Around that, a bounded retry with
+    backoff and jitter for transient errors only (retry a 503, not a 400), and for LLM calls a repair
+    prompt rather than a verbatim repeat. Around that, a fallback: on failure, degrade to a cheaper or
+    smaller model, a cache, or a partial result — usable beats nothing, as long as I track how often
+    it fires. And wrapping the whole dependency, a circuit breaker: once consecutive failures cross a
+    threshold it opens and fast-fails without touching the provider, then half-opens after a cooldown
+    to test recovery. The division of labour is the key point: a timeout bounds *one call*; a retry
+    rides out a *per-request blip*; a breaker protects the *system* when the dependency is durably
+    down, so retries don't amplify an outage. Each earns its place by the cost of the failure it
+    prevents — a one-shot script needs a timeout and maybe a retry, not a breaker.
+  deep: >-
+    Concretely, the stack is `circuitBreaker.execute(() => withFallback(() => withRetry(() =>
+    withTimeout(call), …), fallback))` — the breaker outermost so it sees the aggregate health, the
+    timeout innermost so every individual attempt is bounded. Ordering choices carry meaning: I keep
+    the retry budget *inside* the breaker's accounting so a storm of retries is what trips it, and I
+    make the retry predicate and the breaker's isFailure predicate agree on what "transient" means so
+    a caller-side 400 neither retries nor trips the breaker. Timeouts need a per-request budget across
+    attempts, not just a per-attempt limit, or three retries silently triple your worst-case latency;
+    and the honest caveat is that a JavaScript timeout bounds how long you *wait*, not how long the
+    provider *works* — true cancellation needs an AbortSignal the call honours. Fallback quality is
+    the subtle risk: degrading silently means quality can rot while every request still returns 200,
+    so the fallback rate is a first-class metric with an alert. And the breaker's parameters are a
+    trade-off — too sensitive and a blip opens it and needlessly degrades everyone; too lax and it
+    never protects anything. I'd size threshold and cooldown from the dependency's real failure and
+    recovery profile, and I would not add any of this to a run-once script — reliability engineering
+    is proportional to what an outage costs.
+followUps:
+  - "In what order do you nest timeout, retry, fallback, and the breaker, and why does the order matter?"
+  - "Why is a per-attempt timeout not enough — what does a per-request budget add?"
+  - "How do you pick a circuit breaker's failure threshold and cooldown without guessing?"
+governanceAngle: >-
+  Graceful degradation that keeps a system available under partial failure, and the choice to fail
+  safe rather than serve a wrong answer, map to operational-resilience and robustness expectations
+  (e.g. the EU AI Act's robustness requirements for high-risk systems, and operational-resilience
+  regimes like DORA for regulated firms). The auditable evidence is the design itself plus the logs of
+  timeouts, fallbacks, and breaker transitions — though applicability depends on the system, use case,
+  and jurisdiction.
