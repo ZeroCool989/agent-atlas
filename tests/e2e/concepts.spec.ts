@@ -23,7 +23,7 @@ test.describe('concept index', () => {
 
   test('status filter and combined filters work; form reflects the URL', async ({ page }) => {
     await page.goto('/concepts?status=complete');
-    await expect(page.locator('li[data-status="complete"]:visible')).toHaveCount(5); // tokens, context-windows, workflows-vs-agents, tool-calling, structured-outputs
+    await expect(page.locator('li[data-status="complete"]:visible')).toHaveCount(6); // tokens, context-windows, workflows-vs-agents, tool-calling, structured-outputs, sampling
     await expect(page.getByLabel('Status')).toHaveValue('complete');
 
     await page.goto('/concepts?layer=foundation&status=needs-update');

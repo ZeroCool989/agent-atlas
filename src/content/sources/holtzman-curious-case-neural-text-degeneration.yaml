@@ -1,0 +1,14 @@
+type: paper
+title: "The Curious Case of Neural Text Degeneration (Holtzman et al., 2020)"
+url: "https://arxiv.org/abs/1904.09751"
+ingestedAt: 2026-07-19
+routedTo:
+  - sampling
+decisions: >-
+  Introduces nucleus (top-p) sampling and diagnoses why maximization-based decoding
+  (greedy/beam) degenerates into blandness and repetition while pure sampling from the
+  full distribution derails on the unreliable tail. Routed to: sampling — grounds the
+  top-p mechanism (truncate by cumulative probability mass, adapting to the model's
+  confidence) and the coherence-vs-diversity framing, and supplies the historical "why
+  was this invented" for the truncation methods. Creates no new concept; contradicts
+  nothing. Feeds the top-k-vs-top-p interview question (the tail-reliability argument).
