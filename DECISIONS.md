@@ -293,3 +293,25 @@ project start would be pure debt. Plan references to "Astro 5" should be read as
   Not a violation of the zero-JS acceptance criterion.
 - `typecheck` required `@types/node` (Playwright config uses `process.env`) and a
   `/// <reference types="vitest/config" />` in `vitest.config.ts`.
+
+## 2026-07-19 — Continuous-build mode (owner-directed)
+
+The owner directed continuous implementation of the full plan (Phases 1→3) without
+stopping between concepts. This lifts the standing per-concept **review hold** in
+NEXT_TASKS.md and substitutes an automated quality bar for the "one approved task at a
+time, human review between concepts" protocol:
+
+- **Quality gate = CI integrity suite + the `complete`-status DoD template-lint + an
+  independent accuracy review pass per concept** (skeptical ML-engineer + interviewer
+  lens), instead of human sign-off between concepts. Acceptance criteria are never
+  weakened — the DoD lint still gates `complete`.
+- Work proceeds in **dependency-ordered waves** of mutually-independent concepts, each
+  built in an isolated worktree, accuracy-reviewed, CI-green, then merged sequentially
+  (CI re-verified after each merge). Prerequisites must exist (≥ draft) before dependents
+  reach `complete`, per §7/§19.
+- Commits are **sole-authored (Almir Dumisic, no AI trailer)** per owner preference.
+- CURRENT_STATE.md is updated by the coordinator after each merge; concept worktrees do
+  not touch the state/next/decision docs (avoids merge conflicts).
+- Unchanged: no backend/auth/DB/agent-framework/live-production-model-API; plain TS for
+  mechanics (ADR-0005); everything lands green. The Cloudflare deploy remains an owner
+  action (secrets) — all other work is made deploy-ready.
