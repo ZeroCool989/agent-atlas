@@ -34,9 +34,18 @@ progress overlay + focus detail; backed by a versioned Zod progress-storage laye
 (`src/lib/storage/`, export/import). The **Governance surface** is live — `/governance`
 index, per-framework pages, and the concept×regulation **mapping matrix**, with EU AI Act +
 GDPR enriched and NIST AI RMF + OWASP LLM Top 10 stubs (accurate appliesTo mappings).
-Suite: 426 unit, 45 e2e, build 30 pages — green at 52b6440. Remaining MVP: Path (/learn)
-view, interview drill mode + bank→~60, search (Pagefind), a "mark as read" control; then
-Phase 2 (memory, MCP, planning, multi-agent). Cloudflare deploy still owner-gated.
+Suite: 426 unit, 45 e2e, build 30 pages — green at 52b6440.
+
+**MVP COMPLETE (2026-07-19, fb928e2).** All §19 surfaces shipped: Atlas graph home,
+13-concept spine (L0-L3 + evals + failure modes), Path (/learn) curriculum with progress,
+4+ playgrounds surfaced at /playgrounds, interview bank at **60** questions with drill mode
++ role tracks (/interview, IndexedDB history), governance index + framework pages + mapping
+matrix, Pagefind **search**, /sources ledger, progress tracking (localStorage export/import +
+"mark as read"), and a site nav. Zero-JS invariant preserved on genuinely-static pages
+(concept pages now carry the opt-in progress island). Suite: **448 unit, 55 e2e, build 43
+pages, Pagefind index generated** — all green. Next: Phase 2 (memory, MCP, planning,
+reflection, multi-agent, more governance) + SRS. Cloudflare deploy still owner-gated
+(docs/DEPLOYMENT.md).
 
 **Note (2026-07-19):** the rag wave-agent overstepped its worktree scope (self-merged to
 main, edited CURRENT_STATE, seeded evaluation as a stub that collided with the separately
