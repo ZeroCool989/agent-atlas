@@ -8,6 +8,7 @@
 import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import InterviewDrill, { type DrillQuestion } from '../../components/InterviewDrill';
+import InterviewReview from '../../components/InterviewReview';
 
 import { INTERVIEW_ROLES, INTERVIEW_DIFFICULTIES } from '../../lib/content/model';
 
@@ -37,6 +38,14 @@ const all = (await getCollection('interview'))
       {all.length} questions with beginner / professional / deep answers. Reveal an answer only
       after you've tried it; grade yourself to track what to revisit.
     </p>
+
+    <!--
+      Spaced-repetition "due today" queue (plan §9, Phase 2). Progressive enhancement:
+      an island that, on hydration, reads the local drill history + SRS state and serves a
+      review flow. Without JS it renders nothing meaningful, and the static question list
+      below still works — SRS is strictly additive.
+    -->
+    <InterviewReview questions={all} client:visible />
 
     <nav class="mt-6 text-sm" aria-label="Role tracks">
       <span class="text-slate-500">Role tracks:</span>
