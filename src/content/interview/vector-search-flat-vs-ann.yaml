@@ -1,0 +1,42 @@
+question: "What is the difference between exact (flat) nearest-neighbor search and an approximate (ANN) index, and why does a vector database use the latter?"
+concepts:
+  - vector-search
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Flat search compares your query to every stored vector, sorts, and returns the closest —
+    always the true answer, but the work grows with the number of vectors. An approximate
+    index skips most of the corpus by only looking at the vectors most likely to be near the
+    query, so it's much faster at scale, but it can occasionally miss a true neighbor. A
+    vector database uses an approximate index because at millions or billions of vectors,
+    comparing against all of them for every query is too slow and expensive.
+  professional: >-
+    Flat (brute-force) search is exact and O(N) per query: one cosine comparison per stored
+    vector. It's the correct default up to hundreds of thousands, often millions, of vectors.
+    Approximate nearest-neighbor indexes trade a bounded amount of recall for sub-linear
+    query cost by structuring the space so a query examines only a promising slice. The two
+    common families: IVF clusters the vectors and scans only the nearest clusters; HNSW walks
+    a navigable graph toward the query's neighborhood. A vector database packages one of these
+    indexes with persistence, metadata filtering, and CRUD. The reason to accept
+    approximation is economic: at scale, "look at everything every query" stops being
+    affordable, and you rarely need the provably-nearest neighbor — good neighbors, fast, is
+    the actual requirement.
+  deep: >-
+    The key property is that ANN converts an accuracy budget into a speed budget, and the
+    exchange rate is tunable at query time (IVF's nProbe, HNSW's ef). Exact search has recall
+    1 by definition; ANN gives you recall < 1 that you dial toward 1 by searching wider. That
+    matters architecturally because recall is now a measured operating point, not a given: you
+    build a recall@k benchmark against ground-truth flat results and choose the smallest
+    search effort that clears your bar. It also means results can differ across index builds
+    or versions, which is why a system that needs reproducibility or a defensible audit trail
+    may pin the index or keep an exact path for the record. And the whole trade only pays off
+    above a scale threshold — below it the index overhead loses to a flat scan, so "use a
+    vector database" without measuring is how teams add latency and a silent-recall-loss
+    failure mode for no benefit.
+followUps:
+  - "Sketch how IVF assigns vectors to clusters and what nProbe controls at query time."
+  - "What is HNSW's ef parameter, and how does it correspond to IVF's nProbe?"
+  - "How would you measure recall@10 for an approximate index without ground truth?"
