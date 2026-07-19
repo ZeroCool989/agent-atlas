@@ -1,0 +1,49 @@
+question: "What does it take to move an LLM feature from a working demo to production-ready? Walk the checklist."
+concepts:
+  - evaluation
+  - failure-modes
+  - workflows-vs-agents
+  - structured-outputs
+roles:
+  - architect
+  - engineer
+difficulty: deep
+criticalThinking: true
+answers:
+  beginner: >-
+    A demo shows it can work; production means it works reliably, safely, and affordably at
+    scale. So: an eval set to measure quality and catch regressions, handling for failure
+    modes (validation, retries, fallbacks), guardrails and human review where stakes are
+    high, cost and latency budgets, logging and monitoring, and a clear scope of what it
+    won't do. The demo is maybe 20% of the work.
+  professional: >-
+    Checklist across quality, reliability, safety, cost, and ops. Quality: a versioned eval
+    set of real cases with target metrics, run in CI. Reliability: validate structured
+    outputs, handle malformed/failed calls with retries that don't duplicate work, define
+    fallbacks and timeouts, and pick the least-autonomous architecture that does the job.
+    Safety: guardrails, prompt-injection defenses if it reads untrusted content, least
+    privilege on tools, human-in-the-loop for high-impact actions, and honest UI about it
+    being AI. Cost/latency: measure real token usage, cap output, cache stable prefixes,
+    right-size the model. Ops: structured logging of inputs/context/outputs, monitoring and
+    alerting on quality and cost, a feedback/flag path, and versioning of prompts and
+    models. Plus scope discipline — document what it explicitly won't handle.
+  deep: >-
+    The reframe is that the model is the easy part; production-readiness is everything that
+    turns a probabilistic component into a dependable system. Work it in layers: (1)
+    Measurement first — without an eval set you can't tell improvement from regression, and
+    it's also your governance evidence. (2) Failure containment — since hallucination and
+    malformed output are structural, you design for them: validate, verify, retry
+    idempotently, fall back, and bound with timeouts. (3) Trust boundaries — least-privilege
+    tools, injection defenses for untrusted input, human gates on consequential actions,
+    full traces. (4) Economics — token accounting, caching, model routing, and load
+    behavior. (5) Operations — monitoring, alerting, rollback of prompt/model versions,
+    incident logging, and user feedback. (6) Scope — an explicit 'won't do' boundary and
+    honest disclosure. The interview signal is treating the model as one unreliable
+    dependency inside an engineered, observable, governable system — not as the product.
+followUps:
+  - "Which single item would you do first if you could only do one before launch?"
+  - "How do you make a retry safe when the first attempt may have had a side effect?"
+governanceAngle: >-
+  Most of this checklist — evals, oversight, logging, risk documentation — is also what AI
+  governance frameworks expect for anything beyond low-risk use; which framework applies
+  depends on the system and jurisdiction.

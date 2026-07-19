@@ -1,0 +1,48 @@
+question: "Design a RAG system for a company's internal policy Q&A. Walk through the pipeline and the failure modes you'd watch."
+concepts:
+  - rag
+  - embeddings
+  - vector-search
+  - context-windows
+roles:
+  - architect
+  - engineer
+difficulty: deep
+answers:
+  beginner: >-
+    I'd split the policy documents into chunks, turn each into an embedding, and store them
+    in a searchable index. At question time I embed the question, retrieve the most similar
+    chunks, put them in the prompt, and ask the model to answer using only those chunks and
+    cite them. The things that go wrong: bad chunking, retrieving the wrong passages, or the
+    model answering from memory instead of the sources.
+  professional: >-
+    Pipeline: ingest and chunk the policies (respecting structure — sections, not blind
+    fixed windows), embed each chunk, index them (a flat store is fine at this scale, a
+    vector DB if it's large), and store metadata for filtering (department, version, date).
+    At query time: embed the question, retrieve top-k (plus metadata filters), assemble a
+    budget-aware prompt with the retrieved passages, and instruct the model to answer only
+    from them and cite chunk ids. Failure modes to watch: retrieval misses (the answer
+    exists but wasn't retrieved — the ceiling on quality), distractor passages, stale or
+    superseded policy versions, and the model ignoring context or fabricating citations.
+    I'd add citation verification, a 'not found in the policies' path, and an eval set of
+    real questions with known answers to measure retrieval and answer quality.
+  deep: >-
+    Treat retrieval quality as the system's ceiling — a perfect model can't fix a missed
+    passage. Design decisions: chunking to preserve semantic units and keep enough context
+    per chunk without diluting embeddings; hybrid retrieval (lexical + vector) since policy
+    Q&A has exact terms (form names, clause numbers) that pure embeddings can miss; metadata
+    for version control so superseded policies don't surface as current; and reranking if
+    precision matters. Generation: constrain to retrieved evidence, require citations, and
+    verify each citation resolves to a provided chunk (a deterministic check catches
+    fabricated ones, though not a real citation that doesn't actually support the claim).
+    Operationally: log query, retrieved ids, and answer; evaluate retrieval (recall@k) and
+    answer faithfulness separately; and expose an honest 'the policies don't cover this'
+    response. Governance-wise, internal policies plus personal data mean access controls and
+    audit logging matter, and the corpus itself is an attack surface for injected content.
+followUps:
+  - "Why might pure embedding search miss a question that names an exact form or clause?"
+  - "How would you keep a superseded policy version from being answered as current?"
+governanceAngle: >-
+  Internal policy corpora often contain personal or confidential data, so access control,
+  audit logging, and provenance/citations matter; which regime applies depends on the data
+  and jurisdiction.

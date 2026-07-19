@@ -1,0 +1,35 @@
+question: "Explain temperature to a non-technical product owner, and tell them when to turn it down."
+concepts:
+  - sampling
+roles:
+  - product
+  - consultant
+difficulty: screen
+answers:
+  beginner: >-
+    Temperature is a creativity dial. Low temperature makes the model pick the most likely
+    words, so answers are focused and repeatable. High temperature lets it take more risks,
+    so answers are more varied but less predictable. Turn it down for anything that must be
+    consistent — extraction, classification, code, structured data. Turn it up for
+    brainstorming or copy variations.
+  professional: >-
+    Under the hood the model outputs a probability over possible next words; temperature
+    reshapes that distribution. Near zero it almost always takes the top choice
+    (deterministic-ish, consistent), higher values flatten the distribution so less likely
+    words get chosen (more diverse, more random). It does not make the model smarter or
+    more correct — it only changes variety. So: low for tasks with a right answer or a
+    required format (data extraction, JSON, classification, code); higher for tasks where
+    variety is the point (ideation, marketing variants). If outputs feel repetitive, that's
+    usually a prompt or model issue, not a reason to crank temperature.
+  deep: >-
+    Temperature scales the logits before the softmax: lower sharpens toward the argmax,
+    higher flattens toward uniform; top-k and top-p then truncate the tail. The product
+    framing is that temperature trades consistency for diversity along a single axis and
+    touches neither knowledge nor reasoning. Two honest nuances for stakeholders: even at
+    temperature 0 outputs aren't guaranteed bit-identical across hardware/versions, so
+    "deterministic" means "greedy," not "reproducible forever"; and higher temperature
+    raises the rate of confidently wrong or off-format outputs, which is exactly why
+    regulated or structured use cases pin it low and validate the result.
+followUps:
+  - "Why doesn't higher temperature make the model more accurate?"
+  - "If low temperature is 'greedy,' why might two identical calls still differ?"

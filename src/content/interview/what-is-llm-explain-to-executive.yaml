@@ -1,0 +1,40 @@
+question: "In one minute, explain to an executive what an LLM is — and what it is not."
+concepts:
+  - what-is-a-language-model
+  - failure-modes
+roles:
+  - product
+  - consultant
+difficulty: screen
+answers:
+  beginner: >-
+    An LLM is a system trained to predict the next word over enormous amounts of text, so
+    it learns the patterns of language and knowledge expressed in that text. It's
+    remarkably good at producing fluent, useful text. What it is not is a database of
+    verified facts or a reasoning engine that's guaranteed correct — it can be confidently
+    wrong, and it doesn't learn from your conversation unless you build that in.
+  professional: >-
+    It's a very large statistical model of text: during training it learned to predict the
+    next token across a huge corpus, which captures both language and a lot of world
+    knowledge implicitly in its weights. At use time it generates one token at a time. The
+    executive takeaways: (1) it produces plausible text, and plausible is not the same as
+    true — hallucination is structural, not a bug you fully remove; (2) its knowledge is
+    frozen at training time and it has no memory of past chats unless you add retrieval or
+    state; (3) it's probabilistic, so outputs vary. Used with retrieval, tools, validation
+    and human oversight it's powerful; treated as an oracle it's a liability.
+  deep: >-
+    The one-minute version has to land three load-bearing facts without jargon: next-token
+    prediction (capability comes from modelling the structure of text, which is why it
+    generalises and also why it fabricates), frozen weights at inference (no learning from
+    your data mid-use; "it remembered" means you re-supplied context), and calibration of
+    trust (fluency is uncorrelated with correctness, so the engineering and governance work
+    is bounding and checking outputs, not assuming them). Framing it this way sets
+    realistic expectations and naturally motivates the rest of the stack — grounding,
+    tools, evals, oversight.
+followUps:
+  - "If it 'just predicts the next token,' why does it seem to reason through problems?"
+  - "Why can't it learn from a correction you gave it yesterday?"
+governanceAngle: >-
+  Being explicit that outputs can be confidently wrong and that the system is AI supports
+  transparency and human-oversight expectations; the specific obligations depend on the use
+  case, risk level, and jurisdiction.

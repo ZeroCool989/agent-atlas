@@ -1,0 +1,42 @@
+question: "A team wants to add a vector database. How do you decide whether they actually need one?"
+concepts:
+  - vector-search
+  - embeddings
+roles:
+  - architect
+  - consultant
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    I'd ask how many vectors they have and how fast search needs to be. For thousands or
+    even a few hundred thousand, a plain in-memory array with cosine similarity is simple,
+    exact, and fast enough. A dedicated vector database earns its keep at large scale or
+    when you need filtering, persistence, and operations — not by default.
+  professional: >-
+    Vector search is just 'find the nearest vectors,' and exact brute-force scan is O(N) but
+    perfectly fine up to surprisingly large corpora. A vector database buys approximate
+    nearest-neighbor indexing (sub-linear search) plus persistence, metadata filtering,
+    scaling, and ops — you want it when N is large enough that exact scan is too slow, when
+    you need those operational features, or when it's already in your stack (e.g. pgvector).
+    You don't want it when a flat array or a small library covers you: it's another service
+    to run, tune (recall vs latency), and secure. Decision inputs: corpus size and growth,
+    latency target, filtering needs, and existing infrastructure. Start simple; adopt ANN
+    when you measure that exact search no longer meets the latency budget.
+  deep: >-
+    The real axis is exact vs approximate and where the cost lands. Flat/exact search:
+    perfect recall, zero infra, cost grows linearly with N. ANN (HNSW/IVF in a vector DB):
+    tunable recall/latency trade-off, sub-linear queries, but you now own an index to
+    configure and an approximation that can silently miss neighbors. So the question isn't
+    'vector DB yes/no,' it's 'at your N, latency budget, and filtering needs, does exact
+    scan still clear the bar?' Ladder the options honestly — array → embedded lib
+    (hnswlib/FAISS) → pgvector on your existing Postgres → dedicated DB — and stop at the
+    first that meets requirements. Prematurely adopting a vector DB adds operational
+    surface, recall-tuning risk, and a data-residency question for little benefit at small
+    scale.
+followUps:
+  - "What does an approximate index give up, and how would you detect it in production?"
+  - "When is pgvector the right amount of vector database?"
+governanceAngle: >-
+  A separate vector store is another place embedded (possibly personal) data lives, raising
+  data-residency and access-control questions that depend on the data and jurisdiction.

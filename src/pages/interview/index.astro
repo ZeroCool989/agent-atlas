@@ -1,0 +1,75 @@
+---
+/**
+ * Interview drill mode (plan §5, §9). Static-first: the GET form filters by role and
+ * difficulty on the server, so the question list renders and is fully readable WITHOUT
+ * JavaScript (answers revealed by native <details>). The island adds self-grading
+ * persisted to IndexedDB on hydration.
+ */
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import InterviewDrill, { type DrillQuestion } from '../../components/InterviewDrill';
+
+import { INTERVIEW_ROLES, INTERVIEW_DIFFICULTIES } from '../../lib/content/model';
+
+const DIFF_ORDER: Record<string, number> = { screen: 0, standard: 1, deep: 2 };
+const all = (await getCollection('interview'))
+  .map((e): DrillQuestion => ({
+    id: e.id,
+    question: e.data.question,
+    difficulty: e.data.difficulty,
+    roles: e.data.roles,
+    criticalThinking: e.data.criticalThinking,
+    answers: e.data.answers,
+  }))
+  .sort((a, b) => (DIFF_ORDER[a.difficulty] ?? 9) - (DIFF_ORDER[b.difficulty] ?? 9));
+
+// Static build: the full list is server-rendered (usable without JS); the island applies
+// any ?role/?difficulty filter on the client. So the page always ships every question.
+---
+
+<Base
+  title="Interview prep"
+  description="Drill interview questions on how AI systems work — tiered answers you can self-test against, filtered by role and difficulty."
+>
+  <main id="main" class="mx-auto max-w-3xl px-6 py-12">
+    <h1 class="text-3xl font-bold tracking-tight">Interview prep</h1>
+    <p class="mt-2 text-slate-600">
+      {all.length} questions with beginner / professional / deep answers. Reveal an answer only
+      after you've tried it; grade yourself to track what to revisit.
+    </p>
+
+    <nav class="mt-6 text-sm" aria-label="Role tracks">
+      <span class="text-slate-500">Role tracks:</span>
+      {INTERVIEW_ROLES.map((r) => (
+        <a class="ml-2 underline" href={`/interview/${r}`}>{r}</a>
+      ))}
+    </nav>
+
+    <form method="get" aria-label="Filter questions" class="mt-6 flex flex-wrap items-end gap-3 rounded border border-slate-200 p-4">
+      <label class="text-sm">
+        Role
+        <select name="role" class="mt-1 block rounded border border-slate-300 px-2 py-1">
+          <option value="">All roles</option>
+          {INTERVIEW_ROLES.map((r) => (
+            <option value={r}>{r}</option>
+          ))}
+        </select>
+      </label>
+      <label class="text-sm">
+        Difficulty
+        <select name="difficulty" class="mt-1 block rounded border border-slate-300 px-2 py-1">
+          <option value="">Any</option>
+          {INTERVIEW_DIFFICULTIES.map((d) => (
+            <option value={d}>{d}</option>
+          ))}
+        </select>
+      </label>
+      <button type="submit" class="rounded bg-slate-800 px-3 py-1.5 text-sm text-white">Filter</button>
+      <a href="/interview" class="text-sm underline">Clear</a>
+    </form>
+
+    <div class="mt-4">
+      <InterviewDrill questions={all} client:visible />
+    </div>
+  </main>
+</Base>

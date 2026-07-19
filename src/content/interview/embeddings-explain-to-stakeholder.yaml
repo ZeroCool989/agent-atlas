@@ -1,0 +1,39 @@
+question: "Explain embeddings to a non-technical stakeholder, and why 'similar' doesn't mean 'correct.'"
+concepts:
+  - embeddings
+roles:
+  - product
+  - consultant
+difficulty: screen
+answers:
+  beginner: >-
+    An embedding turns a piece of text into a list of numbers that captures its meaning, so
+    texts about similar things end up close together. That's what lets search find related
+    content even when the words differ. But 'close in meaning' isn't the same as 'true' or
+    'relevant to this exact question' — two passages can be similar and both wrong, so
+    retrieval is a starting point, not an answer.
+  professional: >-
+    Think of it as placing every piece of text on a map where distance means similarity of
+    meaning, learned from data. That's powerful for search and recommendations because you
+    match on meaning, not exact keywords. The caveat worth stating plainly: similarity is
+    not correctness, relevance, or truth. The nearest passage to a question can be
+    off-topic-but-worded-similarly, outdated, or plainly wrong; and the embedding reflects
+    whatever the training data associated, biases included. So embeddings decide what to
+    look at, and you still need the right content in the corpus and checks on what you do
+    with it.
+  deep: >-
+    Embeddings are learned vector representations where geometric proximity (usually cosine)
+    approximates semantic relatedness — an approximation, not a truth function. Three honest
+    points for stakeholders: (1) 'similar' conflates several things (topical, lexical,
+    stylistic) and the model picked which during training, so results can surprise; (2)
+    relevance to a specific query is not the same as similarity to it — hence reranking and
+    hybrid lexical+vector retrieval exist; (3) the representation inherits training-data
+    associations and biases. The practical upshot is that embeddings are a strong retrieval
+    primitive whose quality bounds anything built on top, and the guardrail is evaluating
+    retrieval and never treating 'nearest' as 'authoritative.'
+followUps:
+  - "Give an example where the most similar result is the wrong result."
+  - "Why is keyword search still a useful baseline alongside embeddings?"
+governanceAngle: >-
+  Embeddings of personal data are still derived from personal data and can leak or re-identify;
+  whether that triggers obligations depends on the data, use, and jurisdiction.

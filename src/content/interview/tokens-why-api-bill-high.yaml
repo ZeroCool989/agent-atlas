@@ -1,0 +1,40 @@
+question: "A client is surprised their API bill is high even though they send 'short' prompts. How do tokens explain it, and what would you check?"
+concepts:
+  - tokens
+  - context-windows
+roles:
+  - consultant
+  - engineer
+difficulty: screen
+answers:
+  beginner: >-
+    Models bill per token, not per message, and both what you send and what comes back
+    count. A "short" prompt that carries a long system prompt, chat history, or a big
+    retrieved document every call is actually large. I'd look at the full assembled
+    request size and the output length, not just the user's visible text.
+  professional: >-
+    Tokens are sub-word units, and cost scales with input tokens plus output tokens on
+    every call. The usual surprise is hidden input: a fixed system prompt, few-shot
+    examples, accumulated conversation history, and RAG context are all re-sent on each
+    request, so the per-call token count is far larger than the user's typed message.
+    Output tokens are often priced higher than input. I'd measure the real assembled
+    prompt size, check whether history grows unbounded, whether retrieved chunks are
+    oversized, and whether a smaller/cheaper model or caching would cut cost without
+    hurting quality.
+  deep: >-
+    The cost model is input_tokens × input_price + output_tokens × output_price, per
+    call, and tokenization means character count is a poor proxy — code, non-English
+    text, and rare words tokenize less efficiently. High bills almost always trace to
+    structural re-sending: a long static preamble, unbounded history, or large RAG
+    payloads multiplied by call volume. Levers, roughly in order: trim/curate the
+    context (history summarization, tighter retrieval, right-sized chunks), use prompt
+    caching for the stable prefix where the provider supports it, cap output length,
+    and route easy requests to a cheaper model. The point is that "prompt length" is an
+    architecture property of the whole assembled request, not of the user's message.
+followUps:
+  - "Where would prompt caching help and where would it not?"
+  - "How does conversation history turn a cheap feature into an expensive one over time?"
+practicalExample: >-
+  The prompt-engineering concept's assembly module in src/lib/prompt estimates per-segment
+  token cost and warns as the assembled request approaches the window — the same accounting
+  that explains the bill.

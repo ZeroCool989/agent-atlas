@@ -1,0 +1,44 @@
+question: "How do evals serve as evidence for AI governance or compliance, and what are their limits as evidence?"
+concepts:
+  - evaluation
+  - failure-modes
+roles:
+  - governance
+  - consultant
+difficulty: standard
+answers:
+  beginner: >-
+    Evals are documented tests of how the system behaves — accuracy on real cases, checks
+    for known failure modes. That documentation is exactly what a governance process or
+    auditor wants: evidence you measured the system, set a target, and monitor it. The
+    limit is that passing an eval only proves the system did well on those cases, not that
+    it's safe everywhere.
+  professional: >-
+    Governance frameworks ask you to identify risks, set acceptance criteria, test against
+    them, and monitor over time. An eval suite operationalizes that: a versioned set of
+    cases with assertions, run in CI and in production monitoring, produces a dated record
+    of measured behavior, coverage, and regressions — strong conformity evidence for things
+    like accuracy and robustness expectations. The limits, stated honestly: an eval set is a
+    sample, so it proves behavior on those cases, not the whole input space; metrics can be
+    gamed or overfit (Goodhart); LLM-as-judge scoring introduces its own bias and must be
+    validated; and 'we hit 95%' means nothing without knowing what the 5% failures cost. So
+    evals are necessary evidence, not a safety guarantee.
+  deep: >-
+    Treat evals as auditable measurement, not proof of correctness. Their evidentiary value
+    comes from process: representative case selection tied to identified risks, explicit
+    acceptance thresholds, versioning so you can show a regression was caught, and
+    separation of offline eval from online monitoring. That maps cleanly onto risk-management
+    expectations in frameworks like the EU AI Act and ISO 42001 / NIST AI RMF. The failure
+    of evidence is mistaking the map for the territory: coverage gaps (the eval set omits the
+    failure that bites you), optimization pressure (teams tune to the eval until it stops
+    correlating with reality), judge unreliability, and severity blindness (aggregate score
+    hides catastrophic tail cases). Credible governance therefore documents the eval's own
+    limitations, keeps humans in the loop for high-stakes cases, and pairs offline evidence
+    with production monitoring and incident logging.
+followUps:
+  - "How could a rising eval score actually hide a system getting worse?"
+  - "Why does LLM-as-judge need its own validation before you trust its scores?"
+governanceAngle: >-
+  Evals are the practical artifact behind conformity, risk-management, and monitoring
+  expectations in frameworks like the EU AI Act, ISO 42001, and NIST AI RMF; exactly which
+  applies depends on the system, use case, and jurisdiction.

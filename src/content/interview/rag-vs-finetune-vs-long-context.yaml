@@ -1,0 +1,43 @@
+question: "How do you choose between RAG, fine-tuning, and long context for giving a model new knowledge?"
+concepts:
+  - rag
+  - context-windows
+  - what-is-a-language-model
+roles:
+  - architect
+  - consultant
+difficulty: deep
+criticalThinking: true
+answers:
+  beginner: >-
+    They solve different problems. RAG is for knowledge that changes or is large — you
+    retrieve the relevant bits at query time and can cite them. Long context is for when
+    the relevant material is small and you can just paste it in. Fine-tuning is for teaching
+    style, format, or a skill — not for facts, since baked-in facts go stale and can't be
+    cited. For 'answer from our documents,' start with RAG.
+  professional: >-
+    Match the tool to the need. RAG: dynamic, large, or citable knowledge — the corpus can
+    change without retraining, and you get provenance; cost is system complexity. Long
+    context: the needed material is small and fits the window; simplest, but re-paid per
+    call and no persistence. Fine-tuning: changes behavior — tone, format adherence, a
+    narrow task — or bakes in stable domain patterns; it does not reliably add up-to-date
+    facts and you can't cite what it 'knows,' plus it needs data and a retraining loop when
+    things change. Common real answer: RAG for the facts, a bit of fine-tuning or good
+    prompting for the format, long context for the occasional small ad-hoc document. Decide
+    by asking: does the knowledge change? does it need citations? is it about facts or
+    behavior?
+  deep: >-
+    Decompose 'new knowledge' into freshness, volume, attributability, and whether it's
+    facts vs behavior. Facts that change or must be cited → retrieval, because weights are
+    frozen and opaque (you can't audit a fact fine-tuned in). Behavior/format/skill →
+    fine-tuning, which shifts the distribution the model samples from. Small, static,
+    in-the-moment material → long context. The honest trade-offs: fine-tuning risks
+    catastrophic forgetting and creates a maintenance/versioning burden and a governance
+    question about training data; RAG adds retrieval infrastructure and its own failure
+    modes; long context is cheap to build but expensive and lossy at scale. These compose —
+    most production systems are RAG-for-knowledge plus light tuning/prompting-for-behavior —
+    and the deciding questions are freshness, provenance, and facts-vs-behavior, not a
+    blanket ranking.
+followUps:
+  - "Why is fine-tuning a poor choice for facts that change monthly?"
+  - "When would you deliberately avoid RAG and just use long context?"
