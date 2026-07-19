@@ -1,0 +1,61 @@
+question: "How does the OWASP LLM Top 10 frame prompt injection, and how would you present LLM security as a documented risk control to a governance or audit reviewer?"
+concepts:
+  - prompt-injection
+  - verification
+roles:
+  - governance
+  - architect
+  - consultant
+difficulty: standard
+answers:
+  beginner: >-
+    OWASP's LLM Top 10 is a community security checklist for LLM apps, and prompt injection is LLM01 —
+    the number-one risk. It connects to a few others: excessive agency (an injected instruction abusing
+    tools the agent has), sensitive-information disclosure (exfiltrating data the agent can see), and
+    improper output handling (the model's output executed unsafely). For a governance reviewer, I'd
+    never say we "fixed" injection — that's not true and it's the wrong thing to claim. I'd show the
+    architecture: which inputs are untrusted, what least-privilege limits the agent has, where human
+    confirmation sits, how output is validated, and a written statement that this is a known risk we
+    reduce, monitor, and accept a residual level of.
+  professional: >-
+    I'd use OWASP as the shared threat taxonomy: prompt injection is LLM01 in every edition, and I'd map
+    our specific exposure to the related categories — excessive agency, sensitive-information
+    disclosure, improper output handling — by name rather than by code, because the numbering shifted
+    between the 2023 and 2025 editions. Then I'd translate each into an implemented control and its
+    evidence: least-privilege tool scoping (the permission model), deny-by-default confirmation on
+    consequential actions (the human-oversight path), sandboxing (the blast-radius bound), output
+    validation (no raw model output into side-effecting sinks), and provenance tracking (untrusted
+    content can't redefine the task), plus an audit trace of proposed/gated/ran. The governance framing
+    that matters: this is presented as risk reduction and containment with an explicitly accepted,
+    monitored residual risk — not as prevention. That maps cleanly onto the EU AI Act's robustness,
+    cybersecurity, and human-oversight expectations for higher-risk systems, where the architecture is
+    the evidence you'd bring; applicability depends on role, use case, data, and jurisdiction.
+  deep: >-
+    The reviewer-facing story has three moves. First, taxonomy: OWASP LLM Top 10 is the checklist, LLM01
+    is prompt injection, and the honest scope statement is that it's unsolved — so the artifact is a risk
+    control, not a remediation. Second, evidence: every claimed control is backed by something inspectable
+    — a permission manifest for least privilege, a confirmation workflow for human oversight, sandbox
+    configuration, output-validation code, provenance labelling, and logs. This is where the demonstrator
+    is useful as a teaching artifact: the mitigated pipeline shows the model still proposing the attack
+    and the runtime refusing it, which is exactly the "the safety is architectural, and here's the trace"
+    argument. Third, honesty: the disclosure states the residual risk plainly — even layered controls let
+    a benign, permitted injected action through — and commits to monitoring rather than claiming closure.
+    The failure mode to avoid is a document that says "mitigated via prompt hardening," because that both
+    misstates the risk and licenses over-granting the agent power. Regulators and auditors reward a
+    system that is honest about an unsolved risk and can show the containment; they should distrust one
+    that claims to have solved it.
+followUps:
+  - "Why is claiming prompt injection is 'solved' itself a governance risk?"
+  - "What concrete evidence would you bring to demonstrate each control to an auditor?"
+  - "How do you write an honest residual-risk statement for a system that accepts untrusted input?"
+criticalThinking: false
+governanceAngle: >-
+  Prompt injection is the archetypal case where security IS the governance story: OWASP LLM Top 10
+  supplies the threat taxonomy (LLM01, plus excessive agency, sensitive-information disclosure, improper
+  output handling), and frameworks like the EU AI Act supply robustness, cybersecurity, and
+  human-oversight expectations for higher-risk systems. The defensible, auditable posture is documented
+  trust boundaries, least privilege, human oversight of consequential actions, validated output, and an
+  explicitly accepted and monitored residual risk — with the architecture as evidence. The one
+  impermissible statement is that the risk is prevented or solved. A link to a framework signals
+  potential relevance, not that it applies; applicability depends on the system, data, use case, and
+  jurisdiction.

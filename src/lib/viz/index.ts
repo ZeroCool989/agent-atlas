@@ -103,3 +103,12 @@ export type {
   AgentEdge,
   NodeKind,
 } from './multi-agent-scene';
+export { createPromptInjectionScene, PROMPT_INJECTION_DEMO } from './prompt-injection-scene';
+export type {
+  PromptInjectionScene,
+  PromptInjectionSceneInput,
+  PromptInjectionSegmentView,
+  PromptInjectionCallView,
+  PromptInjectionOutcomeView,
+  PromptInjectionStatus,
+} from './prompt-injection-scene';

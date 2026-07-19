@@ -1,0 +1,62 @@
+question: "Your agent retrieves untrusted documents and can call tools. Walk me through the controls that actually contain prompt injection, and be precise about what each one does and doesn't do."
+concepts:
+  - prompt-injection
+  - tool-calling
+  - computer-use
+roles:
+  - engineer
+  - architect
+difficulty: deep
+answers:
+  beginner: >-
+    Since I can't stop the model from being fooled, I contain what a fooled model can do. Least
+    privilege: give it only the tools and credentials the task needs, so an injected instruction can't
+    reach anything valuable — a bot that can't send arbitrary email can't be tricked into emailing your
+    data out. Human confirmation: pause consequential or irreversible actions for a person to approve,
+    deny-by-default. Sandboxing: bound what any action can touch so damage stays small and reversible.
+    Treat model output as untrusted: validate and escape tool arguments, never pipe raw model output
+    into a shell or a database. Each one reduces risk; none of them prevents the injection, so I layer
+    them.
+  professional: >-
+    I'd frame it as: the model layer is unfixable, so every dependable control lives around it, and each
+    is partial. Least-privilege tool scoping shrinks blast radius — it's the highest-leverage control
+    because it caps what any followed instruction can reach — but it doesn't detect the attack. A
+    deny-by-default confirmation gate on consequential actions catches the reach of an injected action
+    by putting a human in the loop; it costs latency and attention, so it only scales where consequential
+    actions are rare. Sandboxing bounds effects — constrained network and filesystem — so a success stays
+    contained. Untrusted-output handling is where injection becomes downstream code execution, so tool
+    arguments get validated and escaped and nothing raw goes into shell/SQL/HTML. Provenance tracking and
+    structural separation (labelling and isolating untrusted content) help at the margin but don't create
+    a boundary the model reliably respects. Guardrail classifiers on input and output are useful and
+    bypassable — defense-in-depth, not load-bearing. The strongest design is dual-LLM / capability
+    isolation: a privileged model that never sees untrusted text and a quarantined model that processes
+    untrusted text but holds no privileges. The judgment an interviewer wants: I never present any single
+    one as a fix; I layer partial controls and document the residual risk.
+  deep: >-
+    The organizing principle is that the untrusted party cannot certify its own input, so I design as if
+    the model WILL be compromised on any turn that touches untrusted content, and I make that assumption
+    survivable. Least privilege is first because it's the only control whose value doesn't depend on
+    detecting the attack — it caps the reachable damage unconditionally. Confirmation gates and sandboxes
+    bound the actions and effects that remain. Output handling closes the injection-to-execution path,
+    which is the difference between a bad message and remote code execution. Everything detection-based
+    (classifiers, prompt hardening, delimiters) is graded as probability-shifting, so it stacks but never
+    stands alone. Dual-LLM / capability patterns are the structural endgame: remove untrusted text from
+    the model that can act, and pass only typed, non-instruction data across the boundary. Then the
+    honest part: even fully layered, if an injected action is benign AND uses a permitted tool, the
+    controls let it through — so there's a residual risk I accept, monitor, and log, with a full audit
+    trace of proposed/gated/ran. Computer use is the same story with the input channel being the whole
+    screen and the actions being real clicks, which is why its confirmation gate is the canonical
+    example.
+followUps:
+  - "Which single control would you implement first if you could only do one, and why?"
+  - "How do dual-LLM / capability patterns differ from just delimiting untrusted content in the prompt?"
+  - "Where can a fully layered defense still let an injected action through?"
+  - "How does treating model output as untrusted connect to classic injection defenses like output encoding?"
+criticalThinking: false
+practicalExample: >-
+  src/lib/security/pipeline.ts implements exactly these controls as a runtime gate: a trust boundary
+  (untrusted-origin directives aren't treated as commands), a least-privilege allow-list, and a
+  deny-by-default confirmation gate for consequential actions. The mitigated pipeline reuses the SAME
+  provenance-blind model as the naive one and still blocks the injected exfiltration — with a unit test
+  asserting all three controls fire (defense-in-depth) and another asserting a benign, allow-listed
+  injected call would still pass, proving the controls reduce rather than remove risk.

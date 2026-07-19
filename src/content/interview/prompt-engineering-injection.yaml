@@ -1,6 +1,7 @@
 question: "Your app puts a user-uploaded document and a retrieved web page into the prompt alongside your system instructions. What's the risk, and how does it change how you think about prompt construction?"
 concepts:
   - prompt-engineering
+  - prompt-injection
 roles:
   - engineer
   - architect
