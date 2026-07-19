@@ -1,0 +1,42 @@
+question: "What actually is prompt engineering — and what is it not?"
+concepts:
+  - prompt-engineering
+roles:
+  - engineer
+  - product
+  - consultant
+difficulty: screen
+answers:
+  beginner: >-
+    A model only sees the text you put in its context, so prompt engineering is deciding
+    what that text is: the role and rules (system), worked examples (few-shot), the actual
+    task, and the output format you want. It's construction — building the input
+    deliberately — not searching for magic words. Most of it is just stating the task
+    clearly and showing an example of what "done" looks like.
+  professional: >-
+    Prompt engineering is context construction: given that the model acts only on the text
+    in its window, you assemble that text on purpose — a system/role, few-shot
+    demonstrations, the task, and an output-format contract — to get consistent, on-spec,
+    parseable results. It is *not* a bag of incantations, and it is *not* a way to add
+    knowledge or capability the model lacks. The highest-leverage move is usually clarity of
+    the ask; the fancier techniques (personas, few-shot, decomposition, chain-of-thought)
+    are conditional, added when a plain clear instruction demonstrably falls short. Each part
+    costs tokens, so length is a real cost, not a free improvement.
+  deep: >-
+    The precise framing is that the prompt is the *entire* context the model conditions on —
+    system text, prior turns, retrieved documents, tool results — so "prompt engineering"
+    at scale is context management, not clever wording. What that reframing buys you: you
+    stop treating a bad output as a model failure and start asking whether the context was
+    under-specified, over-stuffed, or contaminated by untrusted text. It also clarifies the
+    boundaries — prompting shapes behaviour, retrieval supplies knowledge, fine-tuning
+    changes the model, tools grant action — so reaching for prompting to fix a
+    knowledge/capability gap is a category error. And because prompts are model-version
+    dependent, they're maintained, versioned, evaluated artifacts, not one-off strings.
+followUps:
+  - "Why is 'a longer prompt is a better prompt' wrong?"
+  - "Give an example where the right fix was NOT prompting."
+governanceAngle: >-
+  A prompt is part of a system's documented behaviour; changing wording changes outputs, so
+  for auditable use prompts live under version control pinned to the model version they were
+  validated against. Whether any regime applies depends on the system, data, use case, and
+  jurisdiction — not on the mere use of a prompt.

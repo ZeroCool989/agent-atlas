@@ -1,0 +1,169 @@
+---
+title: "Prompt engineering"
+layer: core-mechanism
+oneLiner: "Deciding what text goes into the model's context so it does what you need — construction, not incantation."
+prerequisites:
+  - tokens
+  - context-windows
+related:
+  - structured-outputs
+  - few-shot-prompting
+  - workflows-vs-agents
+governance:
+  - eu-ai-act
+interviewTags: ["prompt-engineering", "system-prompt", "few-shot", "prompt-injection"]
+status: complete
+verdict:
+  classification: essential
+  problem: "A model only acts on the text you put in its context. If you can't shape that text deliberately — role, examples, task, format — you can't reliably steer the model, and you're left rerolling and hoping."
+  simplerBaseline: "Write one clear, specific instruction. A large share of 'prompt engineering' is just stating the task precisely; the fancy techniques are what you add only when a plain, clear ask genuinely falls short."
+  mainCost: "Every part you add — instructions, examples, format rules — is tokens spent before the model answers (cost, latency, and window budget), plus brittleness: a prompt tuned to one model can degrade on the next."
+sources:
+  - anthropic-building-effective-agents
+updated: 2026-07-19
+---
+
+import PromptAssemblyDemo from '../../../components/viz/PromptAssemblyDemo';
+
+A language model has no memory of you and no access to your goal. It acts on exactly one
+thing: the text sitting in its [context window](/concepts/context-windows) at the moment
+it generates. **Prompt engineering** is the discipline of deciding what that text is — the
+role and rules, the examples, the task, the required output shape — so the model reliably
+does what you need. Framed honestly it is *context construction*, not a search for magic
+words.
+
+> **Mental model: briefing a brilliant, literal contractor with amnesia.** They can do
+> remarkable work, but they remember nothing between jobs and take your brief literally.
+> A good brief states the role ("you're proofreading, not rewriting"), shows an example of
+> what "done" looks like, gives the actual task, and specifies the deliverable's format.
+> **Where the analogy breaks:** a real contractor asks clarifying questions and carries
+> professional judgement across jobs; the model does neither — it fills gaps with a
+> plausible guess and starts fresh every call. So ambiguity you'd resolve in conversation
+> has to be resolved *up front, in the text*, every single time.
+
+## What problem existed before this?
+
+The first instinct with a capable model is to type a wish — "write me a good marketing
+email" — and accept whatever comes back. It works often enough to be seductive and fails
+unpredictably: wrong tone, wrong length, invented facts, a format your code can't parse.
+There was no reliable lever between "the model is capable" and "the model did the
+specific thing I needed," so people rerolled the same vague prompt and blamed the model.
+
+## Why was this invented?
+
+Because the lever turned out to be the *input*, not the model. The same model produces
+very different results depending on how you frame the request: giving it a role, showing
+it worked examples, decomposing the task, and specifying the output shape. Naming these
+techniques — system instructions, few-shot examples, output specification, decomposition —
+turned "prompting" from folklore into a small, teachable set of moves you apply on purpose.
+
+## How does it work?
+
+Watch a prompt being assembled. Each part you add is text the model will see — and tokens
+it will cost:
+
+<PromptAssemblyDemo client:visible />
+
+The parts, in the order you usually build them:
+
+- **System / role.** Standing instructions and persona ("you are a terse assistant that
+  answers in British English"). It shapes *how* the model responds without being the task.
+- **Few-shot examples.** Instead of describing the output, you *show* input→output pairs and
+  let the model imitate the pattern. The most powerful lever — and the most expensive, since
+  every example rides along in every call (this is its own concept:
+  [few-shot prompting](/concepts/few-shot-prompting)).
+- **The task.** The actual request. Everything else exists to shape the answer to *this*, so
+  its clarity matters more than any trick above it.
+- **Output format.** A contract for the answer ("reply with one JSON object") — the handoff
+  to [structured outputs](/concepts/structured-outputs), which makes that contract enforceable.
+
+The assembler in this repo turns those parts into the exact message array a model receives,
+and prices them against the window — because the reply needs room the prompt has already spent.
+
+## Is it actually necessary?
+
+For anything beyond a casual one-off, yes: without deliberate prompting you can't get
+consistent, parseable, on-spec output, and you can't debug failures (was it the model, or
+your unclear ask?). But "necessary" does not mean "elaborate" — the necessary part is
+*clarity and specification*. The elaborate techniques are conditional, added only when a
+clear instruction demonstrably isn't enough.
+
+## What are the trade-offs?
+
+You gain steering and reliability; you pay in three currencies. **Tokens:** instructions
+and examples cost money, latency, and [window budget](/concepts/context-windows) on every
+call. **Brittleness:** a prompt tuned to one model can degrade on the next version, so
+prompts are maintained artifacts, not write-once. **False confidence:** a prompt can make
+output *look* authoritative without making it *correct* — prompting shapes behaviour, it
+does not add knowledge the model lacks.
+
+## What complexity does it introduce?
+
+A prompt becomes a versioned asset: it needs testing (does this change help or just feel
+better?), a place to live (in code, not copy-pasted), and awareness that it interacts with
+everything else in the context — retrieved documents, tool results, prior turns. And once
+any of that text comes from an untrusted source, the prompt becomes an attack surface (see
+governance). The discipline shifts from "clever wording" to "managing the whole context as
+a maintained, evaluated system."
+
+## What simpler alternative exists?
+
+Usually: **state the task more clearly.** Before reaching for few-shot examples or a
+persona, try one precise instruction with the constraints made explicit — a large fraction
+of "bad model output" is under-specified requests. When the ceiling really is the prompt,
+the next steps are often *not more prompting* but a different mechanism: the model lacks
+knowledge → [retrieval](/concepts/rag); it needs a guaranteed shape →
+[structured outputs](/concepts/structured-outputs); it needs to act →
+[tools and an agent loop](/concepts/workflows-vs-agents); it's the wrong model → change the
+model. Prompt engineering is the first lever, not the only one.
+
+## When should I use it?
+
+Every time you call a model in a system you care about: to set role and tone, to pin an
+output format, to demonstrate a pattern examples convey better than prose, and to decompose
+a task the model fumbles in one shot. It is the cheapest, fastest lever — always try a
+clearer prompt before adding machinery.
+
+## When should I avoid it?
+
+Don't reach for prompt engineering to paper over the wrong tool. If the model keeps getting
+*facts* wrong, no prompt supplies missing knowledge — you need retrieval or a better source.
+If it can't do the task at all, prompting won't create the capability — you need a stronger
+model or a different approach. And don't over-engineer: piling on personas, rules, and
+examples past the point they help just spends tokens, adds brittleness, and can confuse the
+model. Stop at the simplest prompt that reliably works.
+
+## Common misconceptions
+
+- **"There are magic words that unlock the model."** No. What works is *clarity, examples,
+  and structure*; phrasings that seem magic are usually just clearer specifications of the task.
+- **"Chain-of-thought makes the model smarter."** It *elicits* reasoning the model can already
+  do by giving it room to work step by step — it does not add capability the model lacks.
+- **"A longer prompt is a better prompt."** Length is a cost. Past the point of clarity, more
+  text spends budget, raises latency, and can bury the actual task.
+- **"Prompt engineering is a substitute for retrieval or fine-tuning."** They solve different
+  problems: prompting shapes behaviour; retrieval supplies knowledge; fine-tuning changes the
+  model. Reaching for prompting when you need one of the others is the classic wrong fix.
+
+## Security and governance
+
+- **Untrusted text in the prompt is an injection surface.** The model cannot reliably tell
+  *your* instructions from instructions hidden in a document, a web page, or a tool result you
+  pasted into its context — this is prompt injection, and it grows with every untrusted source
+  you assemble in. Treat retrieved and tool-returned content as data, not commands, and keep
+  privileged instructions and untrusted content separated as much as the architecture allows.
+- **Reproducibility.** A prompt is part of the system's behaviour; changing it changes outputs.
+  For auditable use, prompts belong under version control with the model version they were
+  validated against — "we changed the wording" is a real change, not a cosmetic one.
+- **Regulatory frame, carefully:** none of the EU AI Act, GDPR, or related regimes applies
+  *merely because* a system uses a prompt. Where they do apply, the prompt (and its untrusted-
+  input handling) is part of the documented system behaviour; applicability always depends on
+  the system, data, use case, and jurisdiction.
+
+## Build it, then own it
+
+The build project is [`src/lib/prompt/assemble.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/prompt/assemble.ts):
+it takes prompt parts, produces the exact `ModelRequest` a model receives, and prices the
+result against a window with an honest token estimate. Read it, notice that "prompt
+engineering" is just *deciding the contents of that request*, then try the interview
+questions below.

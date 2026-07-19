@@ -1,0 +1,50 @@
+question: "A team keeps iterating on a prompt to stop the model getting facts wrong, and it isn't working. When is more prompt engineering the wrong fix — and how do you tell?"
+concepts:
+  - prompt-engineering
+roles:
+  - engineer
+  - architect
+  - consultant
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    If the model is getting *facts* wrong, prompting can't fix it — no wording adds knowledge
+    the model doesn't have. That's a sign you need retrieval (give it the real documents) or a
+    better source, not a cleverer prompt. The tell: separate "did it follow instructions?"
+    from "did it know the answer?" Prompting fixes the first; it can't fix the second.
+  professional: >-
+    Prompt engineering shapes *behaviour* — format, tone, structure, eliciting reasoning it can
+    already do. It does not supply missing *knowledge* or create missing *capability*. So the
+    diagnostic is to classify the failure: if outputs are well-formed but factually wrong or
+    outdated, that's a knowledge gap → retrieval (RAG) or a better data source; if the model
+    can't do the task at all regardless of phrasing, that's a capability gap → a stronger model
+    or a different decomposition; if it needs to *act* (look things up, call systems), that's an
+    agent/tools problem, not a prompt. The trap is that prompt iteration *feels* like progress —
+    each tweak changes the output — so teams keep pulling the cheapest lever past the point it
+    can help. The way to tell is an eval set: if better prompts stop moving the accuracy number,
+    you've hit the prompt's ceiling and the fix is a different mechanism.
+  deep: >-
+    The rigorous version is to make the failure measurable and attribute it. Build a small eval
+    set with ground truth, then hold the prompt fixed and vary the *mechanism*: does adding
+    retrieved context fix it (knowledge gap)? does a stronger model fix it (capability gap)? does
+    giving it a tool fix it (action gap)? Whichever moves the metric is the real lever. Prompting
+    should be treated as having a ceiling per model/task; once diminishing returns set in, more
+    prompt surgery just adds tokens, latency, and brittleness. This is the same "start simple,
+    add machinery only when it demonstrably helps" discipline as the workflow-vs-agent ladder —
+    applied downward: don't climb to retrieval or a bigger model on vibes, but don't stay on
+    prompting once the evidence says the ceiling is the prompt.
+followUps:
+  - "What would you put in an eval set to distinguish a knowledge gap from a capability gap?"
+  - "How do you keep prompt iteration from feeling like progress when it isn't?"
+practicalExample: >-
+  src/lib/prompt/assemble.ts in this repo makes the boundary concrete: it constructs the exact
+  ModelRequest from role, examples, task, and format and prices it — but nothing in it can add a
+  fact the model doesn't know or a skill it lacks. Seeing that a prompt is *only* the assembled
+  input clarifies why a knowledge failure needs retrieval (the rag concept) and a shape failure
+  needs structured outputs, not more wording.
+governanceAngle: >-
+  Choosing prompting when the real problem is a knowledge gap can produce confident, well-formatted,
+  wrong answers — a bigger accountability hazard than an obvious failure. Where accuracy is a
+  regulated expectation, the honest control is measurement (an eval set) and the right mechanism,
+  not prompt polish that masks the gap; applicability depends on the system, data, use, and jurisdiction.

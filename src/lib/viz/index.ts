@@ -13,11 +13,19 @@ export {
   SAMPLING_DEMO_INPUT,
 } from './sampling-scene';
 export type { SamplingSceneInput } from './sampling-scene';
+export {
+  createPromptAssemblyScene,
+  PROMPT_ASSEMBLY_TIMELINE,
+  PROMPT_ASSEMBLY_DEMO_INPUT,
+} from './prompt-assembly-scene';
+export type { PromptAssemblySceneInput } from './prompt-assembly-scene';
 export type {
   ContextWindowSegment,
   ContextWindowStatus,
   ContextWindowView,
   DistributionBar,
+  PromptAssemblyScene,
+  PromptSegmentView,
   SamplingScene,
   Timeline,
   TimelineStep,

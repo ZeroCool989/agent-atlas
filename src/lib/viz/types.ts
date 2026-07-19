@@ -104,3 +104,27 @@ export interface TimelineStep {
 export interface Timeline {
   steps: TimelineStep[];
 }
+
+/** One labelled part of an assembled prompt, revealed step by step in the viz. */
+export interface PromptSegmentView {
+  label: string;
+  kind: 'system' | 'examples' | 'task' | 'format';
+  tokens: number;
+  /** False until this step reveals the segment. */
+  revealed: boolean;
+}
+
+/** One step of the prompt-assembly demo: the prompt built so far and its window cost. */
+export interface PromptAssemblyScene {
+  step: number;
+  totalSteps: number;
+  title: string;
+  /** Teaching text for the step; doubles as the accessible scene description. */
+  description: string;
+  segments: PromptSegmentView[];
+  /** Estimated tokens used by the revealed segments so far. */
+  usedTokens: number;
+  windowTokens: number;
+  /** Percent of the window used so far, one decimal. */
+  percentUsed: number;
+}
