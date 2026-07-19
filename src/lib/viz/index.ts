@@ -19,6 +19,12 @@ export {
   PROMPT_ASSEMBLY_DEMO_INPUT,
 } from './prompt-assembly-scene';
 export type { PromptAssemblySceneInput } from './prompt-assembly-scene';
+export { createGenerationScene, GENERATION_DEMO_INPUT } from './generation-scene';
+export type {
+  GenerationScene,
+  GenerationSceneInput,
+  GenerationCandidate,
+} from './generation-scene';
 export type {
   ContextWindowSegment,
   ContextWindowStatus,

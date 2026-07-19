@@ -1,0 +1,48 @@
+question: "If a model is 'just' predicting the next token, why does it appear to reason — and where does that framing get you into governance trouble?"
+concepts:
+  - what-is-a-language-model
+roles:
+  - engineer
+  - architect
+  - governance
+difficulty: deep
+criticalThinking: true
+answers:
+  beginner: >-
+    To predict the next token well across code, math, and arguments, the model had to learn
+    real structure in language — not just word frequencies. So it can often continue a
+    problem in a way that looks like reasoning, and that's genuinely useful. But it's still
+    predicting plausible text, so it can also produce reasoning that sounds right and is
+    wrong. The honest stance is: treat the apparent reasoning as a capable draft to be
+    checked, not as a guarantee.
+  professional: >-
+    "Just next-token prediction" is mechanically true and rhetorically misleading. The
+    objective is simple; what it forces the model to learn — at scale — is not. Predicting
+    text well enough requires internalizing syntax, world associations, and patterns of
+    valid argument, which is why chain-of-thought and tool use often work. But because the
+    target is plausibility, the model has no separate signal for truth or for "I don't know,"
+    so fluent-but-false reasoning is a native failure mode, not an edge case. The engineering
+    response is to not trust the apparent reasoning on its own: ground it in retrieved
+    sources, verify outputs, and measure. Whether it "really reasons" is partly a definitional
+    debate; operationally, assume capable-but-unreliable and design for verification.
+  deep: >-
+    Capability emerges because compression of text at scale rewards learning transferable
+    structure, so the line between "pattern-matching" and "reasoning" is blurry and contested
+    — and you don't need to settle it to work safely. What you must not do is let "it's just
+    prediction" OR "it's really reasoning" drive decisions: the first breeds dismissiveness,
+    the second breeds over-trust. The disciplined position holds both — mechanically simple,
+    behaviorally capable, intrinsically unreliable — and designs accordingly.
+followUps:
+  - "How would you tell apparent reasoning from reliable reasoning in an evaluation?"
+  - "Why doesn't 'add more reasoning steps' remove the risk of confident wrong answers?"
+governanceAngle: >-
+  The framing matters for accountability. Because capability is learned from training data,
+  the EU AI Act's transparency direction (summaries of training data, documentation of a
+  model's capabilities and limitations) targets exactly this layer — what the model was
+  trained on, and copyright/provenance of that data, is a live obligation and legal risk, not
+  a footnote. And because inference runs frozen weights, a model version is a fixed, testable
+  artifact you can document, evaluate, and pin — which is what makes technical documentation
+  and post-market monitoring meaningful. The governance mistake is anthropomorphizing "it
+  reasons" into "it knows / it's reliable" and skipping the evaluation and human-oversight
+  controls that its plausibility-not-truth nature actually demands. Which obligations apply
+  depends on the system's role, use case, and jurisdiction.

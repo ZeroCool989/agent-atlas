@@ -1,0 +1,44 @@
+question: "Distinguish training from inference for a language model. What changes, what's frozen, and why does it matter operationally?"
+concepts:
+  - what-is-a-language-model
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Training is when the model learns: it reads lots of text, tries to predict the next
+    token, and adjusts its internal numbers (weights) when it's wrong. That happens once and
+    is very expensive. Inference is when you use the trained model: it runs those frozen
+    weights forward to predict the next token for your input. During inference the weights
+    don't change — the model isn't learning from you, it's just running.
+  professional: >-
+    Training updates the weights by gradient descent to minimize next-token prediction error
+    over a corpus (pretraining), often followed by alignment that further tunes the same
+    weights. Inference is a forward pass over frozen weights — no gradients, no weight
+    updates. Operationally this matters a lot: (1) the model can't learn from a conversation,
+    so anything it must "know" per-user has to be supplied as context or retrieved, not
+    expected to stick; (2) improving behavior means changing the input (prompting, context,
+    retrieval) or a new training run (fine-tuning) — you can't nudge weights at request time;
+    (3) cost and latency at inference are about running the model, separate from the one-time
+    training cost. Confusing the two leads to fantasies like "it'll remember this next time."
+  deep: >-
+    Pretraining and alignment both mutate weights; inference is a pure function of (weights,
+    input). "In-context learning" is not weight learning — it's the frozen model conditioning
+    on tokens in the current context, and it vanishes when the context does. This frozen-
+    weights fact is the root of several architecture decisions: memory systems exist because
+    the model has none across calls; RAG exists because facts should be retrieved into
+    context rather than baked into weights (which also go stale); and fine-tuning is the
+    deliberate, expensive path when you actually do want new behavior in the weights. It also
+    underpins auditability — because inference doesn't change the model, a given model version
+    is a fixed, testable artifact, which is exactly what you document and version for
+    governance.
+followUps:
+  - "Where does fine-tuning sit relative to pretraining, alignment, and inference?"
+  - "Why can retrieval fix stale knowledge but a longer prompt can't fix a frozen weight bias?"
+practicalExample: >-
+  The repo's next-token model makes the split literal: src/lib/sim/language-model/next-token.ts
+  has trainNgram (training — count next-token frequencies into the model) and generate /
+  nextTokenDistribution (inference — run the frozen counts forward). A test asserts that
+  generating does not change the model: the distribution for a context is identical before
+  and after a generation run. That's "frozen weights at inference" you can execute and see.
