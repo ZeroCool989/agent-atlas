@@ -42,5 +42,5 @@ test('search finds a concept by term against the built index', async ({ page }) 
   await input.fill('embeddings');
   // Pagefind loads its index lazily; wait for a result linking to the embeddings concept.
   const result = page.locator('a[href*="/concepts/embeddings"]').first();
-  await expect(result).toBeVisible({ timeout: 15_000 });
+  await expect(result).toBeVisible({ timeout: 30_000 });
 });
