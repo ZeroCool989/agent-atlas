@@ -90,3 +90,16 @@ export type {
   SceneElement,
   SceneStatus,
 } from './computer-use-scene';
+export {
+  createMultiAgentScene,
+  MULTI_AGENT_DEMO_INPUT,
+  MULTI_AGENT_BASELINE,
+} from './multi-agent-scene';
+export type {
+  MultiAgentScene,
+  MultiAgentSceneInput,
+  MultiAgentSceneKind,
+  AgentNode,
+  AgentEdge,
+  NodeKind,
+} from './multi-agent-scene';

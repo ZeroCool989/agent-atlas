@@ -9,16 +9,168 @@ prerequisites:
 related:
   - mcp
   - evaluation
-interviewTags: ["multi-agent", "orchestration", "systems", "architecture"]
-status: stub
+  - reflection
+  - failure-modes
+governance:
+  - eu-ai-act
+  - nist-ai-rmf
+interviewTags: ["multi-agent", "orchestration", "systems", "architecture", "supervisor-worker"]
+status: complete
+verdict:
+  classification: advanced
+  problem: "Some tasks exceed what one agent can hold: too much context for one window, too many distinct skills for one prompt, or a need for independent checking that a self-reviewing agent can't provide. A single loop drifts, loses the thread, or grades its own homework."
+  simplerBaseline: "One well-structured agent with good tools and a tight step limit — or, better still, a deterministic workflow where you did the decomposition once, in code. Most tasks that look multi-agent are one of these in disguise."
+  mainCost: "You multiply model calls (cost and latency), add coordination failure modes (agents talking past each other, cascading errors, deadlock or looping), and now must evaluate a whole SYSTEM, not a model — which is far harder to debug, test, and govern."
 updated: 2026-07-19
 ---
 
-> **Stub** — planned territory on the atlas. This concept will cover: orchestration patterns
-> (supervisor/worker, planner/executor, debate, pipelines), why you'd split work across
-> agents (context isolation, specialization, parallelism) versus the honest cost (more model
-> calls, coordination failure modes, harder debugging and evaluation), the "is it necessary?"
-> question stated bluntly — most tasks that look multi-agent are better as one well-structured
-> agent or a deterministic workflow — and how to evaluate a *system*, not just a model. It is
-> the L4 capstone, composing everything below it on the autonomy spectrum, and pairs with the
-> multi-agent visualizer.
+import MultiAgentSystemDemo from '../../../components/viz/MultiAgentSystemDemo';
+
+A [tool-using agent](/concepts/workflows-vs-agents) is one loop: one model, one context window, one
+set of tools, deciding a step at a time. A **multi-agent system** is a *composition* of several such
+agents — each with its own role, tools, and context — coordinated by an **orchestrator**. It sits at
+the very top of the autonomy spectrum: not a new capability, but an arrangement of all the lower
+tiers, and with the composition comes both the highest capability *and* the highest cost and risk.
+
+> **Mental model:** a multi-agent system is an **org chart, not a genius**. A manager (the
+> orchestrator) splits a job across specialists and stitches their answers together. Where the
+> analogy breaks: an org chart also adds *meetings* — coordination, miscommunication, and payroll —
+> and a bigger org is not automatically smarter. Most of the time the honest move is to hire one
+> good generalist, not to reorganize.
+
+## What problem existed before this?
+
+A single agent has hard limits. Its context window is finite, so a task that needs a mountain of
+material — a whole codebase, a long research corpus — overflows it. Its prompt can only carry so many
+instructions before "be a careful researcher AND a concise writer AND a skeptical fact-checker"
+starts pulling the model in different directions. And an agent asked to check its own work shares its
+own blind spots: self-review is not independent verification (see [reflection](/concepts/reflection)).
+On long or multi-skill tasks, one greedy loop drifts, forgets, or confidently ships its own mistakes.
+
+## Why was this invented?
+
+To buy four things by *splitting* the work: **context isolation** (each agent sees only what its
+subtask needs, so no single window has to hold everything), **specialization** (a focused role with a
+focused prompt and a focused toolset beats one overloaded generalist), **parallelism** (independent
+subtasks can run at once), and **separation of concerns** — the load-bearing one — so that a
+*different* agent, with a different job, can check the first one's work. The recurring shapes:
+
+- **Supervisor / worker** — a coordinator decomposes the goal and delegates subtasks to specialist
+  workers, then composes their results. (The pattern the visual below runs.)
+- **Planner / executor** — builds directly on [planning](/concepts/planning): a planner decomposes
+  the task into steps; executors carry them out; the planner re-plans when a step fails.
+- **Debate / critic** — agents check each other. One proposes, another critiques or verifies; this is
+  [reflection](/concepts/reflection) made *independent* by giving the critic a separate context.
+- **Pipeline** — a staged hand-off, each stage transforming the previous stage's output (research →
+  draft → verify).
+
+These are compositions, not magic: every worker is still just a tool-using agent, and the orchestrator
+is still just a loop.
+
+## How does it work?
+
+An orchestrator decomposes the goal into subtasks and **delegates** each to a role-specialized worker
+— a hand-off that is literally a tool call, where the "tool" is another agent (*agents-as-tools*). The
+worker runs, returns a result, and the orchestrator collects it, forwards it as context to whoever
+needs it next, re-delegates around failures, and finally composes an answer — all under hard caps so
+it can never loop forever. Watch a supervisor build a vetted brief: it delegates research, then a
+draft, then verification; the **independent critic catches a claim the writer invented**; the
+supervisor re-delegates a fix; only then is the answer composed. The final beat sets the whole run's
+cost against a single good agent on the same work:
+
+<MultiAgentSystemDemo client:visible />
+
+The mechanism is the deterministic orchestrator in this repo (`src/lib/multi-agent/`): a supervisor
+whose decomposition reuses the planning `Planner` (a subtask's assigned role is just the planner's
+`tool` field), workers that are scripted policies reusing the agent-runtime seed, delegations modeled
+as `ToolCall`s and results as `ToolResult`s (the same wire shape one agent uses to call a function),
+and bounded step and re-delegation caps. Swap the scripted supervisor and workers for model calls and
+the message-passing shape is unchanged — that substitution is the whole point (ADR-0005).
+
+## Is it actually necessary?
+
+**Usually not.** This is the load-bearing honesty of the whole concept: *most tasks that look
+multi-agent are better solved by one well-structured agent or a deterministic workflow.* If you can
+write the decomposition down in advance, you don't need agents coordinating at runtime — you need a
+workflow (you did the planning, once, in code). If one agent with the right tools and a tight step
+limit can do it, a system of agents is just more moving parts, more calls, and more ways to fail.
+Multi-agent earns its keep only when the task genuinely exceeds one agent — too much context,
+genuinely distinct skills, or a real need for *independent* checking — and you can afford to evaluate
+and operate the whole system. Treat "let's use multiple agents" as a claim to justify, never a default.
+
+## What are the trade-offs?
+
+You buy capability on hard tasks and pay in cost, reliability, and observability. **Cost multiplies**:
+every agent is more model calls — the demo above spends nine calls to catch one mistake a single
+agent would have made in one call. You inherit **new failure modes that don't exist in one loop**:
+agents talking past each other, a wrong result from one worker **cascading** through everyone
+downstream, and **deadlock or looping** when agents wait on or re-delegate to each other without
+bound (see [failure modes](/concepts/failure-modes)). And you can no longer just evaluate a model:
+you must [evaluate](/concepts/evaluation) a *system* whose behavior emerges from the interaction —
+much harder to test, reproduce, and debug, because the bug is often in the *hand-off*, not any one
+agent.
+
+## What complexity does it introduce?
+
+An orchestration layer (decomposition, routing, retries, caps, composition); message-passing and
+state that must be represented, persisted, and inspected; and a debugging surface that is now a
+*distributed system* — you trace failures across agents and messages, not down one call stack. Every
+worker carries the full tool-using agent's burden (traces, limits, evals) and the orchestrator adds
+its own on top. This is precisely why multi-agent lives in the `advanced-system` layer: it composes
+everything below it, so it inherits every lower cost and adds coordination cost that nothing lower has.
+
+## What simpler alternative exists?
+
+In order of preference: a **deterministic workflow** (developer-authored steps, no runtime discretion
+— testable, cheap, predictable); a **single well-structured agent** with good tools and a tight step
+limit; a single agent plus a **planning** phase for genuinely contingent tasks; or, if you only need a
+second opinion, in-loop [reflection/verification](/concepts/verification) rather than a whole second
+agent. Reach for multiple agents only when those genuinely can't express the task — and remember that
+"add another agent" is often reaching for architecture to paper over an unclear task or a wrong model
+choice.
+
+## When should I use it?
+
+When the task truly exceeds one agent and the split is real: a context too large for one window
+(so workers each own a slice); genuinely different skills that conflict in one prompt (research vs.
+writing vs. adversarial checking); independent subtasks worth parallelizing; and — the strongest case
+— when you need **independent verification** that a self-reviewing agent structurally can't give, so a
+separate critic with its own context earns its cost. And only when you can afford to evaluate and
+supervise the whole system, because you are now operating a distributed one.
+
+## When should I avoid it?
+
+When a workflow or a single good agent already solves it (most of the time); when the "subtasks" are
+really one coherent task you've split for aesthetic reasons; when you can't afford the multiplied cost
+and latency, or can't evaluate a system-level behavior; and any time multi-agent is reached for to
+look sophisticated — *architecture-astronomy*. A system of agents makes a confused design
+*confidently* wrong across several models at once, and bills you for each. If you can't state what
+each agent gives you that one agent couldn't, you don't have a multi-agent problem.
+
+## Common misconceptions
+
+- **"More agents means more intelligence."** No — it means more coordination. Capability comes from a
+  split that matches the task's real structure; a bad split adds cost and failure modes with no gain.
+- **"A critic agent guarantees correctness."** Only if it is genuinely independent and actually better
+  at judging than at doing. A critic that shares the writer's model and blind spots reproduces
+  [reflection](/concepts/reflection)'s sycophancy trap at higher cost.
+- **"Multi-agent is a higher, better tier you graduate to."** It is the top of the autonomy spectrum
+  because it *composes* the lower tiers — which means it inherits all their risks and adds new ones.
+  Higher on the spectrum is more capable *and* more dangerous, not simply better.
+- **"You can evaluate it like a single agent."** You can't. Emergent, interaction-level behavior needs
+  system-level evaluation — end-to-end tests, per-hand-off checks, and traces across agents.
+
+## Autonomy, oversight, and risk
+
+Multi-agent systems sit at the top of the autonomy spectrum, so they concentrate the exact risks
+governance frameworks care about: **compounding autonomy** (many steps and many agents between human
+decisions), **cascading errors**, and **diffuse accountability** — when several agents contribute to a
+harmful output, *who is responsible?* The [EU AI Act](/governance/eu-ai-act)'s human-oversight and
+record-keeping expectations for higher-risk systems push toward inspectable orchestration: a logged
+decomposition, per-hand-off traces, checkpoints a human can interrupt, and bounded delegation rather
+than fire-and-forget. The [NIST AI RMF](/governance/nist-ai-rmf)'s map–measure–manage framing lands
+hard here, because you must measure a *system*, not a model. The honest engineering point and the
+governance point coincide: a multi-agent system you cannot **audit, evaluate, and bound** is one you
+should not ship — and the discipline that makes it governable (traces, caps, system-level evals) is
+the same discipline that makes it work at all. Applicability always depends on the use case, sector,
+and jurisdiction.

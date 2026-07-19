@@ -1,0 +1,44 @@
+question: "Walk through the main multi-agent orchestration patterns — supervisor/worker, planner/executor, debate/critic, pipeline — and what each buys you."
+concepts:
+  - multi-agent-systems
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Supervisor/worker: a coordinator splits the goal and delegates subtasks to specialists, then
+    composes their results. Planner/executor: a planner decomposes the task into steps and executors
+    run them, re-planning on failure — it builds on the planning concept. Debate/critic: agents check
+    each other, one proposing and another verifying, which makes reflection independent by giving the
+    critic its own context. Pipeline: a staged hand-off where each stage transforms the last stage's
+    output. They all share one idea — compose several focused agents instead of overloading one.
+  professional: >-
+    Supervisor/worker is the general case: an orchestrator decomposes the goal, delegates each subtask
+    to a role-specialized worker — a hand-off that's literally a tool call where the tool is another
+    agent — collects results, re-delegates around failures, and composes a final answer. It buys
+    specialization and context isolation. Planner/executor is a specialization of it that leans on the
+    planning concept: separate deciding-what-to-do from doing-it, and re-plan the remainder when a step
+    fails; it buys coherence on contingent multi-step tasks. Debate/critic buys independent
+    verification — one agent proposes, a separate one critiques with its own context, which is
+    reflection made independent so it escapes the self-review blind spot; the catch is the critic must
+    actually be better at judging than the proposer is at doing. Pipeline buys simplicity when the work
+    is genuinely staged: research → draft → verify, each stage owning one transform, easy to reason
+    about and test. In practice you compose them — a supervisor running a pipeline whose verify stage is
+    a critic, re-planning on rejection — which is exactly what a real orchestrator looks like.
+  deep: >-
+    The patterns aren't really distinct architectures; they're different answers to "who decides the
+    next hand-off, and on what information." Supervisor/worker centralizes that decision in the
+    orchestrator; pipeline hard-codes it (the graph is fixed); planner/executor makes it explicit and
+    revisable; debate/critic adds a decision about whether to ACCEPT a result at all. The engineering
+    consequence is where failures concentrate. A fixed pipeline fails predictably and is easy to test
+    but can't route around a bad stage. A supervisor that re-plans is more robust but introduces the
+    unbounded-delegation risk, which is why caps are non-negotiable. A critic loop is powerful but only
+    as good as the critic's independence — share the model and you've paid double for the same blind
+    spot. Choosing a pattern is choosing which failure mode you'd rather debug, and composing them is
+    choosing to inherit several. The discipline that keeps any of them shippable is the same: bounded
+    delegation, logged hand-offs, and system-level evaluation.
+followUps:
+  - "How is delegating to a worker the same shape as calling a tool, and why does that framing help?"
+  - "Where would deadlock or an unbounded re-delegation loop show up, and how do you prevent it?"
+criticalThinking: false

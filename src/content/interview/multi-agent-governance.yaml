@@ -1,0 +1,55 @@
+question: "How does composing multiple agents change a system's governance and risk profile, and where does accountability sit when several agents contribute to a harmful output?"
+concepts:
+  - multi-agent-systems
+  - evaluation
+roles:
+  - governance
+  - architect
+difficulty: deep
+answers:
+  beginner: >-
+    Multi-agent sits at the top of the autonomy spectrum, so it stacks the risks: more steps and more
+    agents between human decisions, errors that cascade from one agent to the next, and diffuse
+    accountability — when several agents contribute to a bad output, it's unclear who's responsible.
+    Governance focuses on making the system inspectable and bounded: a logged decomposition, traces of
+    every hand-off, human checkpoints, delegation caps, and evaluation of the whole system rather than
+    any single model.
+  professional: >-
+    Composition compounds autonomy without adding a new capability, and autonomy is exactly what
+    higher-risk-tier obligations target. Three things change. First, the leash gets much longer — many
+    agents and many steps per human decision — so the EU AI Act's human-oversight expectations push
+    toward interruptible orchestration and bounded delegation over fire-and-forget. Second, errors
+    cascade and interactions are emergent, so record-keeping has to capture the SYSTEM: the
+    decomposition, each message, each agent's inputs and outputs, so an auditor can reconstruct what
+    happened. Third, accountability diffuses — a harmful output can emerge from the hand-off between two
+    correct-looking agents. My answer is that accountability stays with the deployer of the system as a
+    whole; internally you make it traceable by attributing each decision to a specific agent and message,
+    but you never let "an agent did it" dilute organizational responsibility. Frameworks like the NIST AI
+    RMF help here because map-measure-manage forces you to measure the system, not the model — which is
+    also just good engineering.
+  deep: >-
+    The subtle governance shift is that risk moves into the SPACES BETWEEN agents. In a single agent you
+    audit a call stack; in a multi-agent system the consequential events are hand-offs — a wrong result
+    forwarded as trusted context, a critic that rubber-stamps, a re-delegation loop that burns budget.
+    That means oversight has to be placed at hand-off boundaries (approve or interrupt before a
+    consequential action, bound the number of delegations) and record-keeping has to be message-level,
+    not just final-output-level. On accountability: distributing work across agents must not distribute
+    responsibility. Legally and organizationally the deployer owns the system's behavior; the multi-agent
+    structure is an internal implementation detail, and "one of the agents decided" is not a defense.
+    What the structure DOES change is your ability to demonstrate control — an orchestrator with logged
+    decomposition, bounded delegation, per-hand-off traces, and system-level evals is auditable;
+    an opaque swarm of agents talking to each other is not, and shouldn't ship into a high-risk setting.
+    The precondition for the human-in-the-loop and record-keeping obligations these frameworks expect is
+    reviewability, and that is a property you have to design in, not add later. Applicability still
+    depends on role, use case, and jurisdiction.
+followUps:
+  - "Where would you place a mandatory human checkpoint in a supervisor/worker system, and why there?"
+  - "What message-level records would you retain to make the system auditable after an incident?"
+criticalThinking: false
+governanceAngle: >-
+  Composing agents compounds autonomy and cascades errors, and it diffuses accountability across
+  contributors — so the EU AI Act's human-oversight and record-keeping expectations and the NIST AI
+  RMF's measure-the-system framing point to the same controls: logged decomposition, per-hand-off
+  traces, human checkpoints at hand-off boundaries, bounded delegation, and system-level evaluation.
+  Responsibility stays with the deployer of the system as a whole; "an agent did it" is not a defense.
+  Applicability depends on role, use case, and jurisdiction.
