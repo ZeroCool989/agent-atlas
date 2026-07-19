@@ -1,0 +1,41 @@
+question: "What is the Model Context Protocol, and what problem does it solve?"
+concepts:
+  - mcp
+roles:
+  - engineer
+  - architect
+difficulty: screen
+answers:
+  beginner: >-
+    MCP is an open protocol that standardizes how an agent connects to external tools,
+    data, and prompts. Without it, every application re-writes the same integrations by
+    hand. With it, you write an integration once as an MCP server, and any MCP-capable
+    client can use it. The key honest point: MCP doesn't give the model new powers —
+    underneath it's still just tool-calling. It's plumbing, not capability.
+  professional: >-
+    MCP solves the N×M integration problem. Once agents call tools, N client applications
+    each need to integrate M tools and data sources, and every pairing is bespoke — the
+    same wiki connector written a dozen times. MCP standardizes the boundary: a client
+    (inside a host app) connects to a server that exposes capabilities — tools, resources,
+    and prompts — over a common JSON-RPC envelope, with a defined way to discover and
+    invoke them. That turns N×M into N+M: integrate each tool once as a server, teach each
+    client the protocol once, and any client works with any server. What it does NOT do is
+    add capability or autonomy — the model still selects a tool name and arguments exactly
+    as in plain tool-calling; MCP just standardizes how that call is discovered and carried.
+  deep: >-
+    Structurally MCP is JSON-RPC 2.0 over a transport — stdio for a local server the host
+    launches as a subprocess, or HTTP for a remote one — with a small operation set:
+    initialize (negotiate version, learn capabilities), tools/list, tools/call, and the
+    resources/* and prompts/* equivalents. The design lineage is the Language Server
+    Protocol, which collapsed the "every editor × every language" problem the same way:
+    standardize the boundary and integrations become write-once. The load-bearing insight
+    for an interview is that MCP is an interoperability layer, not a model capability. If
+    you removed it, the model would still do the identical tool-calling; everything MCP adds
+    happens around that unchanged core — discovery of capabilities and a uniform envelope to
+    carry the invocation. So it doesn't move an agent on the autonomy spectrum at all; a
+    tool-using agent reaching tools over MCP is still exactly a tool-using agent.
+followUps:
+  - "Does MCP make an agent more autonomous? Why or why not?"
+  - "What are the three kinds of capability an MCP server can expose?"
+  - "Why is it accurate to call MCP 'plumbing over tool-calling'?"
+criticalThinking: false
