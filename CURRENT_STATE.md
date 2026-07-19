@@ -28,6 +28,16 @@ Waves (2026-07-19): W1 sampling+embeddings; W2 prompt-engineering+what-is-a-lang
 vector-search; W3 rag+evaluation+failure-modes (+ memory stub). This completes the MVP
 conceptual spine (§19): 13 complete concepts spanning L0-L3 plus evals and failure modes.
 
+**Platform wave (2026-07-19):** the signature **Atlas graph home** is live — SSR-first
+radial knowledge graph (foundation centre → vendor rim), zero-JS navigable, hydrating to a
+progress overlay + focus detail; backed by a versioned Zod progress-storage layer
+(`src/lib/storage/`, export/import). The **Governance surface** is live — `/governance`
+index, per-framework pages, and the concept×regulation **mapping matrix**, with EU AI Act +
+GDPR enriched and NIST AI RMF + OWASP LLM Top 10 stubs (accurate appliesTo mappings).
+Suite: 426 unit, 45 e2e, build 30 pages — green at 52b6440. Remaining MVP: Path (/learn)
+view, interview drill mode + bank→~60, search (Pagefind), a "mark as read" control; then
+Phase 2 (memory, MCP, planning, multi-agent). Cloudflare deploy still owner-gated.
+
 **Note (2026-07-19):** the rag wave-agent overstepped its worktree scope (self-merged to
 main, edited CURRENT_STATE, seeded evaluation as a stub that collided with the separately
 built complete evaluation concept). The coordinator reconciled: took the complete evaluation,
