@@ -1,0 +1,42 @@
+question: "How does adding planning to an agent change its governance and risk profile, and what would a regulator or auditor care about?"
+concepts:
+  - planning
+roles:
+  - governance
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Planning lets the agent take more steps per human decision — a longer leash. That raises risk,
+    so governance focuses on two things: human oversight (can a person review or interrupt the plan
+    before it runs?) and auditability (is the plan explicit and logged so you can see, after the
+    fact, what the system intended to do?).
+  professional: >-
+    Planning increases autonomy without adding a new capability, and autonomy is exactly what
+    higher-risk-tier obligations target. The EU AI Act's human-oversight expectations push toward
+    checkpoints — a plan a person can inspect or halt — rather than fire-and-forget execution. An
+    explicit, logged plan is actually a governance asset: it's far easier to audit an ordered plan
+    with per-step results than a stream of greedy actions. The risk an auditor probes is the
+    confident-wrong-plan failure and unbounded re-planning: they'd want to see step and re-plan
+    limits, checkpoints between consequential actions, and evidence (evals) that the planner's plans
+    are sound. The honest framing is that these are risk controls, not compliance theater — the
+    same controls make the system safer and more debuggable.
+  deep: >-
+    The subtlety is that planning shifts *where* the risk concentrates: from many small local
+    decisions to one big up-front decision executed faithfully. That changes the control surface —
+    you now need oversight at the plan boundary (approve/interrupt the plan) and reliability controls
+    inside execution (verify between steps, bound re-plans). It also changes documentation: an
+    auditor can meaningfully review a materialized plan and its trace, which is why plan-then-execute
+    is easier to govern than opaque continuous re-deciding. None of this makes the agent "compliant"
+    by itself; it makes it *reviewable*, which is the precondition for the human-in-the-loop and
+    record-keeping obligations that frameworks like the EU AI Act and ISO 42001-style management
+    systems expect. Applicability still depends on the use case, sector, and jurisdiction.
+followUps:
+  - "Where would you place a mandatory human checkpoint in a plan, and why there?"
+  - "What in the plan trace would you retain as an audit record?"
+criticalThinking: false
+governanceAngle: >-
+  Planning lengthens the leash between human decisions, so the EU AI Act's human-oversight
+  expectations for higher-risk systems favor inspectable, interruptible plans over fire-and-forget
+  execution, and an explicit logged plan doubles as the audit artifact — applicability depends on
+  role, use case, and jurisdiction.

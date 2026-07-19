@@ -1,0 +1,43 @@
+question: "A team wants to add an agent planner to a feature. When would planning make things worse than a fixed workflow or a single good prompt, and how would you decide?"
+concepts:
+  - planning
+  - workflows-vs-agents
+roles:
+  - architect
+  - consultant
+  - product
+difficulty: deep
+answers:
+  beginner: >-
+    Planning makes things worse when you could just write the steps down. If the sequence is
+    known in advance, a fixed workflow is cheaper, faster, testable, and predictable — a planner
+    only adds latency, cost, and the risk of a confident wrong plan. Decide by asking: do the
+    steps actually depend on what earlier steps reveal? If not, don't plan.
+  professional: >-
+    The decision hinges on whether the task's control flow is knowable up front. If it is, a
+    workflow (you plan once, in code) or even a single well-structured prompt is strictly better:
+    deterministic, unit-testable, no per-run variance, no extra model call. Planning is worse when
+    it's used to paper over an unclear task or a wrong model choice — it makes a confused agent
+    confidently wrong, faster, and executes a bad plan to completion. It's also worse when you can't
+    supervise a multi-step run: fire-and-forget planning raises the stakes of every step with no
+    checkpoint. I'd decide with a short ladder: can a prompt answer it? then a fixed workflow? then a
+    tool-using agent with a tight step limit? Only if the sequence genuinely depends on runtime
+    discoveries — and I can afford checkpoints and evals — does a planner earn its place.
+  deep: >-
+    The failure mode that separates "planning helped" from "planning hurt" is the confidently-wrong
+    plan: a greedy agent fails early and cheaply; a planner can commit to a flawed decomposition and
+    spend real time and money executing it before anyone notices. So the question isn't only "is the
+    task multi-step" but "what does a wrong plan cost, and can I catch it in time?" That reframes the
+    decision as a risk-and-observability question: add planning when the sequence is genuinely
+    contingent AND you have checkpoints, re-plan bounds, and an eval of plan quality. Without those,
+    a fixed workflow is not just simpler — it's safer, because its wrongness is bounded and testable.
+    The honest answer to most "let's add a planner" requests is "let's write the workflow."
+followUps:
+  - "How would you measure whether the planner is actually any good?"
+  - "What checkpoints would you add before letting a plan execute unattended?"
+criticalThinking: true
+practicalExample: >-
+  The plan-then-execute harness in this repo (src/lib/planning/plan-execute.ts) makes the trade-off
+  concrete: it re-plans around a recoverable failure but is bounded by a step cap and a re-plan cap,
+  so a task no plan can rescue ends honestly as failed instead of looping — the same discipline a
+  fixed workflow gets for free.

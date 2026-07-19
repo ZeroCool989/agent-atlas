@@ -1,0 +1,37 @@
+question: "What is agent planning, and how does plan-then-execute differ from a plain tool-using agent and from ReAct?"
+concepts:
+  - planning
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    A plain tool-using agent decides one action at a time from the current state. Planning
+    means the agent first produces a multi-step plan, then executes it. Plan-then-execute
+    decides the whole plan up front and runs the steps (re-planning if one fails); ReAct
+    interleaves reasoning and acting, re-deciding each turn. Both are techniques inside a
+    tool-using agent — not a new level of autonomy.
+  professional: >-
+    Planning separates "decide the sequence of actions" from "do them." In plan-then-execute,
+    a planner turns the goal into an ordered set of steps, a runtime executes them in order,
+    and on a failure the planner re-plans the remainder around it. ReAct doesn't commit to a
+    full plan — it interleaves a reasoning step and an action each turn, so the "plan" is
+    implicit and revised continuously. A greedy tool-using agent is the degenerate case: no
+    plan, one action chosen per turn from local state. The trade-off across the three is
+    up-front commitment vs. per-turn flexibility: plan-then-execute is more inspectable and
+    cheaper to audit; ReAct adapts faster but is harder to reason about ahead of time.
+  deep: >-
+    Mechanically these differ only in when and how the "what next" decision is made and how
+    much of it is materialized as state. Plan-then-execute materializes an explicit plan
+    object — which is exactly what makes it auditable and interruptible, and also what makes
+    it brittle (a wrong plan executes to completion). ReAct keeps the decision implicit and
+    local, trading that inspectability for adaptivity. Crucially none of them adds an autonomy
+    tier: on the spectrum (workflow → model-assisted → tool-using → stateful → reliable →
+    multi-agent) they're all ways a tool-using or stateful agent decides, and every one still
+    needs bounds, checkpoints, and evaluation. The right default is usually none of them — a
+    fixed workflow — because a plan you can test beats a plan you have to supervise.
+followUps:
+  - "Where does re-planning terminate, and what stops it from looping forever?"
+  - "Why is a plan object both the biggest advantage and a real liability?"
+criticalThinking: false

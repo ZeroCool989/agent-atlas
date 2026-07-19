@@ -61,3 +61,5 @@ export { buildRagScenes } from './rag-scene';
 export type { RagScene } from './rag-scene';
 export { buildMemoryScenes, MEMORY_WINDOW_TOKENS, MEMORY_QUERY } from './memory-scene';
 export type { MemoryScene } from './memory-scene';
+export { createPlanningScene, PLANNING_DEMO_INPUT } from './planning-scene';
+export type { PlanningScene, PlanningSceneInput, PlanningSceneKind } from './planning-scene';
