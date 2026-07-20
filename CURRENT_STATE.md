@@ -36,6 +36,15 @@ index, per-framework pages, and the concept×regulation **mapping matrix**, with
 GDPR enriched and NIST AI RMF + OWASP LLM Top 10 stubs (accurate appliesTo mappings).
 Suite: 426 unit, 45 e2e, build 30 pages — green at 52b6440.
 
+**Phase 3 — breadth (2026-07-20, f72c979).** **voice-agents** (STT→agent→TTS real-time loop),
+**cost-engineering** (tokens×price×calls + levers; 66% cut demoed), **agent-frameworks**
+(framework-abstraction; a facade over the hand-built loop proven trace-identical). Seeded a
+**vendor-specific** stub (model-provider-features) — the map now spans all SIX essentiality
+layers. **26 complete concepts, 1 stub.** Interview 108. Suite: 746 unit, 88 e2e, build 62 pages
+— green. The implementation plan is now substantially complete: full L0–L6 curriculum across
+every layer, the reliable-agent + production tier, and the framework/vendor rim. Remaining tail:
+interview bank → ~150, the vendor-specific lesson, optional extra simulations.
+
 **Phase 2/3 — L4 + security + SRS (2026-07-19, a1376d5).** **multi-agent-systems** (L4 capstone
 + the org-chart visualizer, agents-as-tools reusing planning/model types), **prompt-injection**
 (core-mechanism security — honestly "not solved", defenses architectural), and **spaced repetition
