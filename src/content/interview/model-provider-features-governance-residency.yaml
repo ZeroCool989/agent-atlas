@@ -1,0 +1,66 @@
+question: "From a governance angle, what changes when an app relies on provider-side features like caching, hosted tools, and server-side memory?"
+concepts:
+  - model-provider-features
+roles:
+  - governance
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Three things shift. First, portability becomes a supplier risk — you now depend on a
+    fast-moving proprietary surface you don't control, so someone has to own which features you're
+    tied to and what leaving would cost. Second, data location: caching and provider-side memory
+    put content on the provider's infrastructure, so where that data sits and how long it's kept
+    becomes a data-protection question, and a residency rule can outright forbid the native
+    feature. Third, auditability: when the provider runs a hosted tool like web search or code
+    execution, the record of what it did lives on their side, so you need to capture your own
+    evidence at your boundary. None of these mean "don't use provider features" — they mean treat
+    them as third-party dependencies with data and continuity implications.
+  professional: >-
+    I'd separate the obligation from the mechanism. The obligation is ordinary third-party and
+    lifecycle governance: a proprietary, fast-changing feature in your critical path is a supplier
+    dependency and a supply-chain risk, so you inventory which features you rely on, own the exit
+    cost, and put change control around a surface the provider can move under you — the kind of
+    thing an AI management system like ISO 42001 frames, and the supply-chain risk OWASP's LLM
+    guidance flags. The mechanism is concrete controls. For the state-holding features — caching
+    and provider memory — data residency and retention are the sharp edge: personal data landing
+    on the provider's side is a GDPR-shaped question about where processing happens, and a
+    residency constraint turns "use the native feature" into a hard no, which is why the portable
+    primitive that keeps state in your own store is the safe default there. For hosted tools,
+    auditability is the edge: log the request and result at your own boundary rather than trusting
+    provider-internal logs to reconstruct what the agent did. Which framework actually binds
+    depends on the system, data, use case and jurisdiction — the controls are good practice
+    regardless.
+  deep: >-
+    I'd anchor it on a simple property: provider features move third-party surface, and sometimes
+    your state, into your critical path, and governance follows the state and the dependency.
+    On dependency, the register entry is portability and continuity — an AI management system's
+    supplier and change-control view (ISO 42001) plus the LLM supply-chain risk (OWASP): I'd want
+    an inventory of adopted features, a known exit cost per feature, and an explicit sign-off for
+    the high-lock-in, state-holding ones rather than adopting them by default. On data, the
+    residency and retention question is real only for the features that hold state — provider
+    memory and caching — so I'd map exactly those against where personal data is allowed to be
+    processed and stored (a GDPR-shaped analysis), and I'd note that the portable fallback is also
+    the compliance-friendly one because it keeps state under my controls. On evidence, hosted
+    tools blur the audit boundary, so I'd require logging at our own boundary for anything we must
+    reconstruct. The subtlety I'd raise: the same design move that reduces lock-in — a capability
+    shim with a portable fallback — is also what keeps state in-house and preserves your own audit
+    trail, so portability, data protection, and auditability are solved by one architectural
+    decision, not three separate programs.
+followUps:
+  - "Which provider features raise a data-residency question, and which don't — and why exactly?"
+  - "How do you preserve an audit trail for a tool the provider executes on its own infrastructure?"
+  - "Who signs off on adopting a high-lock-in, state-holding feature, and what would you want on that record?"
+governanceAngle: >-
+  Provider features move proprietary third-party surface — and, for caching and memory, your
+  state — into your critical path, so governance tracks two things. As supplier and continuity
+  risk, a fast-moving, non-portable dependency is the third-party and change-control concern an AI
+  management system (ISO 42001) frames and the supply-chain risk OWASP's LLM guidance flags:
+  inventory the features you depend on, know the exit cost, and require explicit sign-off for the
+  high-lock-in, state-holding ones. As data protection, the state-holding features put content on
+  the provider's infrastructure, making location and retention a GDPR-shaped question — a residency
+  constraint can forbid the native feature outright, and the portable primitive that keeps state in
+  your own store is the safe default. Hosted tools blur auditability, so capture evidence at your
+  own boundary. A capability shim with a portable fallback addresses portability, residency, and
+  auditability at once. Which framework binds depends on system, data, use case and jurisdiction;
+  the controls are good practice regardless.

@@ -1,0 +1,48 @@
+question: "A provider offers a native prompt-caching API and a hosted code-execution tool. Do you use them? Walk me through the call."
+concepts:
+  - model-provider-features
+  - tool-calling
+  - cost-engineering
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    I'd probably take the caching and think harder about the hosted tool. Caching wraps a simple
+    primitive — a repeated prefix billed cheaply — and it's a clear cost win with low lock-in, so
+    as long as I'm not sending regulated data that can't sit in the provider's cache, I'll use it
+    behind a small wrapper so I can drop it later. The hosted code-execution tool is different: it
+    saves me hosting and securing a sandbox, which is real infrastructure, but it also means the
+    provider runs the code and holds the record of what ran. If I need that saving at volume and
+    can trust their sandbox, it's a good deal; if I need tight control or my own audit trail, I'll
+    run my own sandbox behind the same tool-calling interface.
+  professional: >-
+    I separate the two because they wrap different primitives with different costs. Caching wraps
+    tokens-and-price: low lock-in, a genuine cost cut, one caveat that it can park cached content
+    on the provider — so I check data-residency, then adopt it behind a seam so my code doesn't
+    assume it. The hosted interpreter wraps tool calling but adds managed infrastructure I'd
+    otherwise build and secure, which is where native features earn their keep: at high volume the
+    saving is large and I'll take the lock-in on purpose. The deciding factors are volume (is the
+    managed-infra saving big?), how hard it is to leave (a sandbox tool I can re-point at my own
+    executor; that's cheap), whether it holds my state (the interpreter mostly doesn't; the cache
+    does), and any residency constraint. Either way I express the need — "cache this prefix", "run
+    this code" — through my own interface, so switching between native and portable is a one-file
+    change, not a rewrite.
+  deep: >-
+    I'd run both through the same decision the build project encodes. For caching:
+    recommendStrategy with low portability priority and no residency constraint lands on native,
+    because lock-in is low and the cost win is real; add a residency constraint and, because
+    caching can hold state, it flips to a forced portable choice. For the hosted interpreter: the
+    swing factor is managed-infra-at-volume — if I'm running a sandbox at scale, native wins and
+    I accept a lock-in that's actually modest because a hosted-tool weld is cheap to unwind (same
+    tool-calling interface, different executor). What I refuse to do is adopt either one directly
+    in business logic. I put the capability shim in front, so my portability score stays legible
+    and the exit stays a config change. The subtle point I'd make to an interviewer: "use the
+    native feature" and "stay portable" aren't a philosophy, they're a per-feature trade — a
+    caching flag and provider-held memory sit at opposite ends of the same axis, and treating them
+    the same way is the mistake.
+followUps:
+  - "Which of these two features holds your state, and how does that change the decision?"
+  - "At what point does the hosted sandbox's saving outweigh the lock-in for you?"
+  - "How do you keep an audit trail for a tool the provider runs on its own infrastructure?"

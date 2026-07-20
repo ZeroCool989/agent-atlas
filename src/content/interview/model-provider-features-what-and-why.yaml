@@ -1,0 +1,54 @@
+question: "What are model-provider features, and how do you decide whether to build on one?"
+concepts:
+  - model-provider-features
+  - structured-outputs
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    They're the proprietary extras a provider puts around the raw model call — a native
+    structured-output mode, a prompt-caching API, hosted tools like web search or code
+    execution, a batch endpoint, provider-side memory that holds a conversation for you. Each
+    one is a convenience that wraps a primitive you can build yourself: hosted search is just
+    tool calling with the tool run for you, native JSON mode is validation done for you. So
+    they don't add capability, they save you work — and in exchange they're the least portable
+    code you'll write, because they only exist on that provider. My rule is learn the primitive
+    first and treat the wrapper as something you can swap.
+  professional: >-
+    A provider feature is proprietary packaging over a primitive from a more central layer:
+    structured-output mode over prompt-plus-validate, caching over tokens-and-price, hosted
+    tools over tool calling, batch over a request loop, provider memory over conversation state.
+    The value is real — a feature can delete a validate-and-retry loop, a cache tier, a sandbox
+    you'd otherwise host and secure. The cost is that it's the fastest-moving, least-portable
+    ring: it exists only there, some of them hold your state on the provider's side, and the API
+    can change on their schedule. So I decide per feature, not all-or-nothing. I ask what
+    primitive it wraps, how hard it is to leave, and whether it holds my state. A native JSON
+    mode is cheap to leave and I'll take it; provider-held memory is expensive and I'll usually
+    build the portable version. And I put a thin seam between my app and the provider so adopting
+    or dropping a feature is a one-file change, not a rewrite.
+  deep: >-
+    I treat this layer as a portability ledger. Every native feature is a weld to one provider,
+    so I score adoption by how much surface — and how much provider-held state — it commits me
+    to, weighted by how hard each is to migrate. Structured output is a thin wrapper I could
+    re-implement in an afternoon; provider memory holds the state I'd have to move, so it's the
+    expensive weld. The design move that makes the whole trade cheap is a capability shim: my app
+    expresses a need ("structured output", "remember this thread"), and behind that interface it
+    resolves to the native wrapper where a provider offers it or the portable primitive where it
+    doesn't — the calling code never changes, because it asked for the need, not the vendor's
+    endpoint. That turns "which provider, which feature" into a config decision and keeps the
+    exit cost known instead of discovered at migration. The honest framing for a stakeholder:
+    the convenience and the lock-in are the same feature bought together, and the job is to spend
+    portability deliberately, not by reflex.
+followUps:
+  - "Name a provider feature and the exact primitive it wraps — what's the portable fallback?"
+  - "Why is a native structured-output mode cheaper to leave than provider-side memory?"
+  - "How would a thin capability shim let you adopt a native feature without welding your app to it?"
+practicalExample: >-
+  This repo's build project (src/lib/provider-features/features.ts) is exactly this reasoning as
+  code: a registry names each category with the primitive it wraps and its portable fallback;
+  resolve() is the capability shim that turns one neutral need into the native wrapper or the
+  fallback depending on the provider; recommendStrategy() weighs portability, volume, managed-infra
+  need and data residency; and scorePortability() reports how portable an app is, weighted by how
+  hard each native feature is to leave. The lesson's visual renders those exact scores.
