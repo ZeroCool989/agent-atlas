@@ -23,6 +23,13 @@ export interface RealProviderConfig {
   /** Override for OpenAI-compatible servers (Qwen, Llama, Mistral, DeepSeek, local). */
   baseUrl?: string;
   timeoutMs?: number;
+  /**
+   * Opt-in for direct browser → vendor calls (ADR-0006 Lab mode). When set, the Claude
+   * adapter sends `anthropic-dangerous-direct-browser-access`, which Anthropic requires
+   * to permit a request from a browser origin. Harmless server-side. Only ever true for a
+   * user's own BYOK key held client-side — never for a bundled or server-held credential.
+   */
+  browserAccess?: boolean;
 }
 
 export const DEFAULT_MAX_OUTPUT_TOKENS = 1024;

@@ -23,7 +23,12 @@ export default defineConfig({
       directives: [
         "default-src 'self'",
         "img-src 'self' data:",
-        "connect-src 'self'",
+        // connect-src is 'self' PLUS the two vendors the Transcript Studio's opt-in Lab
+        // mode calls directly from the browser with the USER'S OWN key (ADR-0006). This is
+        // the single documented loosening of the strict default; it is inert unless a user
+        // enters a key on /studio, and no other code path connects outward. A future
+        // refinement is a per-route CSP so only /studio carries the wider policy.
+        "connect-src 'self' https://api.anthropic.com https://api.openai.com",
         "font-src 'self'",
         "object-src 'none'",
         "base-uri 'self'",

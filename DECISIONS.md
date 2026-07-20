@@ -4,6 +4,27 @@ Material deviations, discoveries, and standing conditions recorded during
 implementation. ADRs in `docs/adr/` hold the big irreversible decisions; this file holds
 everything smaller that a future session must not silently contradict.
 
+## 2026-07-20 — Transcript Studio + BYOK Lab mode (ADR-0006)
+
+- **What:** a `/studio` page where a learner pastes a transcript and gets a summary +
+  learning material. Three modes: Demo (keyless, ScriptedProvider drives the real agent
+  loop over a bundled transcript), Study (keyless, deterministic `src/lib/transcript/`
+  engine — concept matching, path, quiz), Lab (BYOK — the user's own key, held only in
+  the browser, calls the vendor directly). Full rationale in ADR-0006.
+- **Amends ADR-0005 §3** ("ScriptedProvider is the only provider the deployed site uses"):
+  the site may run a *real* provider ONLY when the key is user-supplied at runtime,
+  client-side only, browser → vendor direct. No key is ever bundled, stored server-side,
+  or required by CI. ScriptedProvider stays the default for every existing demo.
+- **CSP loosening (deliberate, documented):** `connect-src` gains `https://api.anthropic.com`
+  and `https://api.openai.com` in `astro.config.mjs`. This is the one exception to
+  `connect-src 'self'`; it is inert unless a user opts into Lab mode. Future refinement:
+  a per-route CSP so only `/studio` carries the wider policy.
+- **Grounding:** the Lab agent's `match_concepts` tool runs the SAME deterministic engine
+  as Study mode, so the LLM's "what does this cover" is anchored to the real corpus, not
+  invented. The model summarizes; the tool supplies the facts.
+- **This is the visible "agent component"** the project was missing: the hand-built
+  `src/lib/agent/` runtime now has a runnable surface whose trace the learner watches.
+
 ## 2026-07-13 — Standing conditions attached to the Phase 0 approval
 
 - **ModelProvider evolvability (P0.4):** the interface must be sufficient for the

@@ -68,7 +68,12 @@ export class ClaudeProvider implements ModelProvider {
     const config = this.#config;
     const { json, latencyMs } = await postJson(
       `${config.baseUrl ?? 'https://api.anthropic.com'}/v1/messages`,
-      { 'x-api-key': config.apiKey, 'anthropic-version': '2023-06-01' },
+      {
+        'x-api-key': config.apiKey,
+        'anthropic-version': '2023-06-01',
+        // ADR-0006: only present for a user's own BYOK key called directly from the browser.
+        ...(config.browserAccess ? { 'anthropic-dangerous-direct-browser-access': 'true' } : {}),
+      },
       {
         model: config.model,
         max_tokens: config.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
