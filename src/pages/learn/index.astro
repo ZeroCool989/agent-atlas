@@ -50,6 +50,46 @@ const LAYER_BLURB: Record<string, string> = {
       <PathProgress client:idle total={total} />
     </div>
 
+    <section
+      class="mt-10 rounded-lg border border-slate-200 bg-slate-50 p-5"
+      aria-labelledby="studio-howto"
+    >
+      <h2 id="studio-howto" class="text-lg font-semibold">
+        Learn from your own material: the Transcript Studio
+      </h2>
+      <p class="mt-2 text-sm text-slate-600">
+        The Path is the map. When you have a lecture or talk you want to learn from, paste its
+        transcript into the <a href="/studio" class="font-medium underline">Transcript Studio</a>{' '}
+        and it turns the text into study material tied back to these concepts. It runs three
+        ways, and each is honest about what it does.
+      </p>
+      <ol class="mt-4 space-y-3 text-sm text-slate-600">
+        <li>
+          <span class="font-medium text-slate-800">1. Watch an agent work (Demo).</span> Run the
+          bundled example to see the atlas's own agent loop step through a task: it picks a tool,
+          the runtime checks and runs it, the result comes back, and the loop continues. No key,
+          no network. Start here if you have ever wondered what "an agent" actually does.
+        </li>
+        <li>
+          <span class="font-medium text-slate-800">2. Turn your transcript into a study plan
+          (Study).</span> Paste your text and get the key sentences, the concepts it covers
+          (each linked to its lesson, with the words that matched shown so you can trust it), an
+          ordered path through those lessons, and a quiz. Everything is computed in your browser.
+          It is free and private, and the summary is extractive, so it surfaces the transcript's
+          own sentences rather than paraphrasing.
+        </li>
+        <li>
+          <span class="font-medium text-slate-800">3. Get an AI summary (Lab).</span> For a
+          written summary and custom material, add your own API key. It is stored only in your
+          browser and sent straight to the provider, never to a server. The agent still grounds
+          its answer in these concepts, so it explains rather than invents.
+        </li>
+      </ol>
+      <p class="mt-4 text-sm">
+        <a href="/studio" class="font-medium text-slate-900 underline">Open the Transcript Studio →</a>
+      </p>
+    </section>
+
     {
       groups.map((group) => (
         <section class="mt-10" aria-labelledby={`layer-${group.layer}`}>
