@@ -1,0 +1,53 @@
+question: "How do you think about and control the cost of an LLM system?"
+concepts:
+  - cost-engineering
+  - tokens
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Cost comes down to one formula: tokens in plus tokens out, times the price, times how
+    many model calls you make to answer a request. So there are only three things to pull on
+    — send fewer tokens, price them cheaper by using a smaller model where you can, and make
+    fewer calls. The big levers are routing easy steps to a cheap model, caching repeated
+    prompts or repeated answers, trimming the context you send, and capping how many turns an
+    agent loop takes. And the first move is always to measure cost per request, because you
+    can't cut what you can't see.
+  professional: >-
+    I start from cost = input tokens × input price + output tokens × output price, summed over
+    every model call — and I keep in mind that output is the expensive half and that an agent
+    loop multiplies the whole thing by its turn count. Then I pull levers in order of payoff.
+    Right-sizing the model is usually first and biggest: route classification, summarization
+    and self-checks to a cheap model, keep the frontier model for the load-bearing step. Then
+    token economy — shorter prompts, fewer retrieved chunks, summarized history — and caching,
+    where I'm careful to separate prompt caching, which discounts a repeated prefix, from
+    response caching, which skips the call entirely for a repeated query. Then cap output
+    length and loop iterations. Every one of those has a quality cost, so I gate each saving
+    behind an eval — "cheaper" only counts if quality held. And I only do any of this in
+    proportion to scale; on a low-volume feature it isn't worth the engineering time.
+  deep: >-
+    The framing I use is: measure first, optimize by payoff, and never trade quality blind.
+    Cost per request is a first-class metric attributed per step, so I can see which part of
+    the architecture is expensive rather than guessing — that's the same per-step token and
+    cost instrumentation observability already gives me, now load-bearing for spend. On the
+    levers, the mental model is a search over an architecture space where each axis (model
+    choice per step, context size, cache strategy, max turns, output cap) trades dollars
+    against quality and latency, and the only honest way to move on an axis is with an eval and
+    a latency budget watching the other dimensions. Routing tends to dominate because the
+    inter-model price gap is larger than most token savings, but the levers interact — once
+    you've routed the easy steps to a cheap model, capping that loop saves very little, so
+    order and diminishing returns matter. And I hold the whole program against volume: the
+    cheapest engineering is the optimization you correctly decided not to do.
+followUps:
+  - "Why might routing to a cheaper model save more than trimming tokens, even though tokens feel like the obvious waste?"
+  - "How would you decide whether a saving is real, versus a quality regression you haven't noticed yet?"
+  - "Prompt caching versus response caching — what does each one actually discount, and when does each fail?"
+practicalExample: >-
+  This repo's cost build project (src/lib/cost/estimator.ts) is exactly this reasoning as
+  code: estimateCost prices a request straight from tokens × price summed over calls, with the
+  input/output asymmetry and a prompt-cache discount built in; compare() reports what a single
+  lever buys; and applyLevers() walks a real five-turn agent request through routing, prompt
+  caching, context trimming and loop capping, with the running cost dropping at each step. The
+  Cost-engineering lesson's visual renders those exact numbers.

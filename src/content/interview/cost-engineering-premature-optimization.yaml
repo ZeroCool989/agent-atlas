@@ -1,0 +1,46 @@
+question: "When is optimizing LLM cost the wrong thing to do?"
+concepts:
+  - cost-engineering
+  - evaluation
+roles:
+  - engineer
+  - product
+difficulty: standard
+criticalThinking: true
+answers:
+  beginner: >-
+    When there's barely a bill to optimize. Cost engineering matters in proportion to scale, so
+    on a low-volume feature — a hundred users a day, a few dollars a month — the engineering time
+    to shave it costs far more than you'd ever save. It's also wrong to optimize without
+    measuring quality: if you swap in a cheaper model or trim the context and you don't have an
+    eval watching the answers, you're not saving money, you're gambling with the user's
+    experience to save pennies. Measure the bill, and only act when the number is actually big.
+  professional: >-
+    Premature cost optimization is a real failure mode. The clearest case is low volume: if the
+    whole monthly bill is smaller than a day of engineering, optimizing it is negative-value work
+    dressed up as diligence — you're spending the expensive resource (people) to save the cheap
+    one (a small invoice). The second case is optimizing blind: cutting to a weaker model or
+    trimming retrieved context without an evaluation gate, so you can't tell whether you saved
+    cost or just degraded quality where no one's looking yet. The third is letting a cost target
+    override a correctness, latency or safety requirement — the cheapest answer that's wrong or
+    stale isn't a saving. So the honest rule is: always measure cost, but only optimize when the
+    arithmetic (unit cost × real volume) says the payoff clears the engineering cost, and always
+    behind a quality check. Otherwise the simplest thing — do nothing but watch the number — is
+    the correct engineering.
+  deep: >-
+    I frame it as: measuring is nearly always worth it, optimizing almost never is until a
+    threshold, and the threshold is arithmetic, not fashion. The trap is that cost optimization
+    feels virtuous, so teams do it reflexively — building routing and caching infrastructure
+    before they have traffic, choosing a worse model to save a rounding error, micro-trimming
+    prompts on a feature nobody uses. Each of those trades three expensive things (quality,
+    latency, engineering time) for pennies, and the infrastructure itself is now code to maintain
+    and a source of bugs. The deeper point is that every lever has a quality cost that's invisible
+    until you measure it, so optimizing without an eval isn't cheaper — it's uncosted risk. And
+    there's an ordering error too: even when optimization is warranted, doing it before you've
+    measured means you optimize the wrong term. The mature move is to instrument cost per request
+    on day one, set an alert, and then sit on your hands until the number earns the intervention —
+    protecting the correctness and safety bars as hard constraints the cost target may never
+    silently cross.
+followUps:
+  - "What threshold would make you switch from 'just watch the bill' to actually pulling levers?"
+  - "How do you keep a cost target from quietly overriding a correctness or safety requirement?"

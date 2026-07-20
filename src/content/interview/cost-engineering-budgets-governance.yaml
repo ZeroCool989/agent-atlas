@@ -1,0 +1,54 @@
+question: "How do cost controls and budgets become an operational obligation, and what's the abuse angle?"
+concepts:
+  - cost-engineering
+roles:
+  - governance
+  - product
+difficulty: standard
+answers:
+  beginner: >-
+    Running an AI system responsibly includes keeping it under control financially — an
+    unbounded, unmonitored spend is an operational risk, so budgets, cost alerts and clear
+    ownership are part of operating it, not an afterthought. The abuse angle is that every
+    request costs real money, so someone who can trigger expensive requests — huge inputs, long
+    outputs, a runaway loop — can run up your bill as an attack. People call it "denial of
+    wallet." The defense is the same as the cost lever: per-user rate and cost limits, size
+    caps on inputs and outputs, and a cap on loop turns.
+  professional: >-
+    There are two faces. First, cost as an operational-risk obligation: frameworks like the NIST
+    AI RMF's Manage function expect you to prioritize, mitigate and monitor risks over time, and
+    an uncontrolled spend is exactly such a risk — so you set budgets, alert on cost per request,
+    and assign ownership, the ordinary discipline of operating something that costs money made
+    explicit. Nothing here binds because a system uses tokens; it's good operations that also
+    reads onto governance expectations. Second, cost as a security surface: because every call
+    is metered, unbounded consumption is a denial-of-service on your budget — the "denial of
+    wallet" risk that security guidance like the OWASP LLM Top 10 flags. The mitigations are
+    per-user cost ceilings, input and output size bounds, and loop-iteration caps — the cost
+    levers doing double duty as abuse controls. The governance value of doing this is that a
+    per-user ceiling both caps a bill and neutralizes an attack.
+  deep: >-
+    I'd separate the obligation from the mechanism. The obligation is that operating an AI system
+    sustainably is part of running it well, and where a governance framework applies — say the
+    NIST AI RMF's monitor-and-manage emphasis — an unmonitored, unbounded spend is a legible gap:
+    no budget, no alert, no owner. The mechanism is concrete controls: cost-per-request telemetry
+    (the same per-step attribution observability gives you), budgets with alerts, per-user and
+    per-tenant cost ceilings, and hard caps on input size, output length and loop turns. The abuse
+    framing sharpens it: denial of wallet means an adversary maximizes your cost per interaction,
+    so the ceiling is a security control, and I'd rate-limit and size-bound before I ever exposed
+    an expensive endpoint. The subtlety a good answer names is the tension between a cost target
+    and a quality or safety bar: budgets should be explicit and so should the eval gate, so nobody
+    resolves the tension quietly — an engineer trading user experience for a cheaper invoice, or a
+    cost cut that clips a safety-relevant step, should surface in review, not in a support queue.
+followUps:
+  - "What per-user or per-tenant limits would you put in front of an expensive LLM endpoint, and why those?"
+  - "How do you keep a budget cap from silently degrading quality or clipping a safety-relevant step?"
+governanceAngle: >-
+  Cost control is an operational obligation with two faces. As risk management, an unbounded,
+  unmonitored spend is exactly the kind of operational risk the NIST AI RMF's Manage function
+  expects you to budget for, alert on, and own — not because tokens trigger any law, but because
+  operating something that costs money responsibly includes keeping it under control. As security,
+  metered per-request cost makes unbounded consumption a denial-of-service on your budget ("denial
+  of wallet"), the risk OWASP's LLM guidance flags; the mitigation — per-user cost ceilings, input
+  and output size bounds, loop caps — is the cost lever doubling as an abuse control. Which
+  framework actually applies depends on the system, use case and jurisdiction; the controls are
+  good practice regardless.

@@ -132,3 +132,5 @@ export type {
   StageView,
   StageStatus,
 } from './voice-agents-scene';
+export { createCostScene } from './cost-scene';
+export type { CostScene, CostSceneInput, CostCallRow } from './cost-scene';

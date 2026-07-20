@@ -1,0 +1,50 @@
+question: "Your LLM bill tripled this month. Walk me through how you diagnose it and cut it back down without tanking quality."
+concepts:
+  - cost-engineering
+  - observability
+roles:
+  - engineer
+  - architect
+difficulty: deep
+criticalThinking: true
+answers:
+  beginner: >-
+    First I'd find out what changed, not start cutting. Cost is tokens times price times number
+    of calls, so I'd look at my per-request cost traces and ask three questions: are we serving
+    more requests, are we spending more per request, or both? If it's per request, I break it
+    down — did input tokens jump because someone made the prompt or the retrieved context
+    bigger, did output get longer, did the agent start taking more loop turns, or did a model
+    change? Once I know which term moved, I fix that term, and I check quality with an eval
+    before and after so I know I cut cost and not correctness.
+  professional: >-
+    I diagnose before I optimize. The bill is a product of volume × per-request cost, so step
+    one is to split those: pull the cost-per-request metric from tracing and see whether it's
+    traffic or unit cost. If it's traffic, that may be success or it may be abuse — I'd check
+    for a spike from a few users, which points at a denial-of-wallet pattern and a rate-limit
+    fix, not an architecture change. If it's unit cost, I attribute per step: which call got
+    more expensive? The usual culprits are a prompt or context that grew (more retrieved chunks,
+    unsummarized history), outputs that got longer, an agent loop that now runs more turns
+    because of a prompt tweak, or a silent model change. I fix the specific regression — cap the
+    context, cap the loop, revert the model, bound output — and I gate every change behind the
+    eval suite so I can prove quality held. The discipline is: reproduce the cause in the traces
+    first; a blind round of "make everything cheaper" is how you turn a cost problem into a
+    quality incident.
+  deep: >-
+    I treat it as an incident with a specific regression, not a mandate to be frugal. The
+    equation gives me a fault tree: bill = requests × Σ(input×in_price + output×out_price) over
+    calls, so I bisect it. Volume versus unit cost first, from the cost metric. If unit cost, I
+    decompose per step and per token type — a jump in input tokens, output tokens, call count,
+    or price — because each has a different fix and a different quality risk. A grown context or
+    history is the most common and the safest to cut; a longer output or more loop turns often
+    means a behavior change I need to understand before I clamp it, because that turn might be
+    doing real work. A model swap I just revert. Throughout, the guardrail is measurement in two
+    directions: I confirm the cause in traces so I'm fixing the actual regression, and I confirm
+    quality with an eval so the cut doesn't land on the user. I'd also ask why we didn't catch it
+    the day it happened — the real fix is a cost-per-request alert next to a quality metric, so a
+    3× move pages someone in a day, not at invoice time. And if the root cause was abusive
+    traffic, the fix is a per-user cost ceiling, which is a security control, not an architecture
+    change.
+followUps:
+  - "How would you tell an abusive-traffic spike apart from genuine growth, from the traces alone?"
+  - "Which single metric or alert would have caught this the day it started instead of at month-end?"
+  - "You find the loop now runs eight turns instead of three — do you cap it, and how do you avoid cutting a turn that mattered?"
