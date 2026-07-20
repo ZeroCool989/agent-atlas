@@ -36,6 +36,20 @@ index, per-framework pages, and the concept×regulation **mapping matrix**, with
 GDPR enriched and NIST AI RMF + OWASP LLM Top 10 stubs (accurate appliesTo mappings).
 Suite: 426 unit, 45 e2e, build 30 pages — green at 52b6440.
 
+**Transcript Studio + the visible agent (2026-07-20, ADR-0006).** New `/studio` feature:
+paste a transcript, get learning material. Answers "where's the agent" by giving the
+hand-built `src/lib/agent/` runtime a runnable surface. Three modes: **Demo** (keyless —
+`ScriptedProvider` drives the *real* `runAgent` loop over a bundled transcript; the learner
+watches think→tool→observe→answer), **Study** (keyless, no AI — the new deterministic
+`src/lib/transcript/` engine: TF-IDF concept matching against the corpus, extractive summary,
+learning path, quiz from the interview bank, flashcards; $0 and private), **Lab** (BYOK — the
+user's own key held only in the browser, called browser→vendor directly). The Lab agent's
+`match_concepts` tool runs the same deterministic engine, so the LLM is grounded in the real
+corpus. Amends ADR-0005 §3 (real providers allowed ONLY under BYOK); one documented
+`connect-src` CSP loosening for the two vendors. Suite: **800 unit, 95 e2e, build 64 pages —
+all green.** New lib: `src/lib/transcript/` (+47 unit tests), `src/lib/model/browser.ts`,
+`src/lib/agent/transcript-tools.ts`.
+
 **Plan complete — every layer has a finished anchor (2026-07-20, 0914516).** The last stub
 became a full lesson: **model-provider-features** (vendor-specific) now ships to full DoD — a
 portability/lock-in build project (`src/lib/provider-features/`: capability registry, a
