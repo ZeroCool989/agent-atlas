@@ -120,3 +120,5 @@ export type {
   ObservabilitySceneInput,
   ObservabilitySpanRow,
 } from './observability-scene';
+export { createCostScene } from './cost-scene';
+export type { CostScene, CostSceneInput, CostCallRow } from './cost-scene';

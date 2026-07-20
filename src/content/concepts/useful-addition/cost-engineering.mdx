@@ -1,0 +1,260 @@
+---
+title: "Cost engineering"
+layer: useful-addition
+oneLiner: "LLM cost is tokens (in + out) × price, multiplied by how many calls your architecture makes — cost engineering is the set of levers that control the bill (right-size the model, prompt/context economy, caching, capped loops) without wrecking quality, applied in proportion to scale."
+prerequisites:
+  - tokens
+  - context-windows
+  - observability
+related:
+  - rag
+  - prompt-engineering
+  - workflows-vs-agents
+  - evaluation
+  - reliability-patterns
+governance:
+  - nist-ai-rmf
+  - owasp-llm-top-10
+interviewTags: ["cost", "finops", "caching", "model-routing", "tokens", "production"]
+status: complete
+verdict:
+  classification: situational
+  problem: "An architecture that works in a demo can be ruinous at scale: every token in and out is metered, and an agent loop multiplies that meter by every turn — so a feature that costs a fraction of a cent per request is a five- or six-figure monthly bill at volume, and nobody notices until the invoice arrives."
+  simplerBaseline: "Measure cost per request (you already trace it — see observability) and do nothing until the number matters. For most low-volume features that is the right answer; premature cost optimization trades quality, latency and dev time for pennies."
+  mainCost: "Every lever trades something for the saving: a cheaper model or trimmed context can degrade quality (which you must measure, not assume), caching can serve stale answers, and capped loops can cut off a correction the agent needed. Cost engineering is a set of quality/latency/staleness trades, not free money."
+updated: 2026-07-20
+---
+
+import CostEngineeringDemo from '../../../components/viz/CostEngineeringDemo';
+
+Cost engineering is where an LLM system meets its invoice. The mechanism is not mysterious:
+every request is billed for the [tokens](/concepts/tokens) it sends and the tokens the model
+writes back, and an agent that loops — think, call a tool, observe, think again — pays that
+bill on *every turn*. So the cost of one user request is the price of its tokens multiplied by
+how many model calls your architecture makes to answer it. Cost engineering is the discipline
+of controlling that number — deliberately, and *in proportion to scale* — without trading away
+the quality that made the feature worth building. It is the FinOps half of running an agent, and
+it sits directly on top of [observability](/concepts/observability): you cannot cut a bill you
+cannot see.
+
+> **Mental model: a metered utility bill.** Every token in and out is metered at a per-unit
+> rate, and every extra model call is another meter running for the same request — so the bill
+> is `rate × amount × meters`. **Where the analogy breaks:** with a utility you only control the
+> amount, and using less never gives you a worse answer. Here you control the *rate* too (which
+> model you route to) and the *meters* (how many loop turns you allow) — and cutting usage can
+> cut quality. That last part is the whole game: the cheap bill and the good answer are in
+> tension, and cost engineering is managing that tension on purpose.
+
+## What problem existed before this?
+
+Before anyone thought about it as a discipline, cost was invisible until it wasn't. You build an
+agent that answers support questions: it retrieves documents, plans, drafts, self-checks, and
+finalizes — five model calls, each carrying a few thousand tokens of system prompt, history and
+retrieved context, all on the best available model because that is what you reached for while
+prototyping. It works. It ships. Then traffic grows, and the invoice grows *linearly with it* —
+except nobody budgeted for linear, because the demo cost fractions of a cent. The failure is
+structural: the tokens-times-price-times-calls math was always there, but at ten requests a day
+it rounds to nothing, and at ten million a month it is a line item that gets a meeting. The
+older, adjacent problem is the [context window](/concepts/context-windows) filling up — but a
+prompt that *fits* can still be one you overpay for on every single call.
+
+## Why was this invented?
+
+Because "just use the biggest model with all the context" is the most expensive possible
+architecture, and at scale the gap between that and a considered one is large — the worked
+example below cuts a request by two-thirds — for a quality difference you may not even be able
+to measure. Teams that
+operate LLM products at volume discovered that a handful of repeatable levers move the bill a
+lot: send fewer tokens, price them cheaper, and make fewer calls. None of it is novel computer
+science; it is the same instinct that produced caching, right-sizing and rate limits in ordinary
+systems, applied to a meter that happens to be denominated in tokens. It became a named
+discipline because the levers interact, each one has a quality cost, and pulling them blindly is
+how you save pennies and lose users.
+
+## How does it work?
+
+Start from the identity and never lose it:
+
+```
+cost = Σ over model calls of ( input_tokens × input_price
+                              + output_tokens × output_price )
+```
+
+Two facts about that formula do most of the work. First, **input and output are priced
+differently** — output tokens are the expensive half, typically several times the input rate —
+so a chatty, long-answer feature and a long-context, short-answer feature have completely
+different cost profiles and want different levers. Second, the **`Σ over model calls`** is where
+agent architecture shows up: a [workflow or agent loop](/concepts/workflows-vs-agents) that
+takes five turns pays five times, so the number of turns is a cost dial, not just a capability
+dial. With that in view, the levers are:
+
+- **Right-size the model (routing / cascades).** Not every step needs the frontier model. Route
+  the easy sub-tasks — classification, summarization, a self-check — to a small, cheap model, and
+  reserve the expensive one for the load-bearing step. This is usually the single biggest lever,
+  because the price gap between models dwarfs most token savings.
+- **Prompt and context economy.** Shorter system prompts, fewer and better-chosen retrieved
+  chunks (see [RAG](/concepts/rag)), and summarized rather than verbatim history all cut the input
+  token count on every call. Input is the cheaper half per token, but it is usually most of the
+  *volume*, so trimming it compounds. This is [prompt engineering](/concepts/prompt-engineering)
+  read as a cost activity.
+- **Caching — two different kinds, do not conflate them.** *Prompt caching* bills a repeated
+  prefix (system instructions, tool definitions) at a fraction of the input price on calls after
+  the first — it does not skip the model, it cheapens the shared part of the prompt. *Response
+  caching* skips the model entirely for a repeated query, serving a stored answer for near-zero
+  cost. Both are large levers; they attack different things.
+- **Cap the loop.** Limit how many turns an agent may take. Each turn is another whole call of
+  tokens, and a loop that runs away is a bill that runs away.
+- **Control output length.** Because output is the dear half, capping or shaping the response
+  length is a direct lever — a `max_tokens` bound and a prompt that asks for brevity both cut the
+  expensive side.
+- **Batch** where the workload allows, to amortize fixed overhead across many items.
+
+And the lever that comes first: **measure before you optimize.** You cannot cut what you cannot
+see, so instrument cost per request as a first-class metric ([observability](/concepts/observability)
+already carries per-step tokens and cost). Watch the estimator apply the levers to one real agent
+request, one at a time, with the running cost dropping and the trade named at each step:
+
+<CostEngineeringDemo client:visible />
+
+Every number there is computed by the cost estimator in this repo
+([`src/lib/cost/estimator.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/cost/estimator.ts)):
+`estimateCost` prices a request, `applyLevers` walks the optimization. Notice the shape — routing
+to the cheap model is the biggest single drop, caching and trimming compound on top, and capping
+the (already-cheap) loop saves the least *here*, precisely because the earlier levers already made
+those turns cheap. Order matters, and the last lever is not always the biggest.
+
+## Is it actually necessary?
+
+In proportion to scale — and honestly, often not yet. Cost per request is a number you should
+always be able to *see*; whether you should *act* on it depends on volume. For a low-traffic
+internal tool, the entire monthly bill is smaller than the engineering time it would take to
+shave it, and optimizing it is waste dressed up as diligence. The necessity switches on when
+volume, or a runaway agent loop, turns fractions of a cent into a budget line — at which point
+the levers above are not optional, they are the difference between a sustainable product and one
+that loses money on every request. So: measuring is close to always worth it; optimizing is
+worth it exactly when the arithmetic says so.
+
+## What are the trade-offs?
+
+Every lever spends quality, latency, staleness, or engineering time to buy a cheaper bill, and
+pretending otherwise is how cost engineering earns a bad name.
+
+- **Cheaper models and trimmed context degrade quality — sometimes.** A smaller model may handle
+  classification perfectly and butcher the final answer; aggressive context trimming saves tokens
+  right up until it drops the passage that held the answer. You do not know which until you
+  *measure* it against an [evaluation](/concepts/evaluation) set. "It's cheaper" is only half a
+  result; "it's cheaper and quality held" is the whole one.
+- **Caching can serve stale answers.** A response cache that returns yesterday's answer to a
+  question whose answer changed is cheap and wrong. Cache keys, TTLs and invalidation are the cost
+  of the caching lever.
+- **Capped loops can cut off a needed correction.** The turn you refused to pay for might have
+  been the [reflection](/concepts/reflection) step that fixed the mistake.
+- **The optimization itself is a cost.** Routing logic, cache infrastructure and a cost dashboard
+  are code to build, test and maintain. On a low-volume feature, that engineering time is the
+  most expensive thing in the whole equation.
+
+## What complexity does it introduce?
+
+Real machinery, once you pass the point of "just watch the number." Model routing means a
+classifier or heuristic deciding which model each step goes to — and now you operate *two* models,
+each with its own quality profile and failures. Caching means a cache to run, keys to design,
+staleness to reason about, and a hit-rate to monitor. Output-length and loop caps mean limits that
+occasionally clip a legitimately long or hard case, which you must detect. And measuring cost
+properly means per-request, per-step attribution so you can tell *which* part of the architecture
+is expensive — the same instrumentation [observability](/concepts/observability) asks for, now
+load-bearing for spend, not just debugging. Each lever also adds a *quality* surveillance burden:
+every saving needs an eval watching that quality did not quietly slip.
+
+## What simpler alternative exists?
+
+Measure, and otherwise do nothing. Emit one cost-per-request metric, put it on a chart next to a
+quality metric, and set an alert if it moves. That is a few lines on top of the tracing you
+already have, and for the large majority of features it is the correct and complete answer — the
+bill is small, and the cheapest engineering is the engineering you did not do. When the number
+does start to matter, reach for the levers *in order of payoff*: right-size the model first
+(biggest gap for least quality risk on easy steps), then attack the tokens (prompt/context economy
+and caching), then cap the calls. Reach for a routing framework or a caching platform only when the
+hand-rolled version is genuinely the bottleneck. A cost-optimization program nobody needed is more
+expensive than the bill it was meant to cut.
+
+## When should I use it?
+
+When cost per request, times your real volume, is a number a finance conversation would care
+about — or when an agent loop can run away and take the bill with it. Concretely: instrument cost
+the day something ships (that part is nearly always worth it); start pulling levers when the
+monthly total crosses the threshold where an engineer-day of optimization pays for itself in a
+month or two; and prioritize by payoff — right-sizing the model before micro-trimming a prompt,
+because the model price gap is usually the largest term in the equation. It is also the right lens
+the moment you add a multi-turn agent, because that is when the `× calls` factor stops being 1.
+
+## When should I avoid it?
+
+When you are optimizing a bill that does not exist yet. Premature cost optimization is a real and
+common mistake: shaving tokens off a feature with a hundred users a day, choosing a worse model to
+save a few dollars a month, or building routing and caching infrastructure before you have traffic
+to justify it — all of it trades quality, latency and expensive engineering time for pennies. Avoid
+it, too, when you have not measured: cutting a model or trimming context *without* an eval watching
+quality is not cost engineering, it is guessing with the user's experience as the stake. And never
+let a hard cost target silently override a correctness or safety requirement — the cheapest answer
+that is wrong, stale, or unsafe is not a saving, it is a liability with a smaller invoice.
+
+## Prompt caching vs response caching (keep them distinct)
+
+Interviews probe this because people blur them:
+
+- **Prompt caching** cheapens the *input* of a call. A stable prefix — system prompt, tool
+  definitions, a long shared document — is billed at a fraction of the input rate on calls that
+  reuse it. The model still runs and still writes a fresh answer; only the shared input is
+  discounted. It helps most when many calls share a long prefix, and it evaporates the moment the
+  prefix changes (a cache miss pays full price).
+- **Response caching** skips the *whole call*. An identical (or semantically equivalent) query
+  returns a stored answer for near-zero cost, and the model never runs. It helps most for
+  repeated queries, and its danger is staleness — the stored answer can be out of date.
+
+One discounts a repeated *prompt*; the other reuses a repeated *answer*. Different mechanisms,
+different wins, different failure modes.
+
+## Common misconceptions
+
+- **"Just use the cheapest model everywhere."** The cheap model is cheap because it is weaker.
+  Routing wins by using it *only where quality holds*, proven by an eval — not by using it blindly.
+- **"Input and output cost the same."** Output is typically the dearer half. A long-answer feature
+  and a long-context feature have different cost shapes and want different levers.
+- **"Caching is free money."** Prompt caching evaporates when the prefix changes; response caching
+  can serve stale answers. Both are levers with a maintenance and correctness cost.
+- **"Fewer tokens is always better."** Trim past the point where the model has what it needs and
+  you save money by giving worse answers — a cost cut charged to quality.
+- **"We'll optimize cost later / we must optimize cost now."** Both can be wrong. Optimizing a
+  low-volume feature is premature; ignoring cost on a high-volume one is negligent. The arithmetic,
+  not the fashion, decides.
+
+## Security and governance
+
+- **Cost control is an operational obligation, not just thrift.** Running an AI system responsibly
+  includes keeping it economically sustainable and under control. The [NIST AI RMF](/concepts/nist-ai-rmf)
+  *Manage* function — prioritize, mitigate and monitor risks over time — reads naturally onto cost:
+  an unmonitored, unbounded spend is an operational risk you are expected to manage, with budgets,
+  alerts and ownership. None of this applies *because* a system uses tokens; it is the ordinary
+  discipline of operating something that costs money, made concrete.
+- **Per-user cost ceilings are an abuse control ("denial of wallet").** Because every request costs
+  real money, an attacker who can trigger expensive requests — huge inputs, long outputs, runaway
+  loops — can run up your bill as a denial-of-service on your budget. This is the
+  *unbounded-consumption* risk in security guidance like the [OWASP LLM Top 10](/concepts/owasp-llm-top-10):
+  the mitigation is per-user rate and cost limits, input/output size bounds, and loop caps — the
+  same levers you pull for cost, now doing double duty as a security control.
+- **Budgets make the quality trade visible to the people who own it.** Cost targets set by finance
+  and quality bars set by product live in tension; making both explicit — a cost ceiling *and* an
+  eval gate — keeps an engineer from quietly trading user experience for a cheaper invoice, or
+  finance from discovering a quality regression in a support queue instead of a review.
+
+## Build it, then own it
+
+The build project is a small, dependency-free cost estimator and optimizer
+([`src/lib/cost/`](https://github.com/ZeroCool989/agent-atlas/tree/main/src/lib/cost)): `estimateCost`
+prices a request straight from the identity above (fresh input, cached input, and output, each at
+its own rate; then a response-cache discount), `compare` reports what a single lever buys, and
+`applyLevers` walks the whole optimization the visual shows — routing, prompt caching, context
+trimming and loop capping, each with the trade it made. Prices are illustrative, clearly-labelled
+constants, not any vendor's real numbers; the *shape* (output dearer than input, a cache hit far
+cheaper than a fresh read) is what is real. Read it, watch routing turn out to be the biggest
+lever and capping the smallest, then try the interview questions below.
