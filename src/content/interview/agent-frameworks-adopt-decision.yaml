@@ -1,0 +1,64 @@
+question: "A team wants to adopt LangGraph or CrewAI for a new agent. When do you say yes, when do you say no, and why?"
+concepts:
+  - agent-frameworks
+roles:
+  - architect
+  - engineer
+  - consultant
+difficulty: deep
+answers:
+  beginner: >-
+    My first question is: have you built the loop by hand yet? If not, do that first — a
+    thin hand-rolled loop is often simpler and more debuggable than a framework for a single
+    app. I say yes to a framework when its conventions genuinely save more than the
+    abstraction costs: you need multi-agent orchestration, graph or state-machine control
+    flow, streaming, and a big ecosystem of prebuilt integrations, and you have several
+    people who'll share those conventions. I say no when it's one app with a handful of
+    tools, because then you're taking on the framework's abstractions, bugs, and upgrade
+    churn to replace a loop you could read end to end.
+  professional: >-
+    I'd frame it as: a framework is scaffolding over the same agent loop, not a new
+    capability — so the decision is whether its conventions save more than they cost. Reasons
+    to say yes: you need orchestration you'd otherwise hand-build and maintain — graph or
+    state-machine control flow, multi-agent patterns, streaming, checkpointing, retries — and
+    a team that benefits from shared conventions and prebuilt tool and memory integrations, so
+    a common vocabulary is worth more than bespoke control. Reasons to say no: it's a single
+    app with a thin loop; the control flow is simple enough that the framework's abstraction
+    is pure overhead; or you can't afford to inherit its bugs, its upgrade churn, and a layer
+    between you and the mechanism. The non-negotiable I'd insist on: build the loop by hand
+    first, so the team can debug both layers when it breaks — because with a framework,
+    debugging means understanding your logic AND the framework's. And I'd resist the version
+    of 'yes' that's really 'the framework will make our agent more capable' — it won't; if the
+    problem is capability, that's tool-calling and prompt design, not the framework.
+  deep: >-
+    The honest decision variable is: does the framework's control flow match the shape of my
+    problem better than a loop I write and own? Frameworks encode someone else's opinions
+    about the layers above the loop — how state is threaded, how multi-agent hand-offs work,
+    how you resume. When those opinions match your problem, they save real work; when they
+    don't, you fight the abstraction and end up debugging the framework instead of your agent.
+    So I'd probe: how much of what it gives us would we otherwise build and maintain? Are we
+    adopting it for orchestration we genuinely need, or for a hello-world that a 40-line loop
+    covers? Can the team read the framework's loop when a run misbehaves, or will its internals
+    be magic we can't debug? What's the upgrade and lock-in cost — its churn becomes our churn,
+    and its prompt and loop internals we didn't write become a trust and audit surface. A crisp
+    answer: yes when we need orchestration the framework does well and a team that shares its
+    conventions, after we've hand-built enough to understand what it's abstracting; no when a
+    thin hand-rolled loop is simpler and more debuggable, which for many single-purpose apps it
+    is. The framework must earn its way in — the same essentiality test the whole atlas applies.
+followUps:
+  - "The team says the framework will make the agent 'more autonomous.' What's the category error there?"
+  - "What would you build by hand first before reaching for the framework, and what would that teach you?"
+  - "Six months in, a run misbehaves and no one can explain why. How does the framework change the debugging story?"
+  - "Where's the line between 'orchestration we genuinely need' and 'a loop we could write in an afternoon'?"
+criticalThinking: true
+practicalExample: >-
+  src/lib/frameworks in this repo makes the trade-off concrete without adding a real
+  framework as a dependency (ADR-0005 forbids that). defineAgent (declarative.ts) is a
+  ~15-line 'framework-style' facade over the hand-built loop in src/lib/agent: it takes a
+  declaration, builds the ToolRegistry allowlist for you, applies a default step limit you
+  never chose, and calls runAgent — the same loop. comparison.ts runs the SAME arithmetic
+  task two ways (hand-built vs the facade) and verifies the two traces are byte-for-byte
+  identical (tracesMatch), the concrete proof that a framework is scaffolding over the loop,
+  not new capability. The side-by-side is visualized in src/lib/viz/agent-frameworks-scene.ts:
+  step through it and watch each runtime step be visible in the hand-built column and hidden
+  inside .run() in the framework column.

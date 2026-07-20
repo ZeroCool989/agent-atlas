@@ -1,0 +1,14 @@
+---
+/**
+ * Composition root for the agent-frameworks viz: builds the scenes from the REAL comparison
+ * in src/lib/frameworks at build time (the same arithmetic task run two ways — a hand-built
+ * loop and the defineAgent facade — whose traces are proven identical) and hands them to the
+ * island. Zero JS until the island hydrates on scroll (client:visible).
+ */
+import { buildAgentFrameworksScenes } from '../../lib/viz/agent-frameworks-scene';
+import AgentFrameworksIsland from './AgentFrameworksIsland';
+
+const scenes = await buildAgentFrameworksScenes();
+---
+
+<AgentFrameworksIsland client:visible scenes={scenes} />

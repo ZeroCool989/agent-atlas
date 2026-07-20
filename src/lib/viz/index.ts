@@ -134,3 +134,5 @@ export type {
 } from './voice-agents-scene';
 export { createCostScene } from './cost-scene';
 export type { CostScene, CostSceneInput, CostCallRow } from './cost-scene';
+export { buildAgentFrameworksScenes } from './agent-frameworks-scene';
+export type { AgentFrameworksScene, FrameworkRow } from './agent-frameworks-scene';

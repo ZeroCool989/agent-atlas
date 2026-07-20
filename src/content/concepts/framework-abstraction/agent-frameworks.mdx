@@ -1,0 +1,247 @@
+---
+title: "Agent Frameworks"
+layer: framework-abstraction
+oneLiner: "A library (LangGraph, CrewAI, the vendor Agents SDKs, AutoGen, and others) that provides the agent-loop scaffolding for you — orchestration, prebuilt integrations, multi-agent patterns, streaming, retries. It wraps the same loop you can build by hand; it is scaffolding, not new capability."
+prerequisites:
+  - workflows-vs-agents
+  - tool-calling
+related:
+  - planning
+  - multi-agent-systems
+  - mcp
+governance:
+  - owasp-llm-top-10
+  - eu-ai-act
+interviewTags: ["agent-frameworks", "langgraph", "crewai", "agents-sdk", "autogen", "orchestration", "abstraction-cost"]
+status: complete
+verdict:
+  classification: framework-specific
+  problem: "Once you have hand-built the agent loop, every non-trivial agent re-implements the same scaffolding around it: graph or state-machine control flow, tool and memory integrations, multi-agent hand-offs, streaming, checkpointing, retries. Rebuilding and maintaining that per project is real, repetitive work."
+  simplerBaseline: "A thin hand-rolled loop — the runner in src/lib/agent. For a single app with a handful of tools it is fewer moving parts, has nothing hidden, and is more debuggable than any framework. Build the loop by hand first; reach for a framework only when its conventions save more than the abstraction costs."
+  mainCost: "The control flow becomes the framework's. You inherit its abstractions, its bugs, its upgrade churn, and a layer between you and the mechanism — debugging a run now means understanding both your logic AND the framework's loop and prompt internals you did not write. It adds convention and scaffolding, never capability."
+sources:
+  - anthropic-building-effective-agents
+updated: 2026-07-20
+---
+
+import AgentFrameworks from '../../../components/viz/AgentFrameworks.astro';
+
+Once you have [hand-built the agent loop](/concepts/workflows-vs-agents) — context assembly →
+model call → [tool dispatch](/concepts/tool-calling) → verification → loop — a second, more
+boring job appears around it. Real agents want graph or state-machine control flow, prebuilt
+tool and memory integrations, [multi-agent](/concepts/multi-agent-systems) hand-offs, streaming,
+checkpointing, and retries — and rebuilding that scaffolding for every project is repetitive.
+An **agent framework** (LangGraph, CrewAI, the vendor Agents SDKs, AutoGen, and others) is a
+library that provides that scaffolding for you. It is genuinely useful and genuinely fashionable,
+which is exactly why it sits at the **rim of this map** and has to earn its way inward. The honest
+sentence this lesson keeps returning to: a framework wraps the *same loop* you already built — it
+gives you conventions and batteries and less boilerplate, and in exchange it **hides the mechanism
+and takes ownership of your control flow.** It is scaffolding, not new capability.
+
+> **Mental model: an automatic transmission over a manual gearbox.** A framework shifts gears for
+> you. You stop thinking about the clutch and get where you're going with less effort and fewer
+> mistakes — that is real value. But it is the *same engine* underneath: the automatic did not add
+> horsepower, and now you no longer feel the gears, so when the car lurches you have to understand
+> both your driving *and* the gearbox's logic to diagnose it.
+> **Where the analogy breaks:** a car's automatic transmission is a mature, standardized part that
+> has been stable for decades. Agent frameworks are young, opinionated, and churn fast — you are
+> often driving a car whose automatic gearbox is a beta you are also expected to read and debug.
+> The convenience is real; the abstraction is far less settled than a transmission's.
+
+## What problem existed before this?
+
+The loop by itself is small — the [runner in this repo](/concepts/workflows-vs-agents) is a few
+dozen readable lines. But a *production* agent is the loop plus a lot of scaffolding around it, and
+that scaffolding is what hurts to rebuild every time: explicit control flow (branching, resuming a
+run after a pause, threading state between steps), a library of tool and memory integrations,
+patterns for several agents handing work to each other, streaming partial output to a UI,
+checkpointing so a crash doesn't lose progress, retries and backoff. None of it is exotic, but all
+of it is fiddly to get right and tedious to re-implement per project. Before frameworks, every team
+wrote its own version of the same orchestration — and maintained it, and re-derived the same design
+decisions, in isolation. That duplication, not the loop itself, is the pressure a framework answers.
+
+## Why was this invented?
+
+To stop everyone rebuilding the same scaffolding — and to encode a *shared opinion* about how the
+layers above the loop should be organized. A framework packages the orchestration, the integrations,
+and the multi-agent patterns as a library with conventions, so a team starts faster, writes less
+boilerplate, and shares a vocabulary instead of inventing a bespoke structure. The pitch is the same
+one every framework in software history has made: standardize the common structure so builders can
+focus on what is specific to their problem. That is a real benefit when the framework's opinions match
+your problem. The catch — the thing this whole layer of the atlas exists to name — is that a framework
+is *someone else's opinions about the layers above your loop*, and you adopt those opinions wholesale,
+including the parts you would have designed differently and the parts you cannot see.
+
+## How does it work?
+
+Conceptually, a framework takes a **declaration** of your agent — its tools, its prompt, its control
+flow — and **compiles** that onto a runtime loop it provides. You describe *what* the agent is; the
+framework owns *how* the loop runs. The main approaches differ mainly in the *shape* of the control
+flow they ask you to declare (described here at a conceptual level — the specific APIs change fast, so
+do not memorize any one of them as fact):
+
+- **Graph / state-machine** (e.g. the shape LangGraph takes): you declare nodes and edges and thread
+  state through them. Control flow is an explicit graph — good for branching, loops, and resumable
+  workflows you want to reason about as a diagram.
+- **Role-based crew** (e.g. the shape CrewAI takes): you declare specialized agents with roles that
+  delegate to and converse with each other. Control flow is a conversation between agents — good for
+  decomposing a task into roles.
+- **Vendor SDK** (e.g. the OpenAI or Anthropic Agents SDKs): you use a provider's own hosted loop and
+  tool surface. Control flow is the vendor's — tight integration with that provider, less portability
+  across them.
+
+The visualization below is driven by the real comparison module in this repo. It runs the **same
+arithmetic task two ways** — the hand-built loop wired by hand, and a tiny `defineAgent` facade that
+declares the agent and calls the same loop — and steps through the shared runtime trace. Watch each
+step light up: in the hand-built column it is a line you own and can read; in the framework column the
+identical step ran *inside `.run()`*, out of your sight.
+
+<AgentFrameworks />
+
+The reveal on the last step is the load-bearing fact: **both runs produce the byte-for-byte same trace
+and the same answer.** The facade added no behaviour. It built the tool allowlist for you, applied a
+default step limit you never chose, and ran the loop inside one method call — convenient, and one more
+layer between you and the mechanism. Every real framework is this trick at scale.
+
+## Is it actually necessary?
+
+No — and this is the honest heart of the lesson. **A framework is scaffolding over the agent loop, not
+a capability the loop lacks.** Strip the framework away and the model still selects a tool, the runtime
+still validates and executes it, and the loop still runs until it stops. Everything the framework adds
+happens *around* that unchanged core: a convenient way to declare control flow, a library of
+integrations, patterns for multiple agents. It does not let an agent do anything a hand-built loop
+cannot.
+
+Concretely: **you do not need a framework to build an agent.** For a single application with a handful
+of tools you control, a thin hand-rolled loop is simpler — fewer moving parts, nothing hidden, one
+codebase to debug instead of yours plus the framework's. A framework earns its complexity only when the
+scaffolding it provides is scaffolding you would otherwise build and maintain yourself: real graph or
+state-machine orchestration, multi-agent hand-offs, checkpointing, a big ecosystem of integrations,
+and a team that benefits from shared conventions.
+
+It also does **not change an agent's autonomy**. On the
+[autonomy spectrum](/concepts/workflows-vs-agents) — deterministic workflow, model-assisted workflow,
+tool-using agent, stateful agent, reliable agent, multi-agent system — the framework moves an agent
+exactly zero tiers on its own. A tool-using agent built with LangGraph is still a tool-using agent.
+"We adopted a framework to make the agent more capable (or more autonomous)" is a category error: if
+the goal is *make the agent able to do X*, that is tool-calling, prompting, and design — not the
+framework.
+
+## What are the trade-offs?
+
+A framework buys **faster start, conventions, ecosystem, and less boilerplate** and charges **ownership
+of your control flow and a layer between you and the mechanism.** The second half is the part hype
+skips, so it goes first:
+
+- **You pay (what it hides):** the control flow becomes the framework's, so debugging a misbehaving run
+  means understanding *two* layers — your logic and the framework's loop and prompt internals you did
+  not write. You inherit its bugs. You inherit its **upgrade churn** — these libraries move fast, and an
+  upgrade can silently change prompts, retries, or stopping behaviour. And there is "magic": prompt and
+  loop internals the framework injects that you did not author and may not fully see.
+- **You gain (what it does for you):** a running orchestration you did not have to build — graph or
+  state-machine control flow, multi-agent patterns, streaming, checkpointing, retries — plus prebuilt
+  tool and memory integrations and a shared vocabulary that helps a team move together. When the
+  framework's opinions match your problem, that is a large, real saving.
+
+The honest summary: a framework trades the transparency and tight control of a hand-built loop for
+scaffolding and conventions across many features. If your agent is simple, you are paying that trade for
+scaffolding you would not have written anyway — and getting a hidden loop in return.
+
+## What complexity does it introduce?
+
+Two codebases where there was one, and a boundary between them:
+
+- **Your declaration** — the config, prompts, and control-flow shape you write against the framework's
+  conventions.
+- **The framework's runtime** — the loop, the prompt assembly, the retry and stopping logic, the
+  integration glue. This is code you depend on but did not write; it is where "why did the agent do
+  that?" often has to be answered.
+- **The boundary** — mapping your intent onto the framework's abstractions, and mapping its behaviour
+  back to your mental model when something breaks. Debugging crosses this boundary constantly.
+
+The framework also adds **dependency surface**: a library (and its transitive dependencies) running in
+the critical path of an autonomous system, with its own release cadence. An upgrade is not just a patch;
+it can be a behaviour change. None of this exists in a self-contained hand-rolled loop, where the whole
+mechanism is in front of you.
+
+## What simpler alternative exists?
+
+**A thin hand-rolled loop** — the [runner in `src/lib/agent`](/concepts/tool-calling) is exactly this:
+context assembly, a model call, tool validation and dispatch, an observation appended, and stop
+conditions, in a few dozen lines you can read end to end. For a single-purpose agent with a few tools,
+this is not a compromise — it is often the *better* engineering choice: nothing is hidden, there is one
+codebase to debug, and there is no upgrade churn from a fast-moving dependency.
+
+Between "hand-roll everything" and "adopt a full framework" sits a middle path: a small set of your own
+shared utilities — a tool registry, a retry helper, a trace logger — reused across your own agents. You
+get reuse without ceding control flow to someone else's opinions. That is frequently the right amount of
+abstraction, and it keeps the loop yours. The framework specifically earns its keep when the scaffolding
+you need is broad and genuinely hard to maintain by hand — not when a registry and a for-loop would do.
+
+## When should I use it?
+
+- When you need **orchestration you would otherwise build and maintain**: real graph or state-machine
+  control flow, multi-agent hand-offs, checkpointing and resumption, streaming — and the framework does
+  those well for your case.
+- When a **team** benefits from shared conventions and a common vocabulary more than from bespoke
+  control — so structure and consistency are worth more than transparency.
+- When you want to **consume a large ecosystem** of prebuilt tool and memory integrations rather than
+  writing each adapter yourself.
+- **After** you have hand-built the loop at least once, so you can debug both layers and can judge what
+  the framework is abstracting — the framework should be a deliberate choice against a baseline you
+  understand, not a starting point.
+
+## When should I avoid it?
+
+- For a **single app with a few tools you control** — a thin hand-rolled loop is simpler, fully visible,
+  and more debuggable. Do not adopt a framework's abstractions to solve a problem a for-loop already
+  solves.
+- When you **have not built the loop by hand yet** — starting with a framework means the mechanism the
+  agent runs on is magic to you from day one, and you will be debugging two layers you don't fully
+  understand at the worst possible time.
+- When you **cannot absorb the churn or the lock-in** — if a fast-moving dependency changing your agent's
+  prompts and behaviour on upgrade is unacceptable, or if ceding control flow to the framework makes a
+  future migration prohibitively costly, the abstraction costs more than it saves.
+- When someone reaches for a framework expecting **more capability or more autonomy** — it delivers
+  neither. That question is tool-calling and design, not the framework.
+
+## Governance
+
+A framework is a **supply-chain dependency and a trust surface** in the critical path of an autonomous
+system, and that framing drives the controls:
+
+- **Supply-chain and provenance.** The framework is third-party code executing inside your agent. Pin
+  versions, vet the source and its transitive dependencies, and treat upgrades as *behaviour changes*
+  subject to re-testing — not just patches — because a framework upgrade can silently alter prompts,
+  retries, or stopping. This is the [OWASP LLM Top 10](/governance/owasp-llm-top-10) supply-chain risk
+  (LLM03), and — because the framework drives the agent's actions — excessive agency (LLM08) as well.
+- **Auditability of hidden prompts and behaviour.** Many frameworks inject their own system prompts and
+  drive their own loop, so "what exactly is the model instructed to do, and why did it take this action"
+  becomes a two-layer question. Capture the **real execution trace at your own boundary** as audit
+  evidence, rather than trusting framework-internal observability — the hand-built loop logs exactly
+  this, and the point of the comparison above is that the framework runs the *same* trace, just less
+  visibly.
+- **Bounded agency, in your code.** Keep the security-critical decisions — the tool allowlist,
+  least-privilege scoping, human-approval gates on consequential actions — in code you own, so they hold
+  regardless of framework defaults you did not set.
+- **Lock-in as a continuity risk.** The more control flow you cede, the more expensive it is to change
+  course; keep your domain logic separable from the framework's conventions and cost the exit.
+- **Regulatory frame, carefully.** Nothing about the [EU AI Act](/governance/eu-ai-act) or any other
+  instrument applies *merely because* you use a framework. Applicability depends on the system, your
+  role, the use case, the data, and the jurisdiction. What the framework choice determines is the
+  *shape of your evidence* — whether you can show, from your own logs and your own controls, what the
+  system was permitted to do and what it actually did.
+
+## Build it, then own it
+
+The whole argument is made concrete in a dependency-free module you can read:
+[`src/lib/frameworks/declarative.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/frameworks/declarative.ts)
+is a ~15-line `defineAgent` facade — a *framework-style* surface that builds the tool allowlist for you,
+applies a default step limit you never chose, and calls the hand-built `runAgent`. It is not a real
+framework and it uses none as a dependency (ADR-0005 forbids that); it is the smallest honest imitation
+of one.
+[`comparison.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/frameworks/comparison.ts)
+runs the same task through both surfaces and *verifies* the two traces are byte-for-byte identical — the
+concrete proof that a framework is scaffolding over the loop, not new capability. Read `defineAgent` and
+notice how little it does and how much it hides: that gap, scaled up, is every agent framework. Then try
+the interview questions below — especially the one about when to say yes.
