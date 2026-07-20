@@ -120,3 +120,5 @@ export type {
   ObservabilitySceneInput,
   ObservabilitySpanRow,
 } from './observability-scene';
+export { buildAgentFrameworksScenes } from './agent-frameworks-scene';
+export type { AgentFrameworksScene, FrameworkRow } from './agent-frameworks-scene';

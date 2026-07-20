@@ -1,0 +1,63 @@
+question: "What does an agent framework give you, and what does it hide? Compare the main shapes at a conceptual level."
+concepts:
+  - agent-frameworks
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    A framework gives you scaffolding over the agent loop you'd otherwise write: orchestration
+    for control flow, prebuilt tool and memory integrations, multi-agent patterns, streaming,
+    and retries — so you start faster with fewer lines and shared conventions. What it hides is
+    the loop itself. The control flow becomes the framework's, so you inherit its abstractions,
+    its bugs, and its upgrade churn, and there's now a layer between you and the mechanism. The
+    shapes differ mostly in how they model control: some are graphs or state machines where you
+    declare nodes and edges, some are role-based crews of agents that talk to each other, and
+    some are vendor SDKs that wrap a provider's own loop. Different surfaces, same underlying
+    loop underneath.
+  professional: >-
+    On the 'give' side: a framework hands you the scaffolding for context assembly, the model
+    call, tool dispatch, and stopping — plus the things that are tedious to build well, like
+    graph or state-machine orchestration, checkpointing and resumption, streaming, retries,
+    and a library of prebuilt integrations. For a team, the shared conventions are a real gain:
+    a common vocabulary and structure beats everyone's bespoke loop. On the 'hide' side: the
+    control flow is now the framework's, so debugging a misbehaving run means understanding two
+    layers — your logic and the framework's internals, including prompt and loop machinery you
+    didn't write. You inherit its bugs and its upgrade churn, and the abstraction sits between
+    you and the mechanism the agent actually runs. On the shapes, conceptually and without
+    pinning any current API: graph/state-machine frameworks make you declare nodes and edges
+    and thread state through them, which suits explicit branching and resumable workflows;
+    role-based crews model a team of specialized agents that delegate and converse, which suits
+    decomposition into roles; vendor SDKs wrap a specific provider's hosted loop and tools,
+    trading portability for tight integration. I'd hedge specifics deliberately — these APIs
+    change fast — and keep the emphasis on the constant: all of them wrap the same loop.
+  deep: >-
+    The clarifying lens is that a framework is opinions about the layers ABOVE the loop, not a
+    replacement for it. Context assembly, model call, validation, tool dispatch, observation,
+    stop — that core is the same everywhere; what a framework sells you is a way to organize the
+    control flow around it and a set of batteries (integrations, memory, streaming) so you don't
+    rebuild them. That's genuine value when the opinions match your problem and the batteries are
+    ones you'd otherwise assemble. The cost is that you now debug both your code and the
+    framework's, you're exposed to its release churn, and its internals — including the exact
+    prompts and loop behaviour — are things you didn't write and may not fully see. The three
+    shapes are three different opinions: a graph/state-machine says 'control flow is an explicit
+    graph you declare'; a role-based crew says 'control flow is a conversation between specialized
+    agents'; a vendor SDK says 'control flow is our hosted loop, use our surface.' Each is
+    reasonable for the problem it was shaped around and overhead for the problem it wasn't. The
+    honest bottom line, and the reason this concept sits at the rim of the map: a framework must
+    earn its way in against a thin hand-rolled loop, which for many apps is simpler and more
+    debuggable precisely because nothing is hidden.
+followUps:
+  - "Why is it risky to describe a specific framework's exact API as a fixed fact in an interview?"
+  - "You inherit the framework's bugs and churn — how would you bound that exposure in production?"
+  - "When does a graph/state-machine shape clearly beat a role-based crew, and vice versa?"
+criticalThinking: false
+practicalExample: >-
+  In src/lib/frameworks, defineAgent is the 'give you a concise surface' half and the hidden
+  half made visible: the facade is short, but the ToolRegistry construction, the default step
+  limit (DEFAULT_MAX_STEPS), and the entire loop (src/lib/agent/runner.ts) run inside .run()
+  where the caller never sees them. comparison.ts proves the hand-built and facade runs emit
+  the identical trace, so the difference is purely what's visible versus hidden — not what the
+  agent can do. The viz (src/lib/viz/agent-frameworks-scene.ts) steps the same trace showing
+  each step owned by you on the left and by the framework on the right.

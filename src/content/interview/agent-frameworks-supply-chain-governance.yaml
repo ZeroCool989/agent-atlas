@@ -1,0 +1,72 @@
+question: "Treating an agent framework as a supply-chain and trust surface, what are the governance risks of adopting one, and how do you contain them?"
+concepts:
+  - agent-frameworks
+roles:
+  - governance
+  - architect
+  - engineer
+difficulty: standard
+answers:
+  beginner: >-
+    A framework is a dependency you run in the critical path of an autonomous system, so it's a
+    supply-chain risk like any library — plus a couple of agent-specific ones. It often ships
+    its own prompts and loop behaviour you didn't write, which is harder to audit for
+    compliance because the exact instructions and control flow aren't fully in your code. And
+    it creates lock-in: your control flow becomes the framework's, so migrating later is costly.
+    Contain it the way you'd contain any dependency plus more: pin and vet versions, review what
+    prompts and behaviour it actually injects, keep the effectful parts — tool permissions and
+    human-approval gates — in your own code, and log the real run trace so you can reconstruct
+    what happened regardless of what the framework did internally.
+  professional: >-
+    Threat-model the framework as a trusted component in an autonomous loop. First, supply
+    chain: it's third-party code executing in your agent's critical path, so pin versions, vet
+    the source and its transitive dependencies, and treat upgrades as changes that can alter
+    behaviour, not just patches. Second, auditability: many frameworks inject their own system
+    prompts and drive their own loop, so 'what instructions is the model actually getting, and
+    why did it take this action' becomes a two-layer question — you have to audit your config
+    AND the framework's internals. For a regulated system that has to evidence its behaviour,
+    hidden prompt and loop machinery is a real gap. Third, lock-in: adopting the framework's
+    control-flow opinions makes exit expensive, which is a concentration and continuity risk.
+    Containment: keep the security-critical decisions — the tool allowlist, least-privilege
+    scoping, human-in-the-loop approval on consequential actions — in code you own rather than
+    delegating them to framework defaults; capture the actual execution trace as your own audit
+    evidence so it doesn't depend on the framework's observability; and preserve an exit path
+    by keeping your domain logic separable from the framework's conventions. The framework can
+    accelerate you; it does not own your accountability.
+  deep: >-
+    The governance-relevant property is that a framework moves part of the agent's behaviour
+    into code you didn't write and may not fully see, while your organization remains
+    accountable for what the system does. That splits into three controls. Provenance and
+    change: a version pin, a dependency review, and treating each upgrade as a behaviour change
+    subject to re-testing — because a framework upgrade can silently alter prompts, retries, or
+    stopping. Transparency: you need to be able to enumerate the actual prompts sent and the
+    actual actions taken, which means capturing the real trace at your boundary rather than
+    trusting the framework's summary — the hand-built loop in this repo logs exactly this, and
+    the point of the comparison is that the framework runs the same trace, just less visibly.
+    Bounded agency: the allowlist, permission scoping, and human-approval gates are the controls
+    that limit blast radius, and they should live in your code so they hold regardless of
+    framework defaults you didn't set. On regulation: nothing applies merely because you use a
+    framework — applicability depends on the system, your role, the use case, the data, and the
+    jurisdiction — but the framework determines the SHAPE of your evidence: whether you can show,
+    from your own logs and your own controls, what the system was permitted to do and what it
+    actually did. Lock-in is the quieter risk: the more control flow you cede, the harder it is
+    to change course, so keep domain logic separable and the exit costed.
+followUps:
+  - "A framework upgrade subtly changes the injected system prompt. How would you catch that before it ships?"
+  - "Where should the tool allowlist and human-approval gate live — your code or the framework's config — and why?"
+  - "What audit evidence do you keep so it survives a decision to migrate off the framework?"
+criticalThinking: false
+governanceAngle: >-
+  An agent framework is simultaneously a supply-chain dependency and a trust surface: it runs
+  third-party code in the critical path of an autonomous system and frequently ships prompts and
+  loop behaviour the adopter did not author, which maps onto the OWASP LLM Top 10 as
+  supply-chain risk (LLM03) and excessive agency (LLM08), and makes 'what exactly is the model
+  instructed to do' harder to audit for any compliance regime. Governance controls are the
+  engineering controls made auditable: version pinning and dependency vetting with upgrades
+  treated as behaviour changes; capturing the real execution trace at your own boundary as audit
+  evidence rather than trusting framework-internal observability; keeping least-privilege tool
+  scoping and human-approval gates in code you own so bounded agency holds regardless of
+  framework defaults; and costing the lock-in so control-flow dependence doesn't become a
+  continuity risk. No regulation applies merely because a framework is used — applicability
+  depends on the system, role, use case, data, and jurisdiction — but the choice determines the
+  shape of the evidence you can produce.
