@@ -1,0 +1,55 @@
+question: "You set temperature to 0 expecting identical outputs, but two calls with the same prompt differ. Why isn't temperature 0 fully deterministic, and what does that mean for testing?"
+concepts:
+  - sampling
+roles:
+  - engineer
+  - architect
+difficulty: deep
+answers:
+  beginner: >-
+    Temperature 0 makes the model always pick the highest-probability next token, so it removes the
+    randomness from sampling. But that's not the only source of variation. The scores the model
+    computes can differ slightly run to run because of how the math is done on the hardware — tiny
+    floating-point differences, different batching, different infrastructure — and when two tokens
+    are almost tied, a tiny difference flips which one wins, and the outputs diverge from there. So
+    temperature 0 means "no sampling randomness," not "guaranteed identical." For testing, don't
+    assert exact string matches; check the properties you actually care about.
+  professional: >-
+    Temperature 0 turns sampling into greedy selection — always take the top token — which eliminates
+    the deliberate randomness. What it doesn't eliminate is non-determinism in computing the scores.
+    The forward pass involves huge numbers of floating-point operations that aren't associative, so
+    the result depends on execution order, and that order can change with batch size, hardware,
+    kernel versions, and how requests are grouped on the server. Those produce minuscule differences
+    in the logits, which normally don't matter — but at a near-tie between two candidate tokens, a
+    tiny perturbation changes the argmax, the model emits a different token, and because generation is
+    autoregressive the divergence compounds for the rest of the output. Providers may also change
+    model versions or routing under you. The practical consequence: treat temperature 0 as "reduced
+    variance," not "reproducible." For testing, that means don't gate on exact-match unless you truly
+    control the whole stack; assert on structure and semantics — schema validity, required fields, an
+    LLM-judge or property check on meaning — and expect occasional divergence, especially on ambiguous
+    steps. Determinism you can rely on comes from pinning versions and, where offered, a seed, and even
+    then only within one serving environment.
+  deep: >-
+    The clean model is: temperature scales the logits before the softmax, and at 0 you take the argmax,
+    so you've removed the stochastic decode step entirely. Non-determinism that remains lives upstream,
+    in producing the logits. Floating-point addition isn't associative, so the same operations summed in
+    a different order give slightly different results, and the order is not fixed — it varies with the
+    batch a request lands in, tensor-parallel reduction order, kernel and library versions, and hardware.
+    Those perturbations are tiny, but argmax is a discontinuous function: wherever the top two tokens are
+    close, an epsilon-level change flips the selection, and autoregressive generation makes that a
+    branch point the rest of the sequence inherits, so one flipped token can yield a visibly different
+    completion. Add provider-side realities — silent model or routing changes, mixture-of-experts routing
+    that depends on batch composition — and "same prompt, same output" is a guarantee you don't actually
+    have. The testing implication is architectural, not cosmetic: exact-match assertions encode a false
+    assumption of determinism and will flake, so you write tests against the invariants that matter —
+    schema conformance, presence of required content, semantic equivalence via a judge or checks, bounded
+    numeric answers — and you reserve exact reproduction for a fully pinned environment with a fixed seed,
+    treating even that as environment-scoped. The deeper point is that a language model in production is a
+    stochastic-and-approximate component, and building reliable systems on it means testing distributions
+    and properties, not identities — temperature 0 narrows the distribution, it doesn't collapse it to a
+    point.
+followUps:
+  - "Why does a tiny floating-point difference in the logits sometimes change the output and usually not?"
+  - "What kinds of test assertions are robust to this, and which ones will flake?"
+  - "Where can a provider introduce variation you can't control even at temperature 0 with a seed?"
+criticalThinking: true

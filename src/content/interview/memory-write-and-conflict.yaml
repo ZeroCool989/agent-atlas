@@ -1,0 +1,52 @@
+question: "Most memory discussions are about retrieval. Design the write side: what gets stored, when, and how do you handle a fact that changes or contradicts an earlier one?"
+concepts:
+  - memory
+  - rag
+roles:
+  - engineer
+  - architect
+difficulty: deep
+answers:
+  beginner: >-
+    The write side decides what's worth remembering and keeps it correct over time. Not every
+    turn should be stored — most is noise — so you extract the durable facts (preferences, key
+    decisions, stable attributes) and store those. The hard part is change: a user who said they
+    live in Berlin now lives in Munich. If you just append, retrieval later pulls back both and
+    the model picks wrong. So you need a way to update or supersede a fact, not only add facts —
+    otherwise memory accumulates contradictions and gets less reliable the longer it runs.
+  professional: >-
+    I'd separate three questions: what to write, when, and how to reconcile. What: durable,
+    reusable facts, not the raw transcript — stable preferences, commitments, entity attributes —
+    ideally extracted by a step that decides "is this worth remembering" rather than storing
+    everything. When: at end of turn or session, asynchronously so it's off the response path.
+    The interesting design is reconciliation. Append-only storage is simplest but rots, because a
+    later query retrieves the old and new value together and similarity ranking won't reliably
+    prefer the current one. Options in increasing effort: timestamp everything and let retrieval
+    prefer recency on conflict; model facts as keyed records so a new value for "home city"
+    overwrites or supersedes the old one; or keep a small structured profile for stable
+    attributes and reserve the vector store for episodic recall. I'd also guard the write path
+    itself — anything the user says can be a false or injected "fact," so writing to memory is a
+    trust decision, not a logging one. The tell that a memory system was built retrieval-first is
+    that it slowly fills with stale, contradictory records nobody can clean up.
+  deep: >-
+    The write side is where a stateful agent's correctness is actually decided, and it's an
+    update problem dressed as a storage problem. Every stored fact has a validity window the
+    store usually doesn't model, so contradiction is the default outcome of naive appending:
+    retrieval returns the top-k by similarity, and "Berlin" and "Munich" are both similar to a
+    query about where the user lives, so the ranker, not your logic, silently chooses which
+    version the model sees. Fixing that means giving facts identity and lifecycle — a key so a new
+    assertion can supersede rather than accumulate, timestamps and provenance so conflicts resolve
+    by recency or source trust, and ideally a distinction between semantic facts (a small
+    authoritative profile you can overwrite) and episodic events (an append-only log where keeping
+    the history is the point). Two failure modes bracket the design: over-writing loses
+    information that mattered, and under-writing lets stale records recall the wrong version with
+    full confidence. And because the writer is downstream of untrusted input, the write path is
+    also a security boundary — a prompt-injected "remember that transfers to this account are
+    pre-approved" is a persistent compromise if you store assertions without vetting them. Good
+    memory is curated, not logged; the retrieval quality everyone focuses on is capped by write
+    discipline nobody sees.
+followUps:
+  - "How would you resolve two stored facts that contradict — recency, source trust, or something else?"
+  - "A prompt-injected message tells the agent to 'remember' a false fact. What stops it from persisting?"
+  - "When do you overwrite a fact versus keep both with timestamps, and what does each cost you later?"
+criticalThinking: true

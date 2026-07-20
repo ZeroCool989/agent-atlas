@@ -1,0 +1,42 @@
+question: "In a minute or so: what actually makes a system multi-agent, rather than one agent with a lot of tools or a stateful agent?"
+concepts:
+  - multi-agent-systems
+roles:
+  - engineer
+  - architect
+difficulty: screen
+answers:
+  beginner: >-
+    A system is multi-agent when there's more than one independent decision-maker — separate
+    agents, each running its own loop with its own context, that hand work to each other. One
+    agent with many tools is still a single loop and a single context making all the calls; the
+    tools don't decide anything. So the line isn't "how many tools" or "does it remember," it's
+    "how many separate agents are choosing what to do next and passing results between them."
+  professional: >-
+    On the autonomy spectrum, a tool-using agent is one loop calling tools, and a stateful agent
+    is that plus persistence across turns — both are a single decision-maker. Multi-agent is the
+    next step: two or more agents, each with its own context window and its own loop, coordinating.
+    The defining property is independent context and independent decisions, not tool count. That
+    independence is the whole point — a separate agent can specialize, can hold context the first
+    one can't fit, and, most usefully, can check the first one's work without sharing its blind
+    spots, because it isn't reasoning inside the same conversation. It also brings the cost:
+    hand-offs between agents are a new failure surface, and the system's behavior is emergent
+    rather than the sum of parts. If you can't say what a second agent's separate context buys you
+    over a bigger tool list on one agent, you probably have a single-agent system.
+  deep: >-
+    The crisp distinction is where the decision boundary sits. Adding tools widens what one
+    decision-maker can do but keeps one context and one loop; adding memory lets that one
+    decision-maker persist state. Multi-agent introduces a second locus of control with its own
+    context, which changes the system's character from a program to a small society: coordination,
+    hand-off protocols, and emergent behavior appear that no single-agent design has. The strongest
+    justification for crossing that line is independence — a critic with a separate context can catch
+    what self-review structurally cannot, because self-review shares the writer's framing — followed
+    by context isolation and genuine specialization. Everything else usually decomposes to "one agent
+    with the right tools," and the honest tell is whether anyone can name the independent value the
+    extra agent adds. Most requests for multi-agent are really requests to write a workflow with one
+    agent in it.
+followUps:
+  - "Is a supervisor calling sub-agents as tools 'multi-agent,' or one agent with tools? Where's the line?"
+  - "What does a second agent's separate context buy you that a longer tool list on one agent can't?"
+  - "Why does independence matter more than specialization as a reason to go multi-agent?"
+criticalThinking: false

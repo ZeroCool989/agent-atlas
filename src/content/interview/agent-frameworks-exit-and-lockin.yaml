@@ -1,0 +1,63 @@
+question: "Two years in, the framework your agent is built on is barely maintained and a security fix is stuck. What's your exit story, and what should you have done at adoption time to keep it cheap?"
+concepts:
+  - agent-frameworks
+roles:
+  - architect
+  - engineer
+  - consultant
+difficulty: deep
+answers:
+  beginner: >-
+    The exit is only as cheap as the seams you left. If your business logic — tools, prompts,
+    the actual task — lives behind your own interfaces and the framework just wires them
+    together, you swap the wiring and keep the work. If your logic is tangled through the
+    framework's abstractions, exit means a rewrite. So the answer at adoption time was to treat
+    the framework as replaceable scaffolding: keep tools, prompts, and domain logic in code you
+    own, and let the framework touch only the orchestration layer. The stuck security fix is the
+    reminder that adopting a framework means inheriting its maintenance and its risks.
+  professional: >-
+    First I'd triage the immediate problem: a stuck security fix means I either patch it myself
+    (fork or vendor the dependency), isolate the vulnerable path, or accept the risk with
+    compensating controls while I plan the exit — the same way I'd treat any unmaintained
+    dependency in a supply chain. The exit itself depends on a decision I made two years ago:
+    how much of the system speaks the framework's vocabulary versus my own. If tools, prompts,
+    memory access, and the task logic sit behind interfaces I control, and the framework only
+    orchestrates them, migration is bounded — I re-implement the loop or move to another
+    framework and re-wire. If instead the framework's state model, its hand-off conventions, and
+    its control flow are load-bearing throughout, its churn is now my rewrite. What I should have
+    done at adoption: build the loop by hand first so I understood what I was abstracting, keep
+    the framework at the orchestration boundary rather than letting it own my domain, pin and vet
+    it as a supply-chain dependency, and write end-to-end tests against my system's behavior — not
+    against framework internals — so a migration has a green bar to aim at.
+  deep: >-
+    This is the bill for a lock-in cost that was always present and just deferred. A framework
+    encodes opinions about the layers above the loop, and the deeper those opinions penetrate
+    your code, the higher your switching cost — that's the real trade you accepted, whether or
+    not you priced it. The architecture that keeps exit cheap is an inversion: your domain
+    (tools, prompts, evaluation, memory) is the stable core behind your own interfaces, and the
+    framework is a thin, swappable adapter on the orchestration edge. Then the framework becoming
+    unmaintained is a contained event — you replace an adapter — instead of an existential one.
+    The security angle sharpens it: an unmaintained framework is an unpatched trust surface
+    running your agent's logic, so the exit calculus isn't only cost, it's exposure, and the
+    compensating controls (isolating the vulnerable path, forking to patch, tightening
+    permissions around it) buy time but not safety. The honest lesson is that the essentiality
+    test doesn't stop at adoption: a framework has to keep earning its place, and you keep that
+    option open by never letting it become the thing you can't remove. The teams that migrate
+    cheaply are the ones who could always describe what the framework was abstracting, because
+    they built that layer themselves once.
+followUps:
+  - "What's the difference, at the code level, between a framework you can swap and one you can't?"
+  - "The stuck security fix is in the framework, not your code. What are your options before a full migration?"
+  - "How would you test that a migration to a different framework preserved behavior?"
+criticalThinking: true
+governanceAngle: >-
+  An agent framework is a third-party dependency that runs your agent's logic, so an unmaintained
+  one is a supply-chain and security-management concern, not just a productivity one: it maps onto
+  the OWASP LLM Top 10 supply-chain risk and onto the ongoing patch, vulnerability-management, and
+  dependency-review expectations of frameworks like ISO 42001 and the NIST AI RMF. Nothing binds a
+  team merely for using a framework — applicability depends on the system, role, use case, data, and
+  jurisdiction — but if the agent is in a regulated or safety-relevant setting, the auditable
+  controls are the same ones that keep exit cheap: a vetting-and-pinning record for the framework,
+  documented isolation of your domain logic from it, a plan for patching or replacing it, and tests
+  that let you prove behavior held across a migration. Lock-in is a governance liability because it
+  can leave you unable to remediate a known flaw on any reasonable timeline.

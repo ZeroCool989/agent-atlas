@@ -1,0 +1,54 @@
+question: "A plan-then-execute agent hits a step that fails or returns something unexpected. When should it re-plan versus push on, and how do you keep re-planning from looping forever?"
+concepts:
+  - planning
+roles:
+  - engineer
+  - architect
+difficulty: deep
+answers:
+  beginner: >-
+    Re-plan when reality no longer matches the plan — a step failed, or it returned something that
+    makes the rest of the plan wrong — and push on when the failure is local and recoverable, like a
+    retryable error the current step can handle. The danger is looping: the agent re-plans, the new
+    plan hits the same wall, it re-plans again. You prevent that with hard caps — a limit on total
+    steps and a limit on how many times it may re-plan — so a task no plan can rescue ends as failed
+    instead of running forever.
+  professional: >-
+    The trigger for re-planning is divergence between the plan's assumptions and what execution
+    actually revealed: a step failed in a way the step itself can't recover, or it succeeded but
+    returned information that invalidates later steps. If the failure is local and retryable, the step
+    handles it and the plan stands; re-planning is for when the plan is wrong, not when a call flaked.
+    The looping risk is the real design problem, because a planner that can re-plan can also
+    re-plan into the same dead end. I'd bound it on multiple axes: a global step cap, a separate
+    re-plan cap, and ideally a check that the new plan differs meaningfully from the failed one — if
+    the agent keeps producing the same plan, more attempts won't help. I'd also make failure a
+    first-class outcome: when the caps are hit, the agent reports "couldn't complete this" honestly
+    rather than looping or fabricating success. The subtle trap is that re-planning masks a task the
+    system fundamentally can't do — it burns time and money looking busy — so the caps aren't just
+    safety rails, they're what force the system to fail fast and legibly.
+  deep: >-
+    Re-planning is what lets a plan-then-execute agent adapt instead of executing a stale plan to the
+    end, and the decision hinges on distinguishing three cases at a failed step: recoverable-local (the
+    step retries or degrades, plan intact), plan-invalidating (execution surfaced something that makes
+    the remaining plan wrong, so re-plan from the new state), and unrecoverable (no plan from here
+    succeeds, so stop). Getting that classification right is most of the value; treating every failure
+    as a re-plan trigger is how you get the loop, and treating none as one is how you get an agent
+    marching a broken plan off a cliff. Bounding the loop needs more than a single counter: a total step
+    budget caps absolute work, a re-plan budget caps thrash specifically, and a progress or novelty check
+    catches the case where the agent re-plans into a plan it already tried — because a confidently wrong
+    planner will happily regenerate the same decomposition. This is where planning's signature failure —
+    committing real time and money to a flawed plan — meets its containment: the caps convert an
+    open-ended agentic loop into something with bounded wrongness, which is exactly the property a
+    deterministic workflow gets for free. So the honest framing is that re-planning buys adaptivity at the
+    price of a new way to loop, and you only earn the adaptivity if you've also built the bounds and the
+    honest-failure exit; without them, a fixed workflow isn't just simpler, it's safer.
+followUps:
+  - "How do you tell a recoverable step failure from one that invalidates the whole plan?"
+  - "Beyond a step counter, what stops the agent from re-planning into the same failed plan?"
+  - "What should the agent do when it hits the re-plan cap, and why does that matter more than it sounds?"
+criticalThinking: true
+practicalExample: >-
+  The plan-then-execute harness in this repo (src/lib/planning/plan-execute.ts) makes this concrete: it
+  re-plans around a recoverable failure but is bounded by both a step cap and a separate re-plan cap, so a
+  task no plan can rescue terminates as an honest failure instead of looping — the containment discipline
+  the deep answer describes, in ~one file you can read end to end.

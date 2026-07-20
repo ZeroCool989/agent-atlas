@@ -1,0 +1,42 @@
+question: "A new hire asks why the team hand-rolled its agent loop instead of starting with a framework. Give the short version."
+concepts:
+  - agent-frameworks
+roles:
+  - engineer
+  - architect
+difficulty: screen
+answers:
+  beginner: >-
+    Because the loop is small and we wanted to own it. A tool-using agent is a short cycle:
+    send the prompt, read the model's tool call, run the tool, feed the result back, repeat
+    until it answers. That's a few dozen lines. Writing it ourselves means we can read every
+    step when something breaks, instead of debugging our logic and a framework's internals at
+    the same time. A framework is worth reaching for once we need orchestration it does well,
+    not to get a loop we could write in an afternoon.
+  professional: >-
+    A framework is scaffolding over the same loop, not a new capability, so we start by owning
+    the thing it would abstract. The loop itself is the model call, a tool registry, a step
+    cap, and a way to thread results back in — small enough that the whole team can hold it in
+    their head. Building it first means two things: we understand what any framework we later
+    adopt is actually doing, and when a run misbehaves we're debugging one layer we wrote
+    rather than our code plus a dependency's opinions about state, hand-offs, and resumption.
+    We'd adopt a framework when its conventions genuinely save more than they cost — real
+    graph or multi-agent orchestration shared across a team — after the hand-built version has
+    taught us where the seams are.
+  deep: >-
+    The short version rests on an essentiality test the whole atlas applies: an abstraction has
+    to earn its place. The agent loop is the mechanism; a framework encodes someone else's
+    choices about the layers above it — how state is threaded, how multi-agent hand-offs work,
+    how a run resumes after a crash. Those choices are valuable exactly when they match the
+    shape of your problem and pure overhead when they don't. Hand-rolling first is how you find
+    out which case you're in without paying the framework's upgrade churn, lock-in, and
+    added-trust surface up front. It also keeps the debugging story honest: a hand-built loop
+    fails in code you can read, where a framework failure means understanding your logic and
+    the framework's at once. So the answer to the new hire is that we bought understanding and
+    debuggability cheaply, and we'll spend on a framework only when the orchestration it
+    provides is something we'd otherwise build and maintain ourselves.
+followUps:
+  - "What's the smallest set of pieces a hand-built tool-using agent actually needs?"
+  - "Name one thing a framework does well enough that you'd stop hand-rolling and adopt it."
+  - "How does hand-building first change how you'd evaluate a framework later?"
+criticalThinking: false

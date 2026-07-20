@@ -1,0 +1,56 @@
+question: "Someone proposes a five-agent supervisor/worker design. Estimate how its cost and latency compare to a single agent, where the blow-up comes from, and whether it's justified."
+concepts:
+  - multi-agent-systems
+  - cost-engineering
+roles:
+  - architect
+  - consultant
+  - engineer
+difficulty: deep
+answers:
+  beginner: >-
+    It's usually several times more expensive and slower, and people underestimate by how much.
+    Each agent runs its own loop with its own model calls, and the supervisor spends calls just
+    coordinating — deciding who does what and merging results. So five agents isn't one call, it's
+    the supervisor's calls plus each worker's whole loop, and every hand-off adds a round-trip of
+    latency. It's justified only if those extra agents buy something a single agent genuinely
+    can't — independent checking, or context that won't fit in one window — not just a task split
+    for tidiness.
+  professional: >-
+    I'd estimate from the loop structure, not the agent count. A single tool-using agent costs its
+    own loop of model calls. A supervisor/worker system costs the supervisor's coordination calls
+    (delegate, then merge, sometimes re-delegate) plus each worker running its own multi-step loop
+    on its own context. So the multiplier is roughly the number of agents that actually run times
+    their average loop length, plus supervision overhead — commonly a large single-digit to low
+    double-digit multiple of the single-agent cost, and worse if the supervisor re-delegates. Latency
+    behaves differently: workers that run in parallel add latency once, but any serial dependency —
+    supervisor waits for research before drafting, waits for draft before verifying — makes the
+    critical path the sum of those stages plus each hand-off, so a "five-agent" system that's really
+    a pipeline is as slow as its chain. Where it's justified: when the task truly exceeds one agent —
+    an independent critic catching what self-review can't, context too big for one window, genuinely
+    different kinds of work. Where it isn't: when the subtasks are one coherent job split for
+    aesthetics, in which case you've bought a multiplied bill and a new failure surface for nothing.
+    I'd want the proposer to name, per agent, what independent value it adds — if they can't, it's a
+    workflow with delusions of grandeur.
+  deep: >-
+    The cost model that matters is total tokens across all loops, and multi-agent multiplies every
+    term at once: more agents means more loops, each loop re-sends its own growing context each turn,
+    and the supervisor pays to decompose and to recompose. That's why a naive five-agent design often
+    lands near an order of magnitude over a single agent rather than five times — the count multiplies
+    the per-agent loop cost, and re-delegation compounds it. Latency splits into two regimes worth
+    separating explicitly: parallelizable work hides latency (fan out, wait for the slowest), but any
+    serial data dependency serializes it, and hand-offs add fixed round-trips regardless. So the design
+    question is which stages are truly independent versus a chain wearing a supervisor's hat. Against
+    that cost you weigh what only independence buys — and the honest accounting is that context
+    isolation and specialization are often achievable on one agent with the right tools, so the
+    load-bearing justification is usually independent verification, which is genuinely worth real money
+    on a task where a wrong answer is expensive. The discipline is to price it: estimate the token
+    multiple and the critical-path latency before building, gate the workers under step and
+    re-delegation caps so the bill can't run away, and make the proposer defend each agent's marginal
+    value. If the only answer is "it's cleaner to split it up," a single agent or a deterministic
+    workflow wins on cost, latency, and testability together.
+followUps:
+  - "Which parts of a supervisor/worker run can be parallelized, and which force the critical path to be serial?"
+  - "How would you cap the cost of a system where the supervisor can re-delegate?"
+  - "The proposer says the split is 'cleaner.' What would convince you it's worth a 10x bill instead?"
+criticalThinking: true

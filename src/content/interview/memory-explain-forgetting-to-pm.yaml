@@ -1,0 +1,47 @@
+question: "A product owner asks why the assistant 'forgets' between sessions and whether adding memory will fix it. Explain it and set expectations."
+concepts:
+  - memory
+  - context-windows
+roles:
+  - product
+  - consultant
+  - engineer
+difficulty: screen
+answers:
+  beginner: >-
+    The model doesn't have a memory of its own — each call starts fresh, and it only knows what
+    we put into that call. Within one session it looks like it remembers because we resend the
+    recent conversation every turn. Between sessions there's nothing to resend, so it forgets.
+    Adding memory means we store important facts ourselves and pull the relevant ones back into
+    the next prompt. It'll make the assistant feel continuous, but it won't make the model
+    smarter — it's about what we feed in, not the model learning.
+  professional: >-
+    What the product owner is seeing is a stateless model. Every request is independent; the
+    only reason it seems to remember within a chat is that we resend the recent turns each time.
+    Once a session ends, we stop resending and the continuity is gone. Memory is the engineering
+    fix: store the conversation and the facts worth keeping, and on the next session retrieve the
+    relevant ones back into the prompt. That will fix the "it forgot who I am" complaint. What it
+    won't fix, and I'd set this expectation clearly, is anything that's actually a capability or
+    accuracy problem — memory supplies context, it doesn't teach the model or make it reason
+    better. It also isn't free: storing user history is a personal-data surface with retention
+    and deletion obligations, and retrieval can pull back a stale or wrong fact and state it
+    confidently. So yes, memory fixes forgetting; it's a real subsystem, not a toggle, and it
+    solves continuity, not competence.
+  deep: >-
+    The clean framing for a product conversation is that the model is a pure function of its
+    input, and "memory" is an external state system we build around it. Two layers do different
+    jobs: working memory (resending recent turns, compacting the oldest into a summary) creates
+    continuity inside a session, and long-term memory (storing, embedding, and retrieving past
+    facts) creates continuity across sessions — mechanically that second layer is retrieval
+    pointed at our own transcript. Turning a stateless model into something that persists is what
+    moves us from a plain tool-using agent toward a stateful one, and that's the capability the
+    product owner actually wants. The expectations to set are the trade-offs that come with it:
+    retrieval quality caps how useful memory is, so bad recall means it "remembers" the wrong
+    thing; a summary is lossy, so it can drop the exact detail a user later asks for; and the
+    store is both an injection channel back into the prompt and regulated personal data. Memory
+    is the right answer to forgetting and the wrong answer to "make it better at the task."
+followUps:
+  - "Why does the assistant seem to remember within one chat but not across chats?"
+  - "If the complaint is 'it keeps getting facts wrong,' would memory help?"
+  - "What new obligations do we take on the moment we start storing user history?"
+criticalThinking: false

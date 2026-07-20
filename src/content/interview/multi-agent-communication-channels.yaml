@@ -1,0 +1,50 @@
+question: "How do agents in a multi-agent system actually pass information — shared blackboard versus message passing versus direct hand-off — and what are the failure modes of each?"
+concepts:
+  - multi-agent-systems
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    There are a few ways. A shared blackboard is a common workspace every agent can read and
+    write — simple, but agents can overwrite each other or read stale state. Message passing is
+    agents sending explicit messages to each other — cleaner ownership, but messages can pile up,
+    get lost, or be misread. Direct hand-off is one agent calling another and waiting for a
+    result, like a function call — easy to follow, but it serializes the work and one slow agent
+    blocks the chain. The channel you choose shapes where the system breaks.
+  professional: >-
+    Three common shapes. Shared state (a blackboard or scratchpad all agents read and write) is
+    easy to reason about and lets agents build on each other, but it has concurrency hazards —
+    one agent overwriting another's entry, agents acting on stale reads, and unclear ownership of
+    who's responsible for a given fact. Message passing (agents exchange explicit, addressed
+    messages) gives clear provenance and decoupling, but you inherit queueing problems: backlog,
+    ordering, dropped or duplicated messages, and agents talking past each other because a message
+    meant one thing to the sender and another to the receiver. Direct hand-off (a supervisor calls
+    a worker and awaits its return, effectively a typed function call) is the most predictable and
+    the easiest to trace, at the cost of serialization and tight coupling — the caller waits, and a
+    worker that loops or stalls stalls the caller. Across all three, the real failure surface is the
+    hand-off itself: did the receiving agent get everything it needed, in a form it understood, and
+    did its output merge back correctly. That's why you instrument the channel, not just the agents.
+  deep: >-
+    The communication channel is where multi-agent systems actually fail, so I treat it as the
+    primary design decision, not an implementation detail. Shared state maximizes flexibility and
+    minimizes structure, which means it also maximizes emergent hazards — race conditions between
+    agents, stale reads, and the ambiguity of a fact with no owner; it's the pattern where "the
+    agents talked past each other" is hardest to debug because there's no explicit exchange to
+    inspect. Message passing trades flexibility for legibility: every exchange is a discrete,
+    inspectable artifact, which is exactly what you want for attributing a failure, but you take on
+    distributed-systems problems (ordering, loss, duplication, backpressure) and the semantic gap
+    where a well-formed message still carries the wrong meaning. Direct hand-off is the most
+    testable because it's essentially a structured call with a contract, but it serializes and
+    couples, so it doesn't scale to genuinely parallel or peer-to-peer work. The unifying point is
+    that a multi-agent system's behavior is emergent from these exchanges, so whichever channel you
+    pick, the non-negotiable is instrumentation at every hand-off — the message, the sender, the
+    receiver, and whether composition merged cleanly — so a failure lands on a specific exchange
+    instead of "the system did something weird." Choose the most constrained channel the task
+    tolerates, because constraint is what makes emergent behavior debuggable.
+followUps:
+  - "Which channel would you pick for a supervisor/worker system, and which for peer agents that critique each other?"
+  - "How would you instrument a shared blackboard so you can tell who wrote a stale or wrong entry?"
+  - "Two agents 'talked past each other' and produced a bad merge. Which channel makes that easiest to diagnose, and why?"
+criticalThinking: false

@@ -1,0 +1,47 @@
+question: "Frameworks advertise checkpointing and durable state so an agent can pause and resume. How does that actually work, and what breaks when you resume?"
+concepts:
+  - agent-frameworks
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Checkpointing means the framework saves the run's state — the message history, which step
+    you're on, any variables — to a store after each step, so a crashed or paused run can be
+    reloaded and continued. It works well for the parts that are just data. It breaks on the
+    parts that aren't: side effects already committed to the outside world, tool results that
+    have gone stale, and anything the model's plan assumed is still true. Resuming replays your
+    state, not the world.
+  professional: >-
+    Under the hood a checkpoint is a serialized snapshot of the loop's state after a step:
+    conversation history, cursor into the plan or graph, and whatever scratch variables the
+    framework tracks, written to a store keyed by a thread id. Resume reloads that snapshot and
+    re-enters the loop. The failure modes are all about the gap between saved state and reality.
+    First, side effects: if the agent charged a card or sent an email before the checkpoint,
+    replaying from an earlier point can repeat it, so effectful tools need idempotency keys, not
+    just a checkpoint. Second, staleness: a tool result saved an hour ago may no longer hold,
+    and the model will act on it as current. Third, non-serializable state — open connections,
+    in-memory caches, a tool handle — doesn't survive the round-trip and has to be rebuilt.
+    Fourth, version skew: if the prompt, tool schema, or framework changed between save and
+    resume, the reloaded state may not mean what it did. Checkpointing gives you durable data;
+    it does not give you a durable world.
+  deep: >-
+    Durable state is what turns a tool-using agent into a stateful agent that can outlive a
+    single process, and it's genuinely useful — but the abstraction hides that it snapshots your
+    side of the boundary and nothing on the other side. The precise question at resume is
+    whether every action the run will now re-take is safe to re-take given what already happened.
+    That decomposes into replay safety (are effectful calls idempotent or replay-guarded so a
+    re-execution doesn't double-charge), freshness (are cached observations still valid, or does
+    resumption need to re-fetch), and semantic stability (do the saved messages still mean the
+    same thing under the current prompt, tool schemas, and model). A framework's checkpoint layer
+    handles serialization and threading for you, which is real work saved, but it can't answer
+    any of those three for your domain — those are invariants you have to design and, ideally,
+    test by killing a run mid-effect and resuming it. The trap is treating "durable state,
+    solved" as a checkbox: the framework made the state durable, and left the correctness of
+    resuming it entirely to you.
+followUps:
+  - "An agent charged a customer, then crashed before the checkpoint. What happens on resume, and how do you make it safe?"
+  - "Which parts of an agent's state typically can't be serialized, and how do you rebuild them?"
+  - "How would you detect that a resumed run is acting on stale tool results?"
+criticalThinking: true

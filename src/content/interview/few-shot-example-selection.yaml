@@ -1,0 +1,49 @@
+question: "You've decided to use few-shot examples. How do you choose which ones to include, and do their order and format actually matter?"
+concepts:
+  - few-shot-prompting
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Pick examples that look like the real inputs you'll get and that cover the range of cases,
+    including the tricky ones and the edge cases, not just the easy path. Keep the format of the
+    examples identical to what you want the output to look like, because the model copies the
+    pattern it sees. Order does matter more than people expect — models can lean toward patterns
+    near the start or end — so don't put all of one category together, and test with the examples
+    shuffled to make sure you're not depending on a lucky arrangement.
+  professional: >-
+    Selection is about coverage and representativeness. The examples should match the distribution
+    of real inputs and span the classes or shapes of answer you care about, with deliberate
+    inclusion of the hard and boundary cases, because the model generalizes from what you show it —
+    if every example is the easy path, it'll fumble the hard one. Format consistency is doing a lot
+    of quiet work: the examples define the output contract by demonstration, so ragged formatting
+    across examples teaches ragged output. Order effects are real — position influences the model,
+    and a run of same-label examples can bias it toward that label — so I'd avoid clustering by
+    category and I'd check sensitivity by permuting the order and seeing if the answer moves. There's
+    also a static-versus-dynamic choice: a fixed set is simple and testable; selecting examples per
+    query by similarity to the input (retrieval-based few-shot) can lift quality but adds a retrieval
+    dependency and its failure modes. And every example spends context budget, so more isn't free —
+    past a point you're paying tokens for examples that no longer change the answer.
+  deep: >-
+    The rigorous way to think about example choice is that few-shot examples are a demonstration of
+    the input-output mapping, so their job is to disambiguate the task, not to teach it — the model
+    already has the capability, the examples pin down which behavior you want. That reframes selection
+    as covering the decision boundary: the examples that matter are the ones near cases the model
+    would otherwise get wrong, which is why edge and near-miss cases earn their slots over redundant
+    easy ones. It also explains the sensitivities. Order and formatting matter because the model is
+    pattern-completing over the whole prompt, so positional bias and a consistent output template are
+    part of the signal you're sending, not cosmetics — and a set that only works in one order is
+    brittle, so permutation testing is how you find that out before production does. Dynamic selection
+    (retrieve the k most similar examples per query) trades a fixed, auditable prompt for
+    input-adaptive relevance, which helps on diverse inputs but inherits retrieval quality as a cap and
+    makes behavior harder to reproduce. And because examples consume the same budget as everything else,
+    selection is also a cost decision — the honest test is whether removing an example changes an eval
+    outcome; if it doesn't, it's paying rent for nothing. You validate all of this the same way you
+    validate any prompt change: with a held-out eval, not by eyeballing a few cases.
+followUps:
+  - "Why might all-easy examples make the model worse on the hard cases, and how would you catch that?"
+  - "When is per-query example retrieval worth the added dependency over a fixed set?"
+  - "How would you test whether your prompt is over-sensitive to example order?"
+criticalThinking: false

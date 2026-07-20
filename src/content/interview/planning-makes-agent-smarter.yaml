@@ -1,0 +1,48 @@
+question: "A product manager says adding a planning step will make the agent 'smarter' at a task it currently gets wrong. Is that the right expectation? Answer in about a minute."
+concepts:
+  - planning
+roles:
+  - product
+  - consultant
+  - engineer
+difficulty: screen
+answers:
+  beginner: >-
+    Not quite. Planning changes how the agent organizes a task — it breaks a goal into steps before
+    acting — but it doesn't make the model better at the underlying work. If the agent gets the task
+    wrong because it lacks a capability, the right information, or the right tools, planning won't fix
+    that; it'll just produce a tidy plan that's still wrong, and execute it confidently. Planning helps
+    when the problem is structure — the steps depend on what earlier steps reveal — not when the
+    problem is competence.
+  professional: >-
+    I'd gently separate two things the PM is merging. "Smarter" usually means the agent is failing at
+    the task itself, and planning is orchestration, not capability — it decides the order of operations,
+    it doesn't improve the operations. So if the failure is a missing tool, missing context, or the model
+    being over its head, a planner adds cost and latency and gives you a confident wrong plan executed to
+    completion, which is often worse than a quick wrong answer. Where planning genuinely helps is a
+    different failure: the task is multi-step and the right sequence isn't knowable up front, so the agent
+    needs to decide the next step based on what earlier steps discovered. I'd ask what the current failures
+    actually look like. If they're "it did the steps in a dumb order" or "it didn't realize it needed to
+    look something up first," planning may help. If they're "it got the facts wrong" or "it can't do this
+    kind of reasoning," the fix is better tools, retrieval, or a different model — and possibly a fixed
+    workflow, not a planner at all. The category error is expecting an orchestration layer to buy
+    capability.
+  deep: >-
+    The expectation conflates the two axes an agent can improve on: capability (can the model do the work)
+    and control flow (in what order, decided how). Planning acts only on the second. On the autonomy
+    spectrum it's a way of structuring a multi-step run, and its whole value proposition is contingency —
+    handling tasks where the sequence depends on runtime discoveries. It does nothing for a capability gap,
+    and it actively raises the stakes when the underlying agent is confused, because a planner can commit to
+    a flawed decomposition and spend real time and money executing it before anyone notices, where a greedy
+    agent fails early and cheaply. So the diagnostic question is what the current wrong answers are made of.
+    Wrong-because-disordered or wrong-because-it-didn't-sequence-a-lookup is a planning-shaped problem;
+    wrong-because-it-lacks-the-facts-or-the-reasoning is a tools, retrieval, prompt, or model problem, and
+    dressing it in a planner just makes it wrong more expensively. The honest framing for the PM is that
+    planning is worth adding when the task's control flow is genuinely contingent and you can afford
+    checkpoints — and that most "make it smarter" requests are really capability requests wearing an
+    orchestration costume.
+followUps:
+  - "What kind of current failure would actually point toward planning as the fix?"
+  - "Why can a planner make a confused agent's mistakes more expensive rather than less?"
+  - "If the real problem is a capability gap, what would you reach for instead?"
+criticalThinking: true

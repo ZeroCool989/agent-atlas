@@ -1,0 +1,55 @@
+question: "Prompt caching is pitched as a cheap win for LLM cost. How does it actually work, when does it save real money, and when does it not?"
+concepts:
+  - cost-engineering
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Prompt caching lets the provider reuse the work it already did on a repeated chunk of prompt
+    instead of reprocessing it every call. If the start of your prompt — a big system prompt, a
+    fixed instruction block, shared context — is identical across calls, the cached part is billed
+    at a lower rate and is faster. It helps when you send the same large prefix over and over. It
+    doesn't help when your prompts are all different, when the repeated part is small, or when the
+    thing that varies is near the front, because caching typically works on a stable prefix — change
+    something early and everything after it has to be reprocessed.
+  professional: >-
+    Mechanically, processing the input tokens (the prefill) is real compute, and if a prefix of the
+    prompt is byte-for-byte identical to a recent call, the provider can reuse that computed state and
+    charge the cached portion at a reduced rate, usually with a latency benefit too. So the savings are
+    proportional to how much of your prompt is a large, stable, repeated prefix. It pays off in exactly
+    the shapes where that's true: a long system prompt or tool-definition block reused across every
+    request, a shared document or few-shot set held constant while only the user's question changes,
+    or an agent loop that re-sends a growing-but-stable history each turn. It doesn't pay when prompts
+    are mostly unique per call, when the reused part is small relative to the variable part, or —
+    critically — when the variable content sits early in the prompt, because caching keys on the prefix:
+    anything after the first difference can't be reused, so putting user-specific text before your stable
+    instructions defeats it. There can also be a write cost or short time-to-live, so caching a prefix
+    you won't reuse soon can cost more than it saves. The design move is to order the prompt for it:
+    stable content first, variable content last, which is the same structure you'd want for clarity
+    anyway. And it's a cost-and-latency lever, not a quality one — it changes the bill, not the answer —
+    so I'd reach for it after I've diagnosed where the tokens actually go, not as a reflex.
+  deep: >-
+    Prompt caching monetizes the structure of the prompt, so reasoning about it is really reasoning about
+    the input-token term of the cost equation and where the reuse boundary falls. Prefill is the compute
+    to ingest input tokens before generation; caching stores the intermediate state for a stable prefix
+    and replays it, billing those tokens at a discount and skipping their latency. The consequence that
+    trips teams up is that it's prefix-scoped: the reusable unit is the longest identical leading segment,
+    so the position of your variable content is the whole game. Stable-then-variable ordering — system
+    prompt, tool schemas, shared context up front; the per-request question last — maximizes the cached
+    span, while a single early-varying token (a timestamp, a user id, a per-call preamble) invalidates the
+    cache for everything after it and quietly erases the benefit. So the highest-leverage cases are large
+    fixed preambles amortized over many calls and long agent loops that resend a stable history, and the
+    non-cases are high-cardinality, mostly-unique prompts, tiny prefixes, or workloads too sparse to hit
+    the cache's time-to-live before it expires, where the write overhead can even be net-negative. Two
+    honest boundaries: caching optimizes cost and latency, not correctness, so it belongs to the "cut the
+    bill without touching quality" toolkit and should be validated the same way — confirm the answer
+    didn't change — and it's a lever to apply after diagnosis, because reaching for it before you know the
+    tokens are dominated by a reusable prefix is the premature-optimization trap in a new costume. Used
+    right it's close to free savings; used reflexively it's effort spent on a term that wasn't the problem.
+followUps:
+  - "Why does putting a per-request timestamp at the top of the prompt defeat caching?"
+  - "How would you structure a prompt to maximize the cached prefix, and does that conflict with anything else you want?"
+  - "When would caching cost you money instead of saving it?"
+criticalThinking: false
