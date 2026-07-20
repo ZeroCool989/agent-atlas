@@ -1,0 +1,54 @@
+question: "What is a voice agent, and how does the speech-to-text → agent → text-to-speech pipeline work (and what does end-to-end speech-to-speech change)?"
+concepts:
+  - voice-agents
+  - tool-calling
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    A voice agent is an ordinary agent wrapped in speech. The classic version is a pipeline: speech-to-text
+    transcribes what you said, the agent — a normal tool-calling or workflow agent — decides what to do with
+    that text, and text-to-speech reads the reply back to you. So it's the same agent you'd build for a chat
+    box, with a microphone bolted to the input and a speaker bolted to the output. Newer end-to-end
+    speech-to-speech models collapse those three stages into one model that hears audio and emits audio
+    directly, which cuts latency but removes the clean text seams in the middle.
+  professional: >-
+    Mechanically there are two shapes. The cascaded pipeline is three stages in series: ASR (audio →
+    transcript), the agent (transcript → reply, unchanged from a text agent — same tool calling, same
+    context), and TTS (reply → audio). Each stage is a separate model with its own latency and its own error
+    mode, and they compose in order. The end-to-end speech-to-speech shape replaces all three with a single
+    speech-native model: audio in, audio out, no intermediate transcript. The trade is real: end-to-end wins
+    on latency and can preserve tone and prosody, but you lose the inspectable transcript — the place where
+    you'd log, redact, apply guardrails, or let the user correct a misrecognition — and you often lose easy
+    access to tools. The load-bearing point for either shape is that voice is a real-time systems problem, not
+    just a model problem: you're on a latency budget of a few hundred milliseconds, you have to detect when
+    the user stopped talking (endpointing) and when they start again over you (barge-in), and in the cascaded
+    version an error in an early stage silently poisons everything after it.
+  deep: >-
+    The right frame is: the agent in the middle is the SAME agent as a text agent — that equivalence is
+    load-bearing, because everything the tool-calling lesson says about the runtime owning validation, bounds,
+    and tools transfers unchanged. What voice ADDS is a real-time perception/actuation channel around that
+    agent, and that channel is where all the new engineering lives. Three things stop being free the moment
+    the interface is speech. First, timing: humans expect a reply in roughly a few hundred milliseconds, and
+    endpointing delay + ASR + agent inference + TTS all add up in series, so you are always fighting a budget
+    the text version never had. Second, turn-taking: text has an unambiguous "send" button; speech does not,
+    so you must guess when the user is done (endpointing — too eager cuts them off, too patient feels laggy)
+    and you must handle the user talking over the agent (barge-in — stop speaking instantly and listen).
+    Third, error compounding: in a cascade, a mistranscription at ASR is invisible to the agent and TTS, which
+    do their jobs perfectly on the wrong input and produce a fluent, confident, wrong answer. End-to-end
+    speech-to-speech removes the seams between stages — fewer places to compound an error, but also fewer
+    places to inspect, log, or correct one. Neither shape makes voice "an agent with a voice"; both make it an
+    agent plus a hard real-time loop.
+followUps:
+  - "Where exactly does an ASR error go in a cascaded pipeline, and why can't the agent or TTS catch it?"
+  - "What do you gain and lose moving from a cascaded pipeline to an end-to-end speech-to-speech model?"
+  - "The agent in the middle is unchanged from a text agent — so what actually makes voice hard?"
+criticalThinking: false
+practicalExample: >-
+  The voice loop in this repo (src/lib/voice/loop.ts) runs the exact shape over a modeled turn: user speaks →
+  endpoint detected → ASR → agent → TTS → playback, accumulating the per-stage latency into an end-to-end
+  budget. The agent is a plain injected function (src/lib/voice/pipeline.ts), so swapping it for a real
+  tool-calling agent leaves the loop unchanged (ADR-0005); the fixtures in demo.ts show a mistranscription
+  cascading through the pipeline and a barge-in interrupting mid-response.

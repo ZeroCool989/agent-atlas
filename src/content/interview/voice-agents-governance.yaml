@@ -1,0 +1,69 @@
+question: "What is the governance and safety surface of a voice agent, and what does it add over a text agent?"
+concepts:
+  - voice-agents
+roles:
+  - governance
+  - architect
+  - engineer
+difficulty: deep
+answers:
+  beginner: >-
+    A voice agent adds several things a text agent doesn't have. It records people's voices, so you pick up
+    consent and recording obligations — in many places you have to tell people they're being recorded and
+    sometimes get agreement first. A voice is biometric data — it can identify a person — so voiceprints and
+    recordings are sensitive personal data with stricter handling rules. Speech is harder to log, search, and
+    review than text, so your audit trail is weaker. And the same TTS that reads answers aloud is a
+    voice-cloning tool: a realistic synthetic voice can impersonate someone or fool a human on a phone call. So
+    the safety surface is bigger than the model's answers — it's the audio itself.
+  professional: >-
+    Layer the risks. First, consent and recording: capturing audio triggers notice-and-consent obligations
+    that vary by jurisdiction and by one-party vs all-party rules, so "we record every call" is a legal
+    decision, not just a technical one. Second, voice as personal data: a voiceprint is biometric, which many
+    regimes treat as a special category with heightened requirements — data minimization, retention limits, a
+    lawful basis, and often explicit consent. Third, auditability: speech is genuinely harder to log, redact,
+    search, and review than text, so incident review and record-keeping are weaker unless you deliberately keep
+    transcripts — and keeping transcripts reintroduces a text record you then have to govern. Fourth,
+    impersonation and cloning: modern TTS can clone a voice from little audio, so a voice agent is both a
+    potential impersonation tool and a target for voice-spoofing attacks against any voice-biometric auth you
+    rely on. Fifth, the cascade's reliability risk becomes a safety issue: a mistranscription spoken back
+    confidently can mislead a user into a wrong action, which matters more in the phone/IVR contexts where
+    voice is common (banking, healthcare, support). The controls: explicit consent and clear disclosure that
+    the user is talking to an AI, minimize and time-limit retention of audio and voiceprints, keep an
+    inspectable transcript for audit where you can, require confirmation for consequential actions, and don't
+    lean on voice biometrics as a sole authenticator. Frameworks like the EU AI Act (transparency that you're
+    interacting with AI; human oversight and logging for higher-risk uses) and OWASP's LLM guidance
+    (prompt-injection and excessive-agency, which apply to the agent in the middle just as in any agent) are
+    the natural hooks — applicability depends on use case, sector, and jurisdiction, but the controls are both
+    the risk mitigation and the evidence you'll need.
+  deep: >-
+    The subtlety is that a voice agent's biggest governance exposure isn't the language model's outputs —
+    it's the audio channel wrapped around it. Text agents already have the agent-level risks (prompt injection,
+    excessive agency, wrong actions); voice inherits all of those unchanged and adds a category of its own:
+    biometric capture, consent, and synthetic-voice impersonation. Two of these are worth pushing on. Voice
+    cloning cuts both ways — your own TTS is an impersonation capability that could be misused, AND it means any
+    voice-biometric authentication is now attackable by synthesis, so treating "it sounds like them" as proof
+    of identity is unsafe. And the auditability gap is structural: the very move that makes voice feel natural
+    (end-to-end speech, no transcript) is the move that destroys your audit trail, so there's direct tension
+    between UX and governance that you resolve by deliberately keeping transcripts even when the pipeline
+    doesn't need them. The disclosure obligation is also sharper than in text: a realistic voice can make a
+    user forget they're talking to a machine, so "you are speaking with an automated assistant" is both an
+    honesty requirement and, under transparency-focused regulation, increasingly an explicit one. The honest
+    position: voice can be operated responsibly, but it comes with a consent-and-biometrics burden, an
+    impersonation risk, and a weaker audit trail that a text interface simply doesn't carry — and those are
+    reasons to keep text as the default and treat voice as a channel you adopt on purpose, with the controls in
+    place before you ship.
+followUps:
+  - "Why is voice biometric data treated more strictly than a text transcript, and what does that change operationally?"
+  - "Your TTS can clone a voice — what does that do to any voice-based authentication you were relying on?"
+  - "End-to-end speech-to-speech has no transcript. What's the governance cost, and how would you mitigate it?"
+criticalThinking: false
+governanceAngle: >-
+  A voice agent records people (consent and recording obligations that vary by jurisdiction), captures
+  voiceprints (biometric special-category personal data with minimization and retention duties), can clone
+  voices (impersonation risk, and a threat to any voice-biometric auth), and is harder to audit than text
+  (speech resists logging, redaction, and review). The EU AI Act's transparency expectation — that people know
+  they're interacting with AI — plus human-oversight and logging for higher-risk uses, and OWASP's
+  prompt-injection and excessive-agency guidance for the agent in the middle, are the natural hooks;
+  applicability depends on use case, sector, and jurisdiction, and the mitigations (explicit disclosure and
+  consent, minimized audio/voiceprint retention, a kept transcript for audit, confirmation on consequential
+  actions, and not trusting voice as sole authentication) are both the risk controls and the audit evidence.

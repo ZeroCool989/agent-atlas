@@ -1,7 +1,7 @@
 ---
 title: "Voice agents"
 layer: advanced-system
-oneLiner: "Wrap an agent in speech: transcribe audio in, synthesize audio out, and handle the real-time, interruption-heavy, latency-sensitive nature of conversation — a systems problem as much as a model one."
+oneLiner: "Wrap an agent in speech: transcribe audio in, run the same agent, synthesize audio out — and inherit a hard real-time problem of latency budgets, turn-taking, and errors that compound down the pipeline. Voice is a systems problem as much as a model one."
 prerequisites:
   - tool-calling
   - workflows-vs-agents
@@ -9,14 +9,205 @@ related:
   - memory
   - computer-use
   - failure-modes
-interviewTags: ["voice", "speech", "real-time", "agents", "latency"]
-status: stub
-updated: 2026-07-19
+governance:
+  - eu-ai-act
+  - gdpr
+  - owasp-llm-top-10
+interviewTags: ["voice", "speech", "real-time", "agents", "latency", "turn-taking", "asr", "tts"]
+status: complete
+verdict:
+  classification: situational
+  problem: "Some interactions are hands-free, eyes-free, or over a phone line — driving, a kitchen, a warehouse, an IVR, an accessibility need — where a screen and keyboard aren't available and the only channel is audio."
+  simplerBaseline: "A text interface over the exact same agent. Text is cheaper, more reliable, lower-latency, and leaves a clean written record to log and audit. If the user could just as easily type, they usually should — voice is a channel you adopt on purpose, not a default UX."
+  mainCost: "Voice bolts a hard real-time perception/actuation loop onto the agent: a few-hundred-millisecond latency budget, turn-taking you have to guess at (endpointing and barge-in), and — in the classic pipeline — errors that compound, where a mistranscription is spoken back confidently. It adds consent/recording duties, biometric voice data, cloning/impersonation risk, and a weaker audit trail."
+updated: 2026-07-20
 ---
 
-> **Stub** — planned territory on the atlas. This concept will cover: the speech-to-text →
-> agent → text-to-speech loop (and end-to-end speech models), why latency and turn-taking
-> (barge-in/interruption, endpointing) make voice a real-time systems problem, streaming vs
-> batch, error compounding across STT/LLM/TTS, and the honest "is it necessary?" (text is
-> cheaper, more reliable, and auditable — voice is for genuinely hands-free/accessibility
-> cases). It builds on Tool calling and Workflows vs agents.
+import VoiceAgentDemo from '../../../components/viz/VoiceAgentDemo';
+
+A **voice agent** is an ordinary agent wrapped in speech. The classic form is a pipeline of
+three stages in series: **speech-to-text** (STT / ASR) transcribes what the user said, **the
+agent** — a normal [tool-calling](/concepts/tool-calling) or [workflow](/concepts/workflows-vs-agents)
+agent, unchanged — decides what to do with that text, and **text-to-speech** (TTS) reads the
+reply back aloud. It is the same agent you would build for a chat box, with a microphone bolted
+to the input and a speaker bolted to the output. Newer **end-to-end speech-to-speech** models
+collapse those three stages into a single model that hears audio and emits audio directly.
+
+The temptation is to file voice under "an agent, but it talks." That misses the whole cost. The
+agent in the middle is identical to a text agent; what voice *adds* is a **real-time channel**
+around it — and that channel, not the model, is where all the new engineering lives.
+
+> **Mental model: a phone call, not a text thread.** On a text thread each side takes as long as
+> it likes and there's an unambiguous "send". On a phone call you must reply within a beat or the
+> line feels dead, you have to sense when the other person has finished so you don't talk over
+> them, and if you mishear one word you'll answer the wrong question with total confidence.
+> **Where the analogy breaks:** on a real call both people share the judgment to notice a
+> misunderstanding and back up. A cascaded voice agent has no such shared judgment — a
+> mistranscription at the first stage is invisible to every stage after it, so the system speaks
+> a fluent, confident, wrong answer and only the *human* can tell something went wrong.
+
+## What problem existed before this?
+
+Most agents assume a screen and a keyboard: the user types, reads the reply, sees buttons and
+menus that advertise what's possible. But a large class of interactions has no screen or no free
+hands. Someone driving, cooking, or working a factory floor can't type or look. A telephone or
+IVR channel is audio by definition — there is no DOM to render into. A user with a motor or
+vision impairment may not be able to use a keyboard or screen at all. For those, a text agent —
+however good — is simply the wrong shape: the interface it needs doesn't exist in that channel.
+
+## Why was this invented?
+
+To let people use an agent through speech, in the situations where speech is the only interface
+available — and to make that feel like a conversation rather than a walkie-talkie. Two model
+advances made it practical: speech recognition good enough to transcribe natural speech, and
+speech synthesis natural enough that a spoken reply doesn't grate. Wrap the ordinary agent loop
+between them and you get a system a person can *talk to* hands-free. The pull is real — a phone
+line, a car, an accessible assistant — but, as the rest of this page argues, the pull is the
+*channel's*, and the cost is the real-time loop you take on to serve it.
+
+## How does it work?
+
+The classic pipeline is STT → agent → TTS, three stages in series, each a separate model with its
+own latency and its own failure mode. Watch one spoken turn run. The user asks to move some
+money; ASR mis-hears one word; the agent faithfully acts on the wrong transcript; TTS speaks the
+wrong confirmation in a confident voice; and the user — hearing the mistake — barges in to stop
+it. Notice the latency budget filling as every stage adds delay, and the turn-taking state
+machine moving idle → listening → thinking → speaking:
+
+<VoiceAgentDemo client:visible />
+
+Each beat is one stage of the loop. **Listening**: voice-activity detection hears the user begin.
+**Endpointing**: the system decides the user has *stopped* — a guess made from trailing silence,
+and the first slice of the latency budget. **ASR**: audio becomes a transcript, which from now on
+is the agent's only source of truth. **Agent**: the transcript becomes a reply (the same
+tool-calling loop as any agent). **TTS**: the reply becomes audio. **Playback**: the user finally
+hears something — the perceived latency is the *sum* of everything above. Then either the agent
+finishes, or the user **barges in** and it must stop instantly and listen. The mechanism is the
+deterministic loop in this repo (`src/lib/voice/`): a pipeline of pure stage functions, a
+turn-taking state machine, and a latency accumulator, with the agent injected as a plain function.
+Swap that function for a real agent and the loop is unchanged — that substitution is the point of
+ADR-0005. (The per-stage latencies in the visual are *illustrative teaching numbers*, not measured
+benchmarks; real figures depend on the models, hardware, network, and audio length.)
+
+**End-to-end speech-to-speech** replaces all three stages with one speech-native model: audio in,
+audio out, no intermediate transcript. It cuts latency and can preserve tone and prosody — but it
+removes the clean text seams in the middle, which is exactly where you would otherwise log, redact,
+apply a guardrail, or let the user correct a misrecognition. It's a different trade, not a free win.
+
+## Is it actually necessary?
+
+Only when the channel forces it. If the user has a screen and free hands, a text interface over
+the same agent is almost always the better system — cheaper, more reliable, lower-latency, and
+auditable. Voice is necessary precisely when text is unavailable or worse: hands-free/eyes-free
+contexts, telephony/IVR where the channel *is* audio, and accessibility needs. Treat "we shipped
+voice" as a decision you can defend from the use case, never as a default because it demos well.
+
+## What are the trade-offs?
+
+You gain a hands-free, screen-free way to reach the agent, and you pay in four currencies. **Time:**
+humans expect a reply in roughly a few hundred milliseconds, and endpointing + ASR + agent + TTS
+all add up in series, so you're always fighting a budget the text version never had. **Reliability:**
+ASR mistranscribes, and in a cascade that error is invisible downstream — the agent and TTS do
+their jobs perfectly on the wrong input and produce a confident, fluent, wrong answer. **Ambiguity:**
+speech has no unambiguous "send", so you must *guess* turn boundaries. **Auditability:** speech is
+harder to log, search, redact, and review than text, and you now have recordings to govern. Where a
+text typo is one the user sees and fixes, a mistranscription is one the agent acts on and speaks
+back — which is why anything consequential needs an explicit spoken confirmation, eroding the very
+naturalness voice was supposed to provide.
+
+## What complexity does it introduce?
+
+A soft-real-time system around the agent, with parts a text agent never needs. **Endpointing:** a
+tunable trade with no right answer — aggressive lowers latency but cuts people off mid-thought;
+conservative is polite but laggy. **Barge-in:** the user talking over the agent, which forces TTS
+to be cancellable mid-utterance and the agent's state to survive being interrupted. **Streaming:**
+to hide latency you stop thinking in request/response and start overlapping stages — emit partial
+ASR as the user speaks, run the agent on partial transcripts, begin TTS on the first sentence of
+the reply — so the perceived latency becomes time-to-*first*-audio, not total. And streaming
+reintroduces risk: acting on a provisional transcript means sometimes acting on words the user
+hadn't finished saying. None of this is the model's job; it's the loop's, and the loop is the
+actual engineering.
+
+## What simpler alternative exists?
+
+A **text interface over the same agent** — the honest baseline. It removes the entire real-time
+loop: no latency budget, no endpointing, no barge-in, no mistranscription cascade, and it leaves a
+written record you can log and audit for free. The agent in the middle is byte-for-byte the same,
+so a text UI is strictly simpler and more reliable; you are choosing voice only to serve a channel
+text can't reach. And even when you do choose voice, the cheaper move is to keep a **transcript in
+the loop** wherever possible, so you retain the inspectability that end-to-end speech would
+otherwise throw away.
+
+## When should I use it?
+
+When the channel genuinely rules text out: hands-free/eyes-free use (driving, kitchens,
+warehouses, some medical and field work), telephony and IVR where the interaction is audio by
+definition, and accessibility for users who can't easily type or read a screen — *and* you can
+afford the real-time loop and the governance burden. Good fits are bounded, well-scoped spoken
+tasks where the value of being hands-free outweighs the reliability and latency tax, and where
+consequential actions can be gated behind an explicit confirmation.
+
+## When should I avoid it?
+
+Whenever the user has a screen and free hands — which is most of the time. Avoid voice when text
+would do: it will cost you more, fail more, and audit worse for no benefit. Avoid it when the task
+is high-stakes and you can't wrap consequential actions in spoken confirmation; when latency
+genuinely can't be brought inside a conversational budget; when you can't meet the consent,
+recording, and biometric-data obligations; and any time "add a voice assistant" is reaching for an
+impressive capability rather than serving a channel that actually requires it. If text is on the
+table, the honest default is text.
+
+## Where it sits on the autonomy spectrum
+
+A voice agent is an [advanced system](/concepts/workflows-vs-agents): a
+[tool-using](/concepts/tool-calling), usually [stateful](/concepts/memory) agent given a
+**real-time perception/actuation channel** — it perceives through a microphone and acts through a
+speaker under a latency budget. Crucially, adding voice does *not* move the agent up the autonomy
+spectrum; the agent in the middle is exactly as autonomous as its text twin. What voice adds is a
+*channel*, and the channel is where the difficulty concentrates. Like [computer use](/concepts/computer-use),
+it is a familiar agent pointed at a harder input/output surface — there, pixels and coordinates;
+here, audio and time.
+
+## Security and governance
+
+Voice inherits every agent-level risk unchanged — [prompt injection](/governance/owasp-llm-top-10)
+and excessive agency apply to the agent in the middle exactly as in any agent — and adds a category
+of its own, rooted in the *audio channel* rather than the model's outputs:
+
+- **Consent and recording.** Capturing audio triggers notice-and-consent obligations that vary by
+  jurisdiction and by one-party vs all-party rules. "We record every call" is a legal decision, not
+  just a technical one.
+- **Voice is personal — and biometric — data.** A voiceprint can identify a person, so recordings
+  and voiceprints are sensitive personal data. [GDPR](/governance/gdpr) treats biometric identifiers
+  as a special category with heightened duties — a lawful basis (often explicit consent), data
+  minimization, and retention limits.
+- **Cloning and impersonation.** Modern TTS can clone a voice from little audio. Your own synthesis
+  is therefore an impersonation capability that can be misused, *and* it means any voice-biometric
+  authentication is attackable by synthesis — "it sounds like them" is not proof of identity.
+- **Weaker audit trail.** Speech resists logging, search, redaction, and review far more than text,
+  so incident review is harder unless you *deliberately* keep a transcript — and the very move that
+  makes voice feel natural (end-to-end speech, no transcript) is the move that destroys auditability.
+- **Disclosure and oversight.** A realistic voice can make a user forget they're talking to a
+  machine, so "you are speaking with an automated assistant" is both an honesty requirement and,
+  under transparency-focused regulation, increasingly an explicit one. The [EU AI Act](/governance/eu-ai-act)'s
+  transparency expectation (that people know they're interacting with AI), plus human-oversight and
+  logging expectations for higher-risk uses, are the natural hooks. None of these frameworks applies
+  *merely because* a system uses voice — applicability depends on the use case, sector, data, and
+  jurisdiction. The controls (explicit disclosure and consent, minimized audio/voiceprint retention,
+  a kept transcript for audit, confirmation on consequential actions, and not trusting voice as sole
+  authentication) are both the risk mitigation and the evidence you'll want when a framework applies.
+
+## Build it, then own it
+
+The whole loop is a few readable files in this repo:
+[`pipeline.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/voice/pipeline.ts)
+(the ASR → agent → TTS stages, and the fidelity flag that makes error compounding mechanical),
+[`turn-taking.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/voice/turn-taking.ts)
+(the idle → listening → thinking → speaking machine, with barge-in interrupting speaking), and
+[`loop.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/voice/loop.ts) (the turn,
+the injected clock, and the latency accumulator). Read `loop.ts` and find where the response
+latency stops growing (the moment playback starts — that's the number the user feels); then follow
+`MISTRANSCRIPTION_TURN` in
+[`demo.ts`](https://github.com/ZeroCool989/agent-atlas/blob/main/src/lib/voice/demo.ts) and watch a
+single mis-heard word travel, unnoticed, all the way to the user's ear. Then try the interview
+questions below.

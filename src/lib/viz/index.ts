@@ -120,3 +120,15 @@ export type {
   ObservabilitySceneInput,
   ObservabilitySpanRow,
 } from './observability-scene';
+export {
+  createVoiceAgentsScene,
+  VOICE_AGENTS_DEMO,
+  TURN_STATES,
+  PIPELINE_STAGES,
+} from './voice-agents-scene';
+export type {
+  VoiceAgentsScene,
+  VoiceAgentsSceneInput,
+  StageView,
+  StageStatus,
+} from './voice-agents-scene';

@@ -1,0 +1,59 @@
+question: "When is voice the wrong interface, and what does it cost you versus a text interface?"
+concepts:
+  - voice-agents
+  - workflows-vs-agents
+roles:
+  - architect
+  - product
+  - consultant
+difficulty: deep
+answers:
+  beginner: >-
+    Voice is the wrong interface most of the time — text is the default, not voice. Text is cheaper, more
+    reliable, lower-latency, and it leaves a clean written record you can read back, log, and audit. Voice adds
+    a whole real-time system on top of your agent — transcription errors, latency budgets, turn-taking — for a
+    worse audit trail and a higher chance of getting the input wrong. So voice earns its place only when the
+    situation genuinely rules text out: the user's hands and eyes are busy (driving, cooking, on a factory
+    floor), it's a phone or IVR channel where there's no screen, or it's an accessibility need. If the user
+    could just as easily type, they probably should.
+  professional: >-
+    The decision is "what does the channel force," not "what's impressive." Reach for voice when text is
+    genuinely unavailable or worse: hands-free and eyes-free contexts (driving, kitchens, warehouses, medical),
+    telephony and IVR where the channel is audio by definition, and accessibility for users who can't easily
+    type or read a screen. Avoid it — prefer text — almost everywhere else, and be explicit about the costs
+    you're taking on. Reliability: ASR mistranscribes, and in a cascade that error is invisible to the agent
+    and gets spoken back confidently, so you need confirmation flows for anything consequential, which slows
+    the conversation further. Latency: you're on a few-hundred-millisecond budget that text doesn't impose.
+    Auditability: speech is harder to log, search, redact, and review than text, and you've now got recordings
+    to govern. Ambiguity: no unambiguous "send" — you have to guess turn boundaries. Discoverability: a voice
+    UI can't show the user what it can do the way a screen can. The honest recommendation is that voice is a
+    situational interface with a real tax, and the simpler alternative — a text interface over the exact same
+    agent — is usually more reliable, cheaper, and easier to govern. Voice should be a documented choice driven
+    by the channel, not a default UX.
+  deep: >-
+    The trap is treating voice as a premium upgrade to a text agent when it's actually a different, more
+    expensive system wrapped around the same agent. The agent in the middle is identical; what you're buying
+    with voice is a hard real-time perception/actuation channel, and what you're paying is reliability,
+    latency, auditability, and cost — so the question isn't "can we add voice" (usually yes) but "does the
+    channel force it, and can we afford the tax." That reframes it as risk-adjusted: a mistranscription isn't a
+    typo the user sees and fixes, it's a wrong input the agent acts on and speaks back fluently, so
+    higher-stakes actions need explicit spoken confirmation, which erodes the very naturalness voice was
+    supposed to provide. And you've taken on consent and recording obligations, voice data as biometric
+    personal data, and a worse audit trail — governance costs a text box doesn't have. So the mature answer is
+    a ladder: default to text; if the channel is audio (telephony) or the user is hands/eyes-busy or has an
+    accessibility need, voice is justified; and even then, keep a text transcript in the loop wherever you can
+    so you retain the inspectability voice otherwise throws away. "We shipped a voice assistant" should be a
+    decision you can defend from the use case, not a feature you added because it demos well — the same
+    discipline the autonomy spectrum demands everywhere: add capability only when the task genuinely needs it,
+    and voice is unusually costly capability.
+followUps:
+  - "You have a working text agent and a stakeholder wants voice 'because it's modern.' How do you run that decision?"
+  - "Give a case where voice is clearly right, and one where it's clearly wrong, and name the deciding factor."
+  - "How does a mistranscription change your design for a consequential action compared to the text version?"
+criticalThinking: true
+practicalExample: >-
+  The mistranscription fixture in this repo (src/lib/voice/demo.ts, MISTRANSCRIPTION_TURN) makes the
+  reliability cost concrete: ASR mis-hears one word, the injected agent acts on the wrong transcript, and TTS
+  speaks a confident, fluent, wrong confirmation — the turn "succeeds" mechanically while telling the user
+  something false. A text interface over the same agent (src/lib/voice/pipeline.ts) would have shown the user
+  the exact words to confirm, which is the auditability and reliability voice trades away.

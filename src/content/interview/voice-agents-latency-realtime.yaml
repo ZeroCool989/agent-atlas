@@ -1,0 +1,55 @@
+question: "Why is a voice agent a real-time systems problem, and where does the latency budget actually go?"
+concepts:
+  - voice-agents
+  - failure-modes
+roles:
+  - engineer
+  - architect
+difficulty: deep
+answers:
+  beginner: >-
+    Because in a spoken conversation, people expect a reply in a few hundred milliseconds — a longer gap feels
+    like a broken line. But a voice agent has to do several things in series before it can even start talking:
+    wait long enough to be sure you stopped speaking, transcribe your audio, run the agent, and synthesize the
+    reply into speech. Each step adds delay, and they add up. On top of that it has to handle you interrupting
+    it. So the hard part isn't the model being smart — it's the whole thing being fast enough and well-timed
+    enough to feel like a conversation.
+  professional: >-
+    The budget is roughly: endpointing delay + ASR + agent inference + TTS, all in series, before the user
+    hears a single word. Endpointing — deciding the user has actually stopped — is a real and underrated slice:
+    you're waiting on trailing silence to be confident, and that silence is dead time in the budget. Then ASR,
+    then the agent (usually the biggest and most variable cost once a real model and tool calls are involved),
+    then TTS. Because they compose, a "reasonable" number at each stage can still blow a tight conversational
+    budget. That's why production voice systems stream rather than batch: emit partial ASR as the user speaks,
+    start the agent on partial transcripts, and begin TTS on the first sentence of the reply instead of waiting
+    for the whole thing — you overlap stages to hide latency. Turn-taking is the other real-time constraint:
+    endpointing at the start of the agent's turn, and barge-in during it — the user starts talking over the
+    agent and it must stop speaking immediately and start listening, which means TTS has to be cancellable
+    mid-utterance. Get any of this wrong and the system feels laggy, talks over people, or won't let itself be
+    interrupted — all of which read as "broken" regardless of how good the underlying model is.
+  deep: >-
+    The frame that matters: latency and turn-taking are not polish, they're the product. A text agent can take
+    three seconds and nobody minds; a voice agent that takes three seconds to start replying is unusable, so
+    the same agent quality buys you a much smaller time budget. That reframes the whole architecture. You stop
+    thinking in request/response and start thinking in streams and overlap: partial ASR feeding an
+    incrementally-run agent feeding sentence-at-a-time TTS, so the perceived latency is the time to the FIRST
+    audio, not the total. Endpointing becomes a tunable trade with no right answer — aggressive endpointing
+    lowers latency but cuts people off mid-thought; conservative endpointing is polite but laggy — and the
+    "right" setting depends on the domain (a form-filling IVR wants different tuning than a brainstorming
+    partner). Barge-in forces the system to be interruptible everywhere: a half-spoken reply must be
+    abandonable, and the agent's state has to survive being cut off. And this real-time pressure interacts with
+    error compounding: streaming means the agent sometimes acts on a partial or provisional transcript, so you
+    trade latency for the risk of acting on words the user hadn't finished saying. The honest whiteboard answer
+    is that a voice agent is an agent wrapped in a soft-real-time loop, and the loop — budgets, streaming,
+    endpointing, barge-in — is the actual engineering, with the model as one term in the latency sum.
+followUps:
+  - "How does streaming (partial ASR, incremental agent, sentence-at-a-time TTS) change the latency you optimize?"
+  - "Endpointing too aggressively vs too conservatively — what breaks in each direction, and how would you tune it?"
+  - "What has to be true about your TTS and agent state for barge-in to work correctly?"
+criticalThinking: false
+practicalExample: >-
+  The latency accumulator in this repo (src/lib/voice/loop.ts) sums each modeled stage — endpointing + ASR +
+  agent + TTS — into an end-to-end budget and flags when it blows a conversational target; the numbers are
+  labeled illustrative, not measured. The turn-taking state machine (src/lib/voice/turn-taking.ts) encodes
+  idle → listening → thinking → speaking with a barge-in transition that interrupts speaking and hands the
+  floor back, and the BARGE_IN_TURN and MISTRANSCRIPTION_TURN fixtures exercise both.
