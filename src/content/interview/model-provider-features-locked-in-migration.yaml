@@ -1,0 +1,52 @@
+question: "You inherit an app that leans hard on one provider's native features — structured-output mode, its caching, hosted tools, and its server-side memory. Leadership now wants a second provider for resilience. How bad is this, and what do you do?"
+concepts:
+  - model-provider-features
+  - memory
+roles:
+  - engineer
+  - architect
+difficulty: deep
+criticalThinking: true
+answers:
+  beginner: >-
+    First I'd figure out which features actually hurt, because they're not equal. The
+    structured-output mode and the hosted tools are cheap to move — JSON mode is validation I can
+    do myself, and a hosted tool is a tool I can run behind the same interface. Caching is a cost
+    thing, not a correctness thing, so worst case the second provider is a bit pricier until I add
+    my own caching. The one that really bites is the server-side memory, because the provider
+    holds the conversation state, so moving isn't just code, it's migrating data that lives on
+    their side. I'd sort the features by how hard each is to leave, do the easy ones first to prove
+    the seam works, and treat the memory migration as its own project with a data-move plan.
+  professional: >-
+    I'd resist the urge to "abstract everything" at once and instead inventory the welds and price
+    each. Structured output and hosted tools are low-lock-in: I introduce a capability shim so the
+    app expresses the need and the shim resolves to native or a portable fallback, then re-point
+    the easy ones and ship. Caching is low-lock-in too and purely a cost lever, so it can lag.
+    Provider-side memory is the expensive weld because it holds state — I can't just switch a flag,
+    I have to stand up my own conversation store, backfill the history the provider currently
+    holds, and cut over. So my plan is: build the seam, migrate the cheap features first to
+    de-risk it, then run the memory migration as a stateful data move with a dual-write or
+    replay-and-verify step. Throughout, I'd quantify the exit cost with something like a
+    portability score so leadership sees which features are debt and we stop adding more of the
+    expensive kind. And I'd name the real lesson: the pain here isn't the second provider, it's
+    that the first integration welded state-holding features into business logic with no seam.
+  deep: >-
+    I'd frame it as unwinding a portability ledger where the entries have very different weights.
+    The build project's scoring is the mental model: hosted tools and structured output carry low
+    lock-in weight and hold no state, so they're a mechanical swap behind a shim; caching is low
+    weight and cost-only; provider memory carries the highest weight precisely because the state
+    lives on the provider, so its migration is data, not code. My sequence is deliberate:
+    introduce the capability shim, cut the zero-state features over first to validate the
+    interface and get an early resilience win, and isolate the memory migration as a project with
+    its own risks — exporting or reconstructing thread state, dual-writing to my own store during a
+    transition, and verifying replayed conversations behave identically. I'd also challenge the
+    goal a little: "a second provider for resilience" is only real if the memory is portable, so if
+    we don't migrate that, we have failover for everything except the stateful path, which is worth
+    surfacing. The forward fix is the same seam applied from day one, plus a rule that
+    state-holding native features need an explicit lock-in decision, not a default. The thing I'd
+    want the interviewer to hear: I sequenced by lock-in weight and treated provider-held state as
+    a data-migration problem, not a code one.
+followUps:
+  - "Which of the four features is the migration blocker, and precisely why is it different from the others?"
+  - "How would you migrate conversation state that currently lives only on the provider's side?"
+  - "What would you put in place so the next integration doesn't weld state-holding features into business logic?"

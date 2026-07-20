@@ -136,3 +136,9 @@ export { createCostScene } from './cost-scene';
 export type { CostScene, CostSceneInput, CostCallRow } from './cost-scene';
 export { buildAgentFrameworksScenes } from './agent-frameworks-scene';
 export type { AgentFrameworksScene, FrameworkRow } from './agent-frameworks-scene';
+export { createProviderFeaturesScene } from './provider-features-scene';
+export type {
+  ProviderFeaturesScene,
+  ProviderFeaturesSceneInput,
+  ProviderFeatureRow,
+} from './provider-features-scene';

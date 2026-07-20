@@ -1,7 +1,7 @@
 ---
 title: "Model-provider features"
 layer: vendor-specific
-oneLiner: "The proprietary extras one provider bolts onto the primitives — a specific structured-output mode, a caching API, a hosted tool, a batch endpoint. Convenient, but the outermost, most volatile ring of the map: adopt with your eyes open to lock-in."
+oneLiner: "The proprietary extras a provider bolts onto the shared primitives — a native structured-output mode, a prompt-caching API, a hosted tool, a batch endpoint, provider-side memory. Real convenience, and the outermost, most volatile ring of the map: each one you build on is a lock-in cost you pay on purpose."
 prerequisites:
   - tool-calling
   - structured-outputs
@@ -9,16 +9,280 @@ related:
   - agent-frameworks
   - mcp
   - cost-engineering
-interviewTags: ["vendor", "provider", "lock-in", "portability", "apis"]
-status: stub
+governance:
+  - iso-42001
+  - gdpr
+  - owasp-llm-top-10
+interviewTags: ["vendor", "provider", "lock-in", "portability", "apis", "data-residency"]
+status: complete
+verdict:
+  classification: vendor-specific
+  problem: "Every provider wraps the same primitives — tokens, tool calling, structured output, caching, conversation state — in its own proprietary surface: a native JSON mode, a caching API, hosted web search or code execution, a batch endpoint, server-side threads. Building an app means deciding, feature by feature, whether to reach for the convenient wrapper or the portable mechanism underneath, usually without noticing you decided."
+  simplerBaseline: "Build on the primitive. Structured output is prompt-plus-validate, a hosted tool is a tool you run yourself, provider memory is conversation state in your own store — every one has a portable version this repo already teaches. That version is more of your own code and sometimes slower or dearer, and it runs on any provider unchanged."
+  mainCost: "A provider feature is the fastest-moving, least-portable layer there is. Adopt one and you take on a provider-specific surface (and, for caching and memory, provider-held state) that a future switch has to unwind — so the convenience is real and so is the migration bill. The rule the whole atlas argues: learn the primitive first, treat the wrapper as a convenience you can swap."
 updated: 2026-07-20
 ---
 
-> **Stub** — planned territory on the atlas, deliberately at the rim. This concept will cover:
-> how each provider wraps the shared primitives (tokens, tool calling, structured output,
-> caching) in its own proprietary surface — a specific JSON-mode, a prompt-caching API, hosted
-> tools, batch endpoints, provider-side memory — the genuine convenience these buy, and the
-> honest cost: they are the fastest-moving, least-portable layer, so building on them is a
-> lock-in decision to make on purpose. The rule the whole atlas argues: learn the primitive
-> first (it's stable), treat the vendor's wrapper as a convenience you can swap. Builds on
-> Tool calling and Structured outputs.
+import ProviderFeaturesDemo from '../../../components/viz/ProviderFeaturesDemo';
+
+A model provider does not only sell you a model. Around the raw call it builds a surface of
+proprietary features: a [structured-output](/concepts/structured-outputs) mode that guarantees
+valid JSON, a prompt-caching API that discounts a repeated prefix, hosted tools it runs for you
+(web search, a code sandbox), a batch endpoint at a lower price, server-side memory that holds a
+conversation so you pass an id instead of the history. Each one is a genuine convenience, and each
+one wraps a primitive you already understand from the layers closer to the center of this map. That
+is the whole subject of the vendor-specific ring: not new capability, but proprietary *packaging* of
+capability you can also build yourself. The feature is faster to reach for. It is also the least
+portable code you will write, because it exists only on that provider and can change under you on
+their schedule, not yours. Building on it is a lock-in decision — a reasonable one, often — and the
+lesson is to make it on purpose rather than by reflex.
+
+> **Mental model: a proprietary port on a standard tool.** The primitive is the standard fitting
+> every provider exposes; the feature is a proprietary port bolted on top that snaps into place
+> faster and holds tighter. Snap into it and you move quicker today. You have also committed to that
+> vendor's port, so swapping tools later means machining an adapter back to the standard fitting.
+> **Where the analogy breaks:** a physical port is fixed once it ships. A provider feature is
+> *software the vendor keeps changing* — the port's shape, price, and behavior can shift on their
+> release cadence, so you are locked to a moving target, not a stable one. The convenience is real;
+> the thing you are locked to is less settled than any hardware standard.
+
+## What problem existed before this?
+
+The primitives on their own leave real work on your plate. Structured output means you prompt for
+JSON and then validate it and retry when the model returns something malformed. A tool means you
+define it, host whatever runs it, and secure that. Caching a repeated prompt prefix means paying
+full price for it every call unless you build something. Conversation memory means storing the
+history yourself and replaying it into each prompt. None of this is hard, and this atlas builds all
+of it by hand in the layers underneath — but it is code you write, run, and own. Providers watched
+their customers re-implement the same handful of conveniences around every app and did the obvious
+thing: they moved the common ones inside the API. The problem being solved is not "the model cannot
+do X." It is "everyone keeps rebuilding the same scaffolding around the model, so let us sell the
+scaffolding too."
+
+## Why was this invented?
+
+Because the fastest way to grow a platform is to make the easy path also the proprietary one. A
+native structured-output mode, a one-line caching flag, a hosted search tool, a batch queue, a
+threads API — each removes a chunk of undifferentiated work, and each is a reason to stay. The
+convenience is real and so is the incentive behind it: a feature that only exists here is a feature
+you would have to replace to leave. That is not a cynical reading, it is just the shape of the
+market. Providers compete partly on model quality and partly on how much of the surrounding work
+they can absorb, and absorbing that work is what these features are. They were invented for the same
+reason every convenience layer in software was invented, with one extra property that matters here:
+the layer is proprietary and moves fast, so the convenience and the lock-in arrive in the same
+feature.
+
+## How does it work?
+
+Under every provider feature sits a primitive from a more central layer of this map, and the feature
+is a wrapper that trades portability for convenience over it. The categories are stable even though
+the specific APIs are not:
+
+- **Structured-output mode** wraps *schema-plus-generation*. The primitive is: ask for JSON, validate
+  against your schema, retry on a miss. The feature constrains the model's decoding to your schema so
+  valid output comes back the first time. The portable fallback is the validate-and-retry loop the
+  [Structured outputs](/concepts/structured-outputs) lesson builds.
+- **Prompt-caching API** wraps *tokens and price*. The primitive is: a stable prefix is the same
+  tokens every call, billed every time. The feature marks that prefix and bills it cheaply on later
+  calls (see [Cost engineering](/concepts/cost-engineering)). The fallback is to pay full price, or
+  run your own response cache for repeated whole requests.
+- **Hosted tools** wrap *[tool calling](/concepts/tool-calling)*. The primitive is: the model names a
+  tool and arguments, something runs it, the result returns to the loop. The feature runs the tool —
+  a web search, a sandboxed interpreter — for you. The fallback is to define the same tool in your
+  own registry and run it yourself.
+- **Batch endpoint** wraps *many independent requests*. The primitive is a list of calls with no
+  ordering. The feature takes the whole list at a discount and handles the queueing. The fallback is
+  your own loop with a concurrency limit and backoff.
+- **Provider-side memory / threads** wraps *conversation state*. The primitive is: store the messages
+  and replay them into the next prompt (the [Memory](/concepts/memory) lesson). The feature holds the
+  thread for you, so you pass an id. The fallback is to keep that state in your own store.
+
+The visual below runs this model directly. Each category can be met on the provider's native wrapper
+or on the portable primitive underneath; toggle one and two things move together — the fallback path
+for that need, and the whole app's portability score. Switch the provider and watch features that
+Provider A offers natively become "primitive only" on Provider C, which forces the portable path,
+because the fallback works on every provider while the wrapper does not.
+
+<ProviderFeaturesDemo client:visible />
+
+The providers there are abstract profiles, not real vendors, and the score is not a benchmark — it
+is a lock-in-weighted count. Notice the shape: going native on provider memory (which holds your
+state and is hard to migrate) costs far more portability than going native on structured output (a
+thin wrapper you could re-implement in an afternoon). The number moves the way your migration bill
+would.
+
+## Is it actually necessary?
+
+Not in the sense that your app *cannot work* without any given feature — by construction it can,
+because the portable primitive underneath is always available and this repo builds each one by hand.
+A provider feature is convenience over a mechanism you can own, not a capability the mechanism lacks.
+Strip the feature away and structured output is still prompt-and-validate, a hosted tool is still a
+tool you run, memory is still state you replay. The autonomy of the system does not change, and
+neither does what it can ultimately do.
+
+Where the honest answer tilts toward "yes, use it" is on the work you would rather not build and run.
+A sandboxed code interpreter is real infrastructure to host and secure; a managed batch queue with a
+discount is real plumbing you would otherwise write. When the wrapper absorbs infrastructure at a
+scale where that saving is large, adopting it is a sound trade — made deliberately, with the lock-in
+priced in. The feature is necessary the way a managed service is ever necessary: not to make the
+thing possible, but to make it cheaper to operate than building it yourself.
+
+## What are the trade-offs?
+
+A provider feature buys **less code, lower latency or cost, and managed infrastructure** and charges
+**a provider-specific surface, sometimes provider-held state, and exposure to a fast-moving API.** The
+charge is the part the pitch skips, so it goes first:
+
+- **You pay (what it locks).** The feature exists only on this provider, so it is the code a future
+  switch has to unwind. Caching and memory features also *hold your state* on the provider's side,
+  which turns a migration into a data move and raises a data-residency question you did not have with
+  a local store. And the surface moves fast: the shape, price, or behavior of a proprietary feature
+  can change on the provider's schedule, and you inherit that.
+- **You gain (what it saves).** Real work removed: a validate-and-retry loop you did not write, a
+  cache tier you did not run, a sandbox you did not host and secure, a batch queue you did not build.
+  When that work is large and undifferentiated, the saving is large and the lock-in can be worth it.
+
+The summary that keeps it honest: the wrapper and its lock-in are the *same feature*, bought
+together. You are not choosing whether to accept lock-in, you are choosing how much convenience is
+worth how much of it, per feature — and provider memory and a native JSON mode are very different
+amounts of both.
+
+## What complexity does it introduce?
+
+Less code today, and a coupling you carry from then on. The immediate effect is often *less*
+apparent complexity — the feature deletes a loop or a service you would have written. The complexity
+it adds is structural and shows up later:
+
+- **A portability seam.** Every native feature is a place your app is welded to one provider. Spread
+  enough of them through the codebase and "switch provider" stops being a config change and becomes a
+  project, because the welds are load-bearing and scattered.
+- **Provider-held state to account for.** A caching or memory feature parks state on the provider —
+  content that must be retained, migrated, and reasoned about for residency and retention. That state
+  is now split across your store and theirs.
+- **A moving dependency in the critical path.** A proprietary feature can change behavior on upgrade
+  the way a fast-moving library can, except you do not pin it — the provider ships it. Your agent's
+  behavior can shift because their feature did.
+- **A blurred audit boundary for hosted tools.** When the provider runs the web search or the code
+  execution, the record of *what the tool did* lives on their side, so answering "what exactly did the
+  agent search for, and what came back" now depends on their logs, not yours.
+
+None of this exists in a self-contained app built on the primitives, where the whole mechanism is in
+your own code and every action is logged at your own boundary.
+
+## What simpler alternative exists?
+
+Build on the primitive. It is the plainer engineering choice more often than the convenience makes it
+feel, because the primitive is the stable, central part of the map and the wrapper is the volatile
+rim. Concretely: validate JSON yourself instead of a native mode; define and run your own tools
+instead of hosted ones; keep conversation state in your own store instead of provider threads; run
+your own request loop instead of a batch endpoint. Each is more of your own code, and each runs on
+any provider unchanged and logs at your own boundary.
+
+Between "own every primitive" and "adopt every feature" sits the seam that makes the trade cheap: put
+a thin interface of your own between your app and the provider — express the *need* ("give me
+structured output," "cache this prefix," "remember this thread"), and satisfy it behind that interface
+with either the native feature or the portable fallback. Then adopting a feature is a one-file
+decision and leaving it is too. The build project for this lesson is exactly that seam: one neutral
+request resolves to the native wrapper where a provider offers it and to the portable primitive where
+it does not, and your calling code never changes because it asked for the need, not the vendor's
+endpoint.
+
+## When should I use it?
+
+- When the feature absorbs **real infrastructure you would otherwise build and run** — a sandboxed
+  interpreter, a managed cache tier, a batch queue — and that saving, at your volume, outweighs the
+  lock-in.
+- When you have **deliberately committed to a provider** for other reasons and are choosing to spend
+  the portability you already spent, rather than paying twice by hand-rolling around a provider you
+  are not going to leave.
+- When the lock-in is **cheap to unwind** — a native JSON mode or a hosted tool you could re-point at
+  the portable fallback in an afternoon is a low-stakes convenience to take, unlike provider-held
+  memory.
+- **Behind your own seam**, so the choice is reversible: adopt the feature through the interface that
+  also knows the fallback, so "use the wrapper" and "use the primitive" are a swap, not a rewrite.
+
+## When should I avoid it?
+
+- When **portability is a stated requirement** — a future provider switch, a multi-provider strategy,
+  or a procurement rule against single-vendor dependence makes the primitive the right default, and
+  every native feature a debt against it.
+- For the **high-lock-in, state-holding features when you have a data-residency or retention
+  constraint** — provider-side memory or caching parks content where a rule may forbid it, and that is
+  a hard no, not a convenience trade.
+- When the feature is a **thin wrapper you could own trivially** — reaching for a native mode to save
+  a validate-and-retry loop you understand is taking lock-in for almost no saving.
+- When you have **not learned the primitive yet** — adopt a wrapper before you understand the
+  mechanism it hides and you cannot fall back, cannot debug it when it changes under you, and cannot
+  judge whether it is even earning its keep. Learn the stable thing first; the wrapper is a decision
+  you make *after*.
+
+## The categories change fast — the primitives do not
+
+The single most useful thing to hold onto in this layer: **the specific features are a moving target,
+and the primitives beneath them are not.** Any named API — this JSON mode, that caching flag, these
+hosted tools — may be renamed, repriced, deprecated, or superseded by the time you read about it, and
+new ones appear constantly. This lesson names *categories* (structured-output modes, caching,
+hosted tools, batch, provider memory) precisely so it does not go stale on a vendor's release note.
+When you meet a new provider feature, the productive question is not "how do I use it" but "what
+primitive does it wrap, and what does the wrapper cost me in portability" — because the primitive is
+the part you already know and the part that will still be true next year.
+
+## Common misconceptions
+
+- **"A provider feature gives the model new abilities."** It does not. It packages a primitive you can
+  build yourself. Hosted web search is tool calling with the tool run for you; native JSON mode is
+  validation done for you. The capability was already reachable.
+- **"Native structured output means I can stop validating."** Treat provider output as untrusted at
+  your boundary regardless. A native mode makes valid JSON *likely*, not guaranteed against every edge,
+  and the [Structured outputs](/concepts/structured-outputs) discipline — validate, then decide — still
+  applies.
+- **"Lock-in is all-or-nothing."** It is per-feature and weighted. A native JSON mode is cheap to
+  leave; provider-held memory is expensive, because the provider holds the state you would have to
+  migrate. Two features, very different debts.
+- **"Prompt caching and provider memory are the same convenience."** Different primitives. Caching
+  discounts a repeated prefix within calls; memory holds conversation state across turns. Both can park
+  state on the provider, which is why both raise a residency question, but they wrap different things.
+- **"Use the feature because it is faster to ship."** Faster today, and a coupling you carry. That can
+  be the right call, but it is a trade to make with eyes open, not a free win.
+
+## Security and governance
+
+The controls follow from one fact: a provider feature is proprietary third-party surface, sometimes
+holding your state, in the path of your system. Whether any named framework binds depends on the
+system, the data, the use case, and the jurisdiction — a link here is potential relevance, not a
+verdict.
+
+- **Portability and lock-in as a supplier and continuity risk.** Managing a fast-moving, proprietary
+  dependency is exactly the third-party and lifecycle concern an AI management system frames — the
+  [ISO/IEC 42001](/governance/iso-42001) view of supplier dependence and change control. Keep your
+  domain logic separable from provider features (the seam above), inventory which features you depend
+  on, and treat the cost of leaving as a number you actually know, not a surprise you meet at
+  migration. This is also the [OWASP LLM Top 10](/governance/owasp-llm-top-10) supply-chain risk:
+  proprietary features are third-party code and infrastructure you did not write, running in your
+  critical path.
+- **Data residency and where provider-side state lives.** The state-holding features — provider memory
+  and, to a degree, caching — put conversation content and cached material on the provider's
+  infrastructure. Where that data sits, how long it is retained, and whether that is permitted is a
+  [GDPR](/governance/gdpr)-shaped question about personal-data location and processing, and the reason
+  a residency constraint can turn "use the native feature" into a hard no. The portable primitive keeps
+  that state in your own store, under your own controls, by default.
+- **Auditability of hosted tools.** When the provider runs a tool — a web search, code execution — the
+  record of what it did lives on their side. For anything you must be able to reconstruct after the
+  fact, capture the evidence at *your* boundary: log the request you made and the result you received,
+  rather than trusting that provider-internal logs will answer a future "what exactly did the agent do"
+  the way your own would.
+
+## Build it, then own it
+
+The argument is made concrete in a dependency-free module you can read:
+[`src/lib/provider-features/`](https://github.com/ZeroCool989/agent-atlas/tree/main/src/lib/provider-features).
+It names the five categories of provider feature, each with the primitive it wraps, the convenience it
+buys, and the portable fallback beneath it; a **capability shim** (`resolve`) that expresses one
+neutral need and resolves it to the native wrapper where a provider offers it or the portable fallback
+where it does not, so your calling code never changes; a **decision rule** (`recommendStrategy`) that
+weighs portability, volume, managed-infrastructure need, and data-residency to recommend native or
+portable per need; and a **lock-in scoring model** (`scorePortability`) that reports how portable an
+app is, weighted by how hard each native feature is to leave, and flags which choices park state on the
+provider. It uses no real vendor and asserts no real API — the values are teaching weights, the
+*shape* is what is real. Read it, watch provider memory cost far more portability than a native JSON
+mode, then try the interview questions below.
