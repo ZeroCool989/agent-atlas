@@ -1,0 +1,90 @@
+---
+/**
+ * Transcript Studio (`/studio`, ADR-0006). Three explicitly-labelled modes: a keyless
+ * scripted-agent Demo, a keyless deterministic Study mode, and an opt-in bring-your-own-key
+ * Lab mode. The page serializes the concept corpus and interview bank from the content
+ * collections and hands them to the island; every fact shown is grounded in the Atlas's
+ * own material.
+ */
+import { getCollection } from 'astro:content';
+
+import Base from '../layouts/Base.astro';
+import TranscriptStudio from '../components/viz/TranscriptStudio';
+import type { ConceptRef, InterviewRef } from '../lib/transcript';
+
+// Skip stubs so matched concepts always point at a lesson worth reading.
+const concepts = await getCollection('concepts');
+const corpus: ConceptRef[] = concepts
+  .filter((c) => c.data.status !== 'stub')
+  .map((c) => ({
+    id: c.id,
+    title: c.data.title,
+    oneLiner: c.data.oneLiner,
+    layer: c.data.layer,
+    status: c.data.status,
+    tags: c.data.interviewTags ?? [],
+  }));
+
+const interviewEntries = await getCollection('interview');
+const interview: InterviewRef[] = interviewEntries.map((q) => ({
+  concepts: q.data.concepts,
+  question: q.data.question,
+  answer: q.data.answers.beginner,
+  difficulty: q.data.difficulty,
+}));
+---
+
+<Base
+  title="Transcript Studio"
+  description="Paste a transcript and turn it into study material, or watch the Atlas's agent work — keyless by default, bring your own key for a real AI summary."
+>
+  <main id="main" class="mx-auto max-w-3xl space-y-8 px-6 py-12">
+    <header class="space-y-3">
+      <h1 class="text-3xl font-bold tracking-tight">Transcript Studio</h1>
+      <p class="text-slate-600">
+        Drop in a lecture or talk transcript and get a study scaffold built from the Atlas's own
+        concepts: a map of what it covers, an ordered path through the lessons, a quiz, and flashcards.
+        It runs three ways, and each one is honest about what it does and does not use.
+      </p>
+    </header>
+
+    <section aria-label="How the three modes work" class="grid gap-3 sm:grid-cols-3">
+      <article class="rounded-md border border-slate-200 p-4">
+        <h2 class="text-sm font-semibold text-slate-800">Demo</h2>
+        <p class="mt-1 text-sm text-slate-600">
+          Watch the Atlas's agent work on a bundled transcript. It runs the real agent loop with a
+          scripted provider, so there is no key and no network call. You see the actual trace: the model
+          picks a tool, the runtime checks and runs it, the result comes back, and the loop continues.
+        </p>
+      </article>
+      <article class="rounded-md border border-slate-200 p-4">
+        <h2 class="text-sm font-semibold text-slate-800">Study</h2>
+        <p class="mt-1 text-sm text-slate-600">
+          Paste your own transcript and get a concept map, a learning path, and a quiz. Everything is
+          computed in your browser by a plain matching engine. No AI, no key, no network. It is free and
+          private, and the summary it shows is extractive: your transcript's own key sentences, not a
+          model's paraphrase.
+        </p>
+      </article>
+      <article class="rounded-md border border-slate-200 p-4">
+        <h2 class="text-sm font-semibold text-slate-800">Lab</h2>
+        <p class="mt-1 text-sm text-slate-600">
+          Paste your own API key for a real AI summary. The key is stored only in your browser and the
+          request goes straight from your browser to the provider. It never touches our servers, because
+          there is no server, and the usage bills your own account.
+        </p>
+      </article>
+    </section>
+
+    <!-- The island server-renders its shell (mode tabs and the Demo panel) here, then
+         hydrates. Without JS the shell is visible but not interactive. -->
+    <TranscriptStudio client:load corpus={corpus} interview={interview} />
+
+    <noscript>
+      <p class="rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+        Transcript Studio needs JavaScript to analyze a transcript and run the agent. The lessons it links
+        to under <a class="underline" href="/concepts">Concepts</a> read fine without it.
+      </p>
+    </noscript>
+  </main>
+</Base>
