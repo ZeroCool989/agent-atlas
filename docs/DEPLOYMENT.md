@@ -18,21 +18,31 @@ Every push and pull request runs, in order:
 A failure at any step stops the job, and the deploy job `needs` the CI job — **a red
 validate blocks deploy by construction**. Content errors are build errors.
 
-## Enabling deployment (one-time, account-side)
+## Enabling deployment (one-time, account-side) — Vercel
 
-The deploy job is skipped until explicitly enabled:
+The chosen host is **Vercel**, using its native Git integration (no CI deploy job, no
+host tokens in GitHub). `vercel.json` in the repo root pins the two things Vercel's Astro
+preset would otherwise get wrong:
 
-1. Create a Cloudflare Pages project named `agent-atlas`
-   (dashboard → Workers & Pages → Create → Pages, "Direct Upload"; or
-   `wrangler pages project create agent-atlas`).
-2. Create an API token with the **Cloudflare Pages — Edit** permission and note the
-   account id.
-3. In the GitHub repo settings:
-   - secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`;
-   - repository **variable** `CLOUDFLARE_DEPLOY_ENABLED` = `true`.
+- `buildCommand: npm run build` — the preset defaults to bare `astro build`, which would
+  **skip the `pagefind --site dist` step and ship a site with no search index**. The
+  override runs the full build.
+- `headers` — Vercel does not read `public/_headers`, so the five header-only security
+  directives (X-Frame-Options, nosniff, referrer/permissions policy, COOP) are declared
+  in `vercel.json` instead. The CSP itself is unaffected: it rides in each page's `<meta>`.
 
-From then on: pushes to `main` deploy production; every other branch deploys a preview
-URL (`<branch>.agent-atlas.pages.dev`) — the review surface for content intake changes.
+One-time setup:
+
+1. Vercel dashboard → **Add New → Project** → import the `agent-atlas` GitHub repo.
+2. Framework preset auto-detects **Astro**; leave build/output as-is (`vercel.json`
+   already sets `npm run build` → `dist`). No environment variables are required — the
+   deployed site holds no secrets (ADR-0005).
+3. Deploy. Pushes to `main` publish production; every branch/PR gets a preview URL — the
+   review surface for content-intake changes.
+
+The Cloudflare deploy job in `ci.yml` is not used with Vercel; the CI job's value is the
+green gate (typecheck → validate → test → build → e2e), which still runs on every push and
+is what Vercel builds on top of. The Cloudflare job can be left disabled or removed.
 
 ## Portability (standing condition, DECISIONS.md)
 
