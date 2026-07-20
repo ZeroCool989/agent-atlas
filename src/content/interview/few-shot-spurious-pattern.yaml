@@ -1,0 +1,51 @@
+question: "Your classifier's few-shot examples happened to be mostly one label, and now it over-predicts that label. How would this show up, why does it happen, and how do you catch it before shipping?"
+concepts:
+  - few-shot-prompting
+  - evaluation
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    It shows up as the model guessing the majority label too often, especially on ambiguous inputs —
+    accuracy looks okay on easy cases but the model is really just following the pattern in your
+    examples instead of judging each input. It happens because the model copies whatever regularity
+    it sees in the examples, and "mostly label A" is a regularity. You catch it by testing on a
+    balanced, held-out set and looking at per-class results, not one overall number — a confusion
+    matrix makes the bias obvious. The fix is to balance the examples and re-test.
+  professional: >-
+    The symptom is skewed predictions: the model leans toward whichever label dominated the examples,
+    and it's worst on borderline inputs where it has nothing to go on but the pattern. The mechanism
+    is that few-shot works by demonstration, and the model pattern-completes over everything in the
+    prompt — label frequency is part of that pattern, so an unbalanced example set is an implicit prior
+    it picks up, the same way a run of same-label examples biases order. Spurious features are the
+    subtler cousin: if your examples of one class all happen to be short, or all mention a certain word,
+    the model may latch onto that surface feature instead of the real distinction. You catch it by
+    evaluating properly — a held-out set with realistic class balance, reported per class (precision and
+    recall per label, or a confusion matrix), not a single accuracy figure that a majority-class guesser
+    can fake. I'd also run an ablation: swap the example set's balance and formats and watch whether
+    predictions move, which tells you how much the output depends on artifacts of the examples rather
+    than the input. Fixes: balance the examples, vary their surface form so no incidental feature
+    correlates with a label, and re-validate.
+  deep: >-
+    This is the failure mode that separates "few-shot disambiguated the task" from "few-shot injected a
+    bias," and it's worth being precise about why. The examples don't teach the model the concept — they
+    condition its distribution over answers — so any statistical regularity in the example set becomes a
+    prior the model applies at inference: label frequency, length, phrasing, position. That's powerful
+    when the regularity is the real signal and a trap when it's an artifact of how you happened to pick
+    the examples. It's especially dangerous because it's invisible to the checks people actually run: a
+    single aggregate accuracy number is satisfied by a majority-class heuristic, and spot-checking a few
+    outputs tends to hit the easy cases where the bias is harmless. So the discipline is evaluation
+    designed to expose it — a held-out set with a known, realistic class distribution, metrics broken out
+    per class so a collapsed recall on the minority label is visible, and slices on the input features you
+    suspect the model might be keying on. The confirmatory test is a counterfactual: change the example
+    set's balance or strip an incidental correlate and see whether predictions shift; if they do, your
+    output was riding on the examples' artifacts, not the input. The general lesson is that few-shot is a
+    lever on the model's behavior, and any lever can push the wrong way silently — which is exactly why a
+    prompt change is a change you gate behind an eval, never a change you eyeball.
+followUps:
+  - "Why would a single overall accuracy number hide this bias, and what metric exposes it?"
+  - "How would you tell 'the examples biased the label' apart from 'the model keyed on a spurious feature like length'?"
+  - "What counterfactual test confirms the output was riding on the examples rather than the input?"
+criticalThinking: true

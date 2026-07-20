@@ -1,0 +1,57 @@
+question: "A voice agent has to know when the user has finished speaking, handle being interrupted, and not talk over 'mm-hm.' Why is turn-taking hard, and how do you build it?"
+concepts:
+  - voice-agents
+roles:
+  - engineer
+  - architect
+difficulty: deep
+answers:
+  beginner: >-
+    In text the user presses enter, so the system knows the turn is over. In voice there's no enter —
+    the agent has to guess when the user is done from the audio, and people pause mid-sentence, so a
+    naive "they went quiet, it's my turn" cuts them off. Then there's interruption: if the user starts
+    talking while the agent is speaking, the agent should stop and listen, which means it has to detect
+    speech and cancel its own output fast. And short sounds like "mm-hm" or "yeah" are backchannels —
+    the user encouraging you to keep going, not taking the turn — so the agent shouldn't stop for those.
+    Getting these right is what makes a voice agent feel natural instead of robotic.
+  professional: >-
+    Turn-taking is hard because the end of a turn isn't a signal you're given, it's something you infer
+    from a continuous audio stream in real time, and humans are ambiguous — they pause to think, trail
+    off, and hand the turn back with prosody, not silence. The pieces: voice-activity detection to know
+    when there's speech, and end-of-turn (endpointing) logic to decide a pause is a real hand-off rather
+    than a mid-thought breath. Tune it too eager and you interrupt the user; too patient and the agent
+    feels laggy and unresponsive. Barge-in is the second problem: while the agent is talking, you keep
+    listening, and if the user starts speaking you stop playback immediately and cancel the in-flight
+    generation and speech, which is a cancellation and state-management problem across the whole
+    speech-to-text to model to text-to-speech pipeline. Backchannels are the third: short acknowledgments
+    like "yeah" or "mm-hm" signal "keep going," so you don't want VAD to treat them as a turn grab — you
+    distinguish continued listening from an actual interruption. All of this runs under a tight latency
+    budget, because the same delay that hurts responsiveness also makes turn-taking read as awkward. In
+    practice you either build these as explicit components around a pipeline or lean on a speech-to-speech
+    model that handles more of it end to end, trading control for a more natural default.
+  deep: >-
+    Turn-taking is the part of a voice agent that's purely a real-time interaction-dynamics problem, and
+    it's hard because conversation is full-duplex and continuous while a request-response pipeline is
+    half-duplex and discrete. Three coupled sub-problems. Endpointing: deciding a silence is a turn
+    boundary is a bet under uncertainty, because human pauses are indistinguishable from turn-ends on
+    silence alone — good systems use duration thresholds plus acoustic and increasingly semantic cues
+    (does the utterance sound complete), and the error is two-sided, cutting the user off versus dead air,
+    with no setting that avoids both. Barge-in: the agent must listen while it speaks, detect user speech
+    over its own audio (echo cancellation matters), and on a real interruption tear down in-flight work —
+    stop TTS playback, cancel the pending model generation, and reconcile state so the agent doesn't
+    resume a now-abandoned answer — all within a couple hundred milliseconds or it feels like it ignored
+    you. Backchannel discrimination: not every incoming sound is a turn claim, so you separate
+    continuers ("uh-huh," brief overlaps) from genuine interruptions, or you'll stop every time the user
+    is merely being encouraging. Every one of these is latency-bound, so turn-taking and the latency budget
+    aren't separate topics — jitter and delay directly degrade the naturalness of the hand-off. The
+    architectural fork is whether you assemble explicit VAD, endpointing, and cancellation around a
+    cascaded pipeline, which gives you control and inspectability, or adopt an end-to-end speech-to-speech
+    model that internalizes turn dynamics for a more fluid default at the cost of visibility into why it
+    interrupted or waited. The honest framing is that turn-taking has no correct static setting — it's a
+    tuned trade-off between responsiveness and patience, and it's most of what separates a voice agent that
+    feels human from one that feels like a walkie-talkie.
+followUps:
+  - "How would you distinguish a backchannel like 'mm-hm' from the user actually taking the turn?"
+  - "What has to happen, and how fast, when the user barges in while the agent is mid-sentence?"
+  - "What's the trade-off between building endpointing yourself and using an end-to-end speech-to-speech model?"
+criticalThinking: false

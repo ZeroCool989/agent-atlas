@@ -1,0 +1,55 @@
+question: "How does an MCP client find out what a server can do, and what happens when a server's tools change or its version doesn't match the client's expectations?"
+concepts:
+  - mcp
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    When a client connects to an MCP server, they negotiate: the client asks what the server offers,
+    and the server advertises its tools, resources, and prompts, each with a name, a description, and
+    a schema for its inputs. The client then exposes those to the model so it knows what it can call.
+    If the server changes — a tool is renamed, its inputs change, a tool disappears — anything built
+    against the old shape can break: the model may call a tool that no longer exists or send arguments
+    that no longer fit. So the discovery is dynamic, but that flexibility means changes on the server
+    side ripple into the client and the model.
+  professional: >-
+    Discovery is a handshake. On connection the client and server exchange capabilities — protocol
+    version and what each supports — and the client requests the server's listings: tools, resources,
+    and prompts, each with a name, human-and-model-readable description, and an input schema. The client
+    turns the tool list into the tool definitions the model sees, so what the model can do is whatever
+    the server advertised at connect time. That dynamism is the strength and the hazard. When a server
+    changes, the exposed surface changes: a renamed or removed tool means calls fail or the model
+    picks a wrong alternative; a changed input schema means arguments that used to validate now don't;
+    a changed description silently changes how the model chooses to use the tool, which is a behavior
+    change no type check catches. Protocol-version mismatch is handled by negotiation — client and
+    server agree on a version both support or the connection is refused — but that's the transport
+    contract, not your application's contract with a specific tool. Because descriptions and schemas
+    are also attacker-relevant (a server can change what a tool claims to do), a changed server is both
+    a compatibility event and a trust event. Practically I'd pin server versions, prefer servers I
+    control or vet, and not assume the tool surface is stable across a server update.
+  deep: >-
+    MCP's discovery is late-bound by design: the client learns the server's tools, resources, and
+    prompts at connection through capability negotiation and listing, which is what lets any server plug
+    into any host without bespoke integration. The cost of late binding is that your effective interface
+    is defined by the server at runtime, not fixed in your code, so three distinct kinds of change all
+    flow through the same channel. Structural changes — a tool renamed, removed, or its input schema
+    altered — surface as failed or mis-shaped calls, catchable if you validate. Semantic changes are
+    subtler and more dangerous: a tool's description is part of the model's decision to use it, so
+    rewording a description alters behavior with nothing to validate against, and a malicious or
+    compromised server can weaponize exactly that — advertise a benign description while the tool does
+    something else, or change it after you've vetted the original. Protocol-level version negotiation
+    protects the transport (both sides agree on a supported version or don't connect) but says nothing
+    about whether a given tool still means what it did. So the uniform, self-describing boundary that
+    makes MCP composable is the same property that makes a server a live, mutable dependency whose
+    advertised capabilities are an untrusted, changeable input. The disciplines follow: pin and vet
+    server versions like any dependency, treat the tool surface as unstable across updates, validate
+    schemas at the boundary, and remember that description text is behavior-affecting and attacker-
+    controllable — least privilege and approval gates exist precisely because discovery is trust-on-
+    connect, not trust-forever.
+followUps:
+  - "A server changes a tool's description but not its schema. What breaks, and why won't a type check catch it?"
+  - "How is protocol-version negotiation different from your application's contract with a specific tool?"
+  - "Why is a self-describing server capability surface also a security concern?"
+criticalThinking: false

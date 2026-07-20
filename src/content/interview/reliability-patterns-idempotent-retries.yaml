@@ -1,0 +1,53 @@
+question: "Your agent retried a tool call that had already charged a customer, and charged them twice. How do you make retries safe for side-effecting operations?"
+concepts:
+  - reliability-patterns
+roles:
+  - engineer
+  - architect
+difficulty: deep
+answers:
+  beginner: >-
+    The problem is that a retry assumes the first attempt didn't happen, but with a side effect like a
+    charge, it might have — the request succeeded and the response got lost, so the agent retries and
+    does it again. The fix is to make the operation idempotent: attach a unique key to the request so
+    the server recognizes a repeat and returns the original result instead of doing it twice. Then a
+    retry is safe because the second call with the same key is a no-op. You also want to be careful
+    which errors you retry at all — retrying a timeout is riskier than retrying a clear "rejected."
+  professional: >-
+    Retries are safe for reads and unsafe for writes, and a charge is a write. The core failure is the
+    ambiguous outcome: a timeout or dropped connection means you don't know whether the effect happened,
+    so a blind retry can duplicate it. The standard fix is an idempotency key — the caller generates a
+    unique id for the logical operation and sends it with every attempt; the server records the id and,
+    on seeing it again, returns the stored result of the first attempt instead of re-executing. That
+    turns "retry" into "ask for the result of this specific operation," which is safe to repeat. Layered
+    onto that: classify errors before retrying, since a definite failure is safe to retry and an
+    ambiguous one needs the idempotency guarantee; use the same key across the whole retry sequence, not
+    a fresh one each attempt; and in an agent loop specifically, be careful that the loop's own
+    re-planning doesn't re-issue an effectful call it already made — the agent needs to know the action
+    was taken. If the downstream service offers no idempotency support, you need your own dedup layer: a
+    record of "operation X was attempted with result Y" you consult before acting, or you accept that
+    this operation simply isn't safe to auto-retry and route ambiguous cases to a human.
+  deep: >-
+    The precise statement is that retries and side effects interact through outcome ambiguity: any effect
+    with at-least-once delivery can happen more than once, because the failure that triggers a retry
+    frequently is the response being lost after the effect committed. So making retries safe is really
+    making the operation idempotent — engineering it so that executing it twice with the same identity has
+    the same result as executing it once. The idempotency key is the mechanism: a stable, caller-chosen id
+    per logical operation, persisted server-side, so a duplicate is recognized and collapsed to the first
+    result. That decision has to live at the boundary that owns the effect (the payment service, not the
+    agent), because only it can atomically check-and-commit; a client-side guard reduces the window but
+    can't close it against concurrency. Around that core you layer error taxonomy — retry deterministic
+    failures freely, and only retry ambiguous ones when idempotency protects you — bounded retries with
+    backoff so you don't hammer a struggling dependency, and, for an agentic system, state that records
+    which effectful actions already fired so neither a naive retry nor a re-plan re-triggers them. This is
+    also where reliability meets the resume problem: a checkpointed agent that re-executes from before an
+    effect needs the exact same idempotency guarantee, which is why "make effects idempotent" is a
+    precondition for both retries and durable state. The honest caveat is that idempotency isn't always
+    available — some third-party actions genuinely aren't safe to repeat — and there the right pattern is
+    to stop auto-retrying and escalate the ambiguous case to a human, because a reliability pattern that
+    turns a lost response into a double charge has crossed from resilience into harm.
+followUps:
+  - "Why does an idempotency key have to be enforced by the service that owns the effect, not the agent?"
+  - "Which errors are safe to retry without idempotency, and which absolutely are not?"
+  - "How does this connect to safely resuming a checkpointed agent that crashed mid-effect?"
+criticalThinking: true

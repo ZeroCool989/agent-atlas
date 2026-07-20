@@ -1,0 +1,63 @@
+question: "A user invokes their right to have their data deleted from an assistant with long-term memory. Walk through what 'delete' actually has to touch, and why it's harder than dropping a row."
+concepts:
+  - memory
+  - rag
+roles:
+  - governance
+  - architect
+  - engineer
+difficulty: deep
+answers:
+  beginner: >-
+    The obvious part is deleting the user's stored records. The hard part is everywhere that data
+    already spread to. Long-term memory usually isn't just a table of facts — those facts got
+    embedded into vectors in an index, summarized into rolling summaries, and possibly copied into
+    logs and backups. Deleting the original row doesn't remove the vector, the summary that
+    mentions them, or the log line. So "delete" is really "find and remove every derived copy,"
+    which you can only do if you designed the system to make that possible.
+  professional: >-
+    I'd map the data's footprint first, because deletion has to reach all of it. A memory system
+    typically has: the raw stored facts or turns, an embedding index built from them, compacted
+    summaries that fold many turns into one blob, application logs and traces, and backups. A row
+    delete handles the first. The embedding index needs the corresponding vectors removed or the
+    index rebuilt — a vector is derived personal data, not anonymous. Summaries are the awkward
+    case: a user's fact may be baked into a paragraph that also summarizes ten other turns, so you
+    either regenerate the summary without them or you can't cleanly excise it, which is an argument
+    for keeping summaries scoped per user and regenerable. Logs and backups need a retention policy
+    that actually expires, or deletion is theater. To make any of this tractable you have to design
+    for it up front: tag every derived artifact with the user id it came from, keep per-user
+    partitioning, and avoid mixing users' data into shared derived structures. Deletion you didn't
+    architect for is deletion you can't actually perform.
+  deep: >-
+    Erasure is a data-lineage problem, and long-term memory quietly maximizes lineage: one asserted
+    fact fans out into an embedding, into one or more summaries, into retrieval caches, into traces,
+    into backups — each a derived copy that still identifies the person. The right to erasure reaches
+    derived personal data, so "delete the record" is necessary and nowhere near sufficient. The
+    design consequence is that deletability is an architectural property you either build in or can't
+    retrofit: per-user keys on every artifact so a delete can enumerate the footprint; embeddings and
+    summaries kept per-user and regenerable rather than co-mingled, because you cannot surgically
+    remove one person from a shared summary blob or a re-used vector; retention windows on logs and
+    backups that actually fire; and a record of the deletion itself for accountability. There's also
+    a live-model subtlety worth naming honestly: deleting stored memory removes what gets retrieved
+    into future prompts, but anything already emitted, cached downstream, or used to fine-tune is a
+    separate exposure — memory deletion controls the retrieval surface, not every place the data ever
+    went. The uncomfortable through-line is that the same properties that make memory useful — deriving
+    compact, cross-linked representations of a person — are exactly what make erasure hard, so a team
+    that treats memory as a feature and deletion as an afterthought has built a compliance liability
+    it can't discharge on request.
+followUps:
+  - "Why isn't deleting the source record enough — what derived copies remain?"
+  - "How do you handle a user's fact that's baked into a summary shared with other users' data?"
+  - "What would you build at design time so a deletion request is actually executable later?"
+criticalThinking: true
+governanceAngle: >-
+  Long-term memory is personal-data processing, so where data-protection law applies (GDPR's right to
+  erasure and access, similar regimes elsewhere) the ability to delete on request is a legal obligation,
+  and it reaches derived data — embeddings, summaries, and logs — not just the original record. Whether
+  any of this binds depends on the system, role, use case, data, and jurisdiction; storing memory does
+  not by itself trigger a regulation. But if it does apply, the auditable controls are architectural:
+  per-user tagging and partitioning of every derived artifact, regenerable rather than co-mingled
+  summaries and indexes, enforced retention on logs and backups, and a deletion audit record. The honest
+  caveat for governance is that memory deletion controls what a future prompt can retrieve; it does not
+  reach data already surfaced, cached elsewhere, or absorbed into model training, which are separate
+  exposures to account for.

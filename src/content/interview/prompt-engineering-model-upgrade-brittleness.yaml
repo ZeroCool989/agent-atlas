@@ -1,0 +1,51 @@
+question: "A prompt that worked well for months degrades after you upgrade to a newer model. Why does that happen, and how do you build prompts that survive model changes?"
+concepts:
+  - prompt-engineering
+  - evaluation
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    A prompt is tuned to one model's quirks, so when the model changes, the quirks change and the
+    prompt can stop working. Little tricks and exact phrasings that happened to nudge the old model
+    may do nothing, or something different, on the new one. You build prompts that survive by stating
+    what you actually want clearly rather than relying on magic wording, and by having an eval suite —
+    a set of test cases with expected outcomes — so you can run the new model through it and see the
+    regression before users do. Treat a model upgrade like any dependency change: test it.
+  professional: >-
+    The root cause is that prompt engineering over-fits to a specific model. A lot of "what worked" is
+    a prompt shaped around one model's idiosyncrasies — its formatting habits, how it responds to a
+    certain instruction style, tricks discovered by trial and error. A new model has a different
+    training mix and different behavior, so that tuning doesn't transfer, and phrasing that carried real
+    weight before may now be inert or push a different direction. The robust practice is to make prompts
+    depend on clearly specified intent rather than incantation: say the task, the constraints, and the
+    output format plainly, use examples to pin behavior, and avoid brittle hacks whose only justification
+    was "it happened to help." The non-negotiable is an eval suite — representative cases with expected
+    results — so an upgrade is gated: you run the candidate model through it, see exactly which cases
+    moved, and decide with evidence instead of vibes. When something regresses, the eval also tells you
+    whether it's the prompt that needs adjusting for the new model or a genuine capability difference.
+    And I'd version prompts alongside the model they were validated against, because a prompt is only
+    "known good" relative to a model.
+  deep: >-
+    This is prompt engineering's coupling problem surfacing on schedule. A prompt isn't a spec the model
+    obeys; it's an input to a particular function, and much of the tuning that accumulates over months is
+    implicitly fitted to that function's surface — response to phrasing, formatting tendencies, sensitivity
+    to instruction placement, the exact behavior of a hack someone found empirically. Swap the model and
+    you've swapped the function, so anything that was riding on incidental behavior rather than clearly
+    expressed intent is at risk, while the plainly-specified parts tend to transfer. That gives a design
+    principle: minimize the prompt's dependence on model-specific behavior. Prefer explicit statements of
+    task, constraints, and output contract over discovered incantations; use examples to demonstrate the
+    mapping rather than describing it obliquely; and be suspicious of any prompt line whose only rationale
+    is "it improved things on the old model," because that's exactly the kind of coupling that breaks. The
+    operational half is treating the model as a versioned dependency behind an eval gate: a representative,
+    labeled suite run on every candidate model, reported per-case so you see which behaviors shifted, so an
+    upgrade is a measured migration rather than a surprise in production. The deeper honesty is that no
+    prompt is model-independent — you're always tuning to something — so the goal isn't a magic portable
+    prompt, it's minimizing incidental coupling and having the evaluation to detect what didn't survive.
+followUps:
+  - "Which parts of a prompt tend to transfer across models, and which parts break?"
+  - "How would an eval suite tell you whether to re-tune the prompt or accept a real capability difference?"
+  - "Why is a prompt line justified only by 'it helped on the old model' a liability?"
+criticalThinking: true

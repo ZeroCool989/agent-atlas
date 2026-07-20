@@ -1,0 +1,51 @@
+question: "How do you structure a production prompt — system versus user content, instructions versus data — and why does where you put things matter?"
+concepts:
+  - prompt-engineering
+roles:
+  - engineer
+  - architect
+difficulty: standard
+answers:
+  beginner: >-
+    Keep the stable stuff separate from the per-request stuff. The system message holds the role,
+    the rules, and the output format — things that don't change between calls. The user message
+    holds this request's input. And keep instructions clearly separated from data, usually with
+    delimiters, so the model can tell "here is what to do" from "here is the text to work on." Where
+    you put things matters because the model reads the whole prompt as one sequence, so structure and
+    ordering change what it pays attention to and how easily untrusted text can pose as an
+    instruction.
+  professional: >-
+    I structure a prompt around what's stable versus what varies, and around trust. The system layer
+    carries the durable contract — role, constraints, tone, output schema — because it's the same
+    every call and it's the part I want the model to weight as governing. The user layer carries the
+    request. Within that, I separate instructions from data explicitly: retrieved documents, user
+    uploads, tool results, and pasted text all go in clearly delimited blocks labeled as data, never
+    interleaved with commands. Two reasons. First, comprehension: models attend to structure, and a
+    consistent template — instructions, then context, then the specific task — makes behavior more
+    predictable, which is also why a stable structure caches and evaluates better. Second, security:
+    any content from outside the developer is untrusted, and the moment data and instructions blur, a
+    document saying "ignore previous instructions" reads like a command. Clear separation doesn't
+    eliminate prompt injection, but it's the baseline that makes the boundary legible. I'd also put the
+    output-format instruction where the model won't lose it — typically near the end of the fixed
+    instructions — and keep the whole thing versioned, because placement changes are behavior changes.
+  deep: >-
+    The model is a function over one flat token sequence, so "structure" is really about how you shape
+    attention and where you draw the trust boundary — everything else follows from that. The
+    stable-versus-variable split (system message as durable contract, user message as the request) buys
+    three things at once: predictability, because a consistent template produces consistent behavior;
+    cacheability, because a stable prefix is exactly what prompt caching rewards; and a clean seam for
+    evaluation and versioning, because the part that changed is isolated. The instruction-versus-data
+    split is the security-critical one: the model has no inherent notion that the system message
+    out-ranks a line inside a retrieved document — that precedence is a convention you construct through
+    placement, delimiting, and labeling, and it's soft, not enforced, which is why separation is
+    necessary but not sufficient against injection. Placement effects are real and worth designing
+    around: instructions the model must not drop go where they won't be crowded out by long context, and
+    long untrusted blocks are fenced so their content can't masquerade as governing text. The through-line
+    is that prompt structure is an interface contract you're asserting over a model that reads everything
+    as equally-privileged tokens — good structure makes the contract legible, testable, and cacheable, and
+    honest structure treats every non-developer token in the prompt as untrusted data by construction.
+followUps:
+  - "Why does the model not automatically treat the system message as outranking a line inside a retrieved document?"
+  - "Where would you place a strict output-format instruction in a long-context prompt, and why?"
+  - "How does a stable prompt structure help with cost and with evaluation, not just correctness?"
+criticalThinking: false
