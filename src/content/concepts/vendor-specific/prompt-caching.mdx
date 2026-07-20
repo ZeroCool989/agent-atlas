@@ -1,0 +1,39 @@
+---
+title: "Prompt caching"
+layer: vendor-specific
+oneLiner: "A provider-side cache that lets you reuse the compute for an unchanged prefix of your prompt across calls — a real cost and latency win, and a concrete instance of the vendor-specific layer: the API shape, pricing, and TTL are one provider's, not a shared standard."
+prerequisites:
+  - tokens
+  - cost-engineering
+related:
+  - model-provider-features
+  - context-windows
+interviewTags: ["caching", "cost", "latency", "vendor", "prefix", "portability"]
+status: stub
+updated: 2026-07-20
+---
+
+> A deliberate marker of planned territory at the rim of the atlas. Prompt caching is a
+> genuinely useful provider feature, but it sits in the most volatile ring — so it is
+> mapped here as a named, honest stub rather than pretended-complete.
+
+This concept will cover, when built out:
+
+- **The mechanism** — how a provider caches the internal state for an unchanged prompt
+  *prefix* so a later call that shares that prefix skips recomputing it, and why the win is
+  largest for long, stable system prompts and shared context reused across many calls.
+- **The primitive underneath** — that this is an optimization over
+  [tokens](/concepts/tokens) and the [context window](/concepts/context-windows): the cache
+  keys on token-exact prefixes, so a single changed early token invalidates everything after
+  it. Understanding the primitive is what lets you *design for* a cache instead of hoping one
+  helps.
+- **The economics** — the reason it belongs next to [cost engineering](/concepts/cost-engineering):
+  cached prefix tokens are billed differently (often a write cost then a much cheaper read),
+  so the savings are real but conditional on hit rate, and a naive prompt layout can pay the
+  write cost and never earn it back.
+- **Why it lives at the rim** — the *idea* (reuse prefix compute) is becoming common across
+  providers, but the **API shape, the pricing, the minimum cacheable size, and the
+  cache TTL are each one provider's choice**, not a shared standard. That is the whole
+  lesson of [model-provider features](/concepts/model-provider-features): learn the portable
+  idea, treat any specific caching API as a convenience you can swap, and keep your prompt
+  layout cache-friendly in a way that survives changing providers.

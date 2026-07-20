@@ -23,7 +23,7 @@ test.describe('concept index', () => {
 
   test('status filter and combined filters work; form reflects the URL', async ({ page }) => {
     await page.goto('/concepts?status=complete');
-    await expect(page.locator('li[data-status="complete"]:visible')).toHaveCount(26); // + memory, planning, mcp
+    await expect(page.locator('li[data-status="complete"]:visible')).toHaveCount(27); // + model-provider-features (vendor anchor)
     await expect(page.getByLabel('Status')).toHaveValue('complete');
 
     await page.goto('/concepts?layer=foundation&status=needs-update');
@@ -33,7 +33,7 @@ test.describe('concept index', () => {
   });
 
   test('empty filter result shows a clear empty state with a way out', async ({ page }) => {
-    await page.goto('/concepts?layer=vendor-specific&status=complete');
+    await page.goto('/concepts?layer=foundation&status=stub');
     await expect(page.locator('#empty-state')).toBeVisible();
     await expect(page.locator('#empty-state')).toContainText('No concepts match');
     await expect(page.locator('#empty-state').getByRole('link')).toBeVisible();
@@ -43,7 +43,7 @@ test.describe('concept index', () => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     await page.goto('/concepts?layer=core-mechanism'); // params inert without JS
-    await expect(page.locator('li[data-layer]')).toHaveCount(28);
+    await expect(page.locator('li[data-layer]')).toHaveCount(29);
     await context.close();
   });
 });
@@ -91,10 +91,10 @@ test.describe('concept pages', () => {
   });
 
   test('stub page looks intentionally incomplete, not broken', async ({ page }) => {
-    await page.goto('/concepts/model-provider-features');
+    await page.goto('/concepts/prompt-caching');
     await expect(page.getByText(/This is a stub — planned territory/)).toBeVisible();
-    await expect(page.getByRole('heading', { level: 1, name: 'Model-provider features' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Tool calling' })).toBeVisible(); // still connected
+    await expect(page.getByRole('heading', { level: 1, name: 'Prompt caching' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Tokens', exact: true })).toBeVisible(); // still connected
   });
 
   test('needs-update page shows the review flag without invalidating the content', async ({ page }) => {

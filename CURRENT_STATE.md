@@ -36,6 +36,23 @@ index, per-framework pages, and the concept×regulation **mapping matrix**, with
 GDPR enriched and NIST AI RMF + OWASP LLM Top 10 stubs (accurate appliesTo mappings).
 Suite: 426 unit, 45 e2e, build 30 pages — green at 52b6440.
 
+**Plan complete — every layer has a finished anchor (2026-07-20, 0914516).** The last stub
+became a full lesson: **model-provider-features** (vendor-specific) now ships to full DoD — a
+portability/lock-in build project (`src/lib/provider-features/`: capability registry, a
+neutral-request `resolve` shim, a lock-in-weighted portability score), a toggle-driven viz
+island, an e2e lesson spec, and 4 interview questions; it teaches primitive-vs-wrapper and is
+deliberately vendor-neutral (abstract provider profiles, no real API asserted). **All six
+essentiality layers now have a complete anchor.** One deliberate planned-territory stub remains
+at the rim **by design** — **prompt-caching** (vendor-specific) — so the atlas honestly marks
+the field's most volatile ring rather than claiming false completeness. Interview bank grown
+**108 → 132** by filling the thinnest-covered concepts (agent-frameworks, memory,
+multi-agent-systems +3 each; +2/+1 across planning, prompt-engineering, few-shot, sampling, mcp,
+reliability-patterns, voice-agents, cost-engineering). **27 complete concepts, 1 intentional
+stub.** Suite: **774 unit, 90 e2e, build 63 pages — all green.** The implementation plan
+(docs/IMPLEMENTATION_PLAN.md) is now fully implemented across L0–L6, the reliable-agent +
+production tier, and the framework/vendor rim. Remaining is owner-gated only: the Cloudflare
+deploy for a live URL.
+
 **Phase 3 — breadth (2026-07-20, f72c979).** **voice-agents** (STT→agent→TTS real-time loop),
 **cost-engineering** (tokens×price×calls + levers; 66% cut demoed), **agent-frameworks**
 (framework-abstraction; a facade over the hand-built loop proven trace-identical). Seeded a
