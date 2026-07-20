@@ -1,0 +1,24 @@
+---
+title: "Model-provider features"
+layer: vendor-specific
+oneLiner: "The proprietary extras one provider bolts onto the primitives — a specific structured-output mode, a caching API, a hosted tool, a batch endpoint. Convenient, but the outermost, most volatile ring of the map: adopt with your eyes open to lock-in."
+prerequisites:
+  - tool-calling
+  - structured-outputs
+related:
+  - agent-frameworks
+  - mcp
+  - cost-engineering
+interviewTags: ["vendor", "provider", "lock-in", "portability", "apis"]
+status: stub
+updated: 2026-07-20
+---
+
+> **Stub** — planned territory on the atlas, deliberately at the rim. This concept will cover:
+> how each provider wraps the shared primitives (tokens, tool calling, structured output,
+> caching) in its own proprietary surface — a specific JSON-mode, a prompt-caching API, hosted
+> tools, batch endpoints, provider-side memory — the genuine convenience these buy, and the
+> honest cost: they are the fastest-moving, least-portable layer, so building on them is a
+> lock-in decision to make on purpose. The rule the whole atlas argues: learn the primitive
+> first (it's stable), treat the vendor's wrapper as a convenience you can swap. Builds on
+> Tool calling and Structured outputs.
